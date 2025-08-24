@@ -1,0 +1,1355 @@
+---
+alwaysApply: true
+---
+# Cursor AI Architecture Rules & Guidelines
+## Senior Solution Architect | Cloud Architect | Cybersecurity Architect
+
+---
+
+## 🏗️ FUNDAMENTAL ARCHITECTURE PRINCIPLES
+
+### 1. Microservices Design Principles
+**ALWAYS follow these core principles:**
+
+- **Single Responsibility**: Each microservice handles ONE business domain only
+- **Bounded Context**: Clear service boundaries aligned with DDD (Domain-Driven Design)
+- **Database Per Service**: No shared databases between services
+- **API-First Design**: All communication through well-defined APIs
+- **Stateless Services**: Services must be stateless for horizontal scaling
+- **Idempotent Operations**: All operations must be safely retryable
+
+### 2. Service Decomposition Rules
+**Decompose by business capability, NOT technical layers:**
+
+```
+✅ CORRECT Service Boundaries:
+- User Management Service
+- Event Management Service  
+- Booking Service
+- Payment Service
+- Notification Service
+- Search Service
+- Analytics Service
+
+❌ AVOID Technical Layer Services:
+- Database Service
+- Authentication Service (too broad)
+- API Service
+```
+
+### 3. Inter-Service Communication
+**MANDATORY communication patterns:**
+
+- **Synchronous**: REST APIs for immediate responses only
+- **Asynchronous**: Event-driven architecture for loose coupling
+- **Command Query Responsibility Segregation (CQRS)**: Separate read/write operations
+- **Event Sourcing**: For audit trails and data consistency
+
+---
+
+## ☁️ AWS CLOUD ARCHITECTURE STANDARDS
+
+### 1. AWS Service Selection Matrix
+
+| Use Case | Primary Service | Secondary Options | Justification |
+|----------|----------------|------------------|---------------|
+| **API Gateway** | API Gateway v2 | ALB + Lambda | Managed service, built-in throttling |
+| **Compute** | Lambda Functions | Fargate for long-running | Serverless-first approach |
+| **Database** | DynamoDB | RDS Aurora Serverless | NoSQL for scalability |
+| **Message Queue** | SQS + EventBridge | SNS for pub/sub | Reliable message delivery |
+| **Authentication** | Cognito | Custom with Lambda | AWS managed identity |
+| **File Storage** | S3 + CloudFront | EFS for shared access | Cost-effective, scalable |
+| **Caching** | ElastiCache Redis | DynamoDB DAX | In-memory performance |
+| **Search** | OpenSearch | DynamoDB GSI | Full-text search capability |
+
+### 2. CDK Implementation Rules
+
+**Infrastructure as Code Standards:**
+
+```typescript
+// MANDATORY: All CDK stacks must follow this pattern
+export class EventManagementStack extends Stack {
+  constructor(scope: Construct, id: string, props: StackProps) {
+    super(scope, id, props);
+    
+    // 1. ALWAYS define environment-specific configurations
+    const environment = props.environment || 'dev';
+    
+    // 2. ALWAYS use consistent naming conventions
+    const resourcePrefix = `${id}-${environment}`;
+    
+    // 3. ALWAYS implement proper tagging
+    Tags.of(this).add('Project', 'EventManagement');
+    Tags.of(this).add('Environment', environment);
+    Tags.of(this).add('Owner', 'EventTeam');
+  }
+}
+```
+
+### 3. Lambda Function Architecture Rules
+
+**MANDATORY Lambda patterns:**
+
+```typescript
+// Lambda Function Structure Template
+export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  // 1. ALWAYS implement proper error handling
+  try {
+    // 2. ALWAYS validate input
+    const validatedInput = validateInput(event);
+    
+    // 3. ALWAYS use dependency injection
+    const dependencies = initializeDependencies();
+    
+    // 4. ALWAYS implement business logic in separate modules
+    const result = await businessLogic(validatedInput, dependencies);
+    
+    // 5. ALWAYS return consistent response format
+    return formatSuccessResponse(result);
+    
+  } catch (error) {
+    // 6. ALWAYS log errors with context
+    logger.error('Operation failed', { error, event });
+    return formatErrorResponse(error);
+  }
+};
+```
+
+---
+
+## 🔒 CYBERSECURITY ARCHITECTURE REQUIREMENTS
+
+### 1. Security by Design Principles
+
+**MANDATORY security implementations:**
+
+- **Zero Trust Architecture**: Never trust, always verify
+- **Defense in Depth**: Multiple security layers
+- **Principle of Least Privilege**: Minimum required permissions only
+- **Data Encryption**: Encrypt everything in transit and at rest
+- **Audit Trail**: Log all security-relevant events
+
+### 2. Authentication & Authorization Framework
+
+```typescript
+// MANDATORY: JWT Token Validation Pattern
+export const validateToken = async (token: string): Promise<UserClaims> => {
+  try {
+    // 1. Verify JWT signature
+    const decoded = jwt.verify(token, process.env.JWT_SECRET!);
+    
+    // 2. Check token expiration
+    if (decoded.exp < Date.now() / 1000) {
+      throw new Error('Token expired');
+    }
+    
+    // 3. Validate user permissions
+    const userClaims = await validateUserPermissions(decoded.sub);
+    
+    return userClaims;
+  } catch (error) {
+    throw new UnauthorizedError('Invalid token');
+  }
+};
+
+// MANDATORY: Role-Based Access Control
+export const checkPermission = (userRole: string, requiredPermission: string): boolean => {
+  const rolePermissions = {
+    'admin': ['*'],
+    'organizer': ['event:create', 'event:update', 'event:delete', 'booking:view'],
+    'attendee': ['event:view', 'booking:create', 'booking:cancel']
+  };
+  
+  return rolePermissions[userRole]?.includes(requiredPermission) || 
+         rolePermissions[userRole]?.includes('*') || 
+         false;
+};
+```
+
+### 3. Data Protection Standards
+
+**MANDATORY data handling rules:**
+
+- **PII Encryption**: All personally identifiable information encrypted
+- **Data Classification**: Classify all data (Public, Internal, Confidential, Restricted)
+- **Data Retention**: Implement automated data lifecycle management
+- **GDPR Compliance**: Right to be forgotten, data portability
+- **Input Sanitization**: All user inputs must be sanitized and validated
+
+```typescript
+// MANDATORY: Input Validation Schema
+import Joi from 'joi';
+
+export const eventCreationSchema = Joi.object({
+  title: Joi.string().min(3).max(100).required(),
+  description: Joi.string().max(5000).required(),
+  startDate: Joi.date().greater('now').required(),
+  endDate: Joi.date().greater(Joi.ref('startDate')).required(),
+  maxAttendees: Joi.number().integer().min(1).max(100000).required(),
+  price: Joi.number().min(0).max(10000).precision(2),
+  categoryId: Joi.string().uuid().required()
+});
+```
+
+---
+
+## 🏛️ MICROSERVICES DOMAIN ARCHITECTURE
+
+### 1. Service Boundaries & Responsibilities
+
+**User Management Service**
+```
+Responsibilities:
+- User registration/authentication
+- Profile management
+- Role and permission management
+- Account verification
+
+Database Schema:
+- Users table
+- UserProfiles table
+- UserRoles table
+- UserSessions table
+```
+
+**Event Management Service**
+```
+Responsibilities:
+- Event CRUD operations
+- Event categorization
+- Event media management
+- Event status management
+
+Database Schema:
+- Events table
+- EventCategories table
+- EventMedia table
+- EventSettings table
+```
+
+**Booking Service**
+```
+Responsibilities:
+- Reservation management
+- Ticket allocation
+- Booking status tracking
+- Capacity management
+
+Database Schema:
+- Bookings table
+- BookingItems table
+- BookingStatus table
+- TicketAllocations table
+```
+
+**Payment Service**
+```
+Responsibilities:
+- Payment processing
+- Refund management
+- Financial reporting
+- PCI compliance
+
+Database Schema:
+- Payments table
+- Refunds table
+- PaymentMethods table
+- Transactions table
+```
+
+### 2. Event-Driven Architecture Patterns
+
+**MANDATORY event patterns:**
+
+```typescript
+// Event Schema Template
+export interface DomainEvent {
+  eventId: string;
+  eventType: string;
+  aggregateId: string;
+  aggregateType: string;
+  version: number;
+  timestamp: Date;
+  correlationId: string;
+  causationId: string;
+  data: any;
+  metadata?: any;
+}
+
+// Example Events
+export interface EventCreatedEvent extends DomainEvent {
+  eventType: 'EVENT_CREATED';
+  data: {
+    eventId: string;
+    organizerId: string;
+    title: string;
+    startDate: Date;
+    endDate: Date;
+    maxAttendees: number;
+  };
+}
+
+export interface BookingCreatedEvent extends DomainEvent {
+  eventType: 'BOOKING_CREATED';
+  data: {
+    bookingId: string;
+    eventId: string;
+    attendeeId: string;
+    ticketQuantity: number;
+    totalAmount: number;
+  };
+}
+```
+
+---
+
+## 📊 MONITORING & OBSERVABILITY REQUIREMENTS
+
+### 1. Logging Standards
+
+**MANDATORY logging implementation:**
+
+```typescript
+// Structured Logging Template
+import { Logger } from '@aws-lambda-powertools/logger';
+
+const logger = new Logger({
+  serviceName: 'event-management',
+  logLevel: process.env.LOG_LEVEL || 'INFO'
+});
+
+// MANDATORY: Log all business operations
+export const logBusinessOperation = (operation: string, data: any, correlationId: string) => {
+  logger.info('Business operation executed', {
+    operation,
+    correlationId,
+    timestamp: new Date().toISOString(),
+    data: sanitizeLogData(data)
+  });
+};
+
+// MANDATORY: Log all errors with context
+export const logError = (error: Error, context: any, correlationId: string) => {
+  logger.error('Operation failed', {
+    error: error.message,
+    stack: error.stack,
+    context,
+    correlationId,
+    timestamp: new Date().toISOString()
+  });
+};
+```
+
+### 2. Metrics & Alarms
+
+**MANDATORY CloudWatch metrics:**
+
+- **Business Metrics**: Events created, bookings made, revenue generated
+- **Technical Metrics**: Lambda duration, error rates, DynamoDB throttles
+- **Security Metrics**: Failed authentication attempts, suspicious activities
+
+### 3. Distributed Tracing
+
+**MANDATORY X-Ray implementation:**
+
+```typescript
+import AWSXRay from 'aws-xray-sdk-core';
+
+// MANDATORY: Trace all service interactions
+export const traceAsyncOperation = async <T>(
+  operationName: string,
+  operation: () => Promise<T>
+): Promise<T> => {
+  const segment = AWSXRay.getSegment();
+  const subsegment = segment?.addNewSubsegment(operationName);
+  
+  try {
+    const result = await operation();
+    subsegment?.close();
+    return result;
+  } catch (error) {
+    subsegment?.addError(error);
+    subsegment?.close();
+    throw error;
+  }
+};
+```
+
+---
+
+## 🚀 DEPLOYMENT & DEVOPS STANDARDS
+
+### 1. Environment Strategy
+
+**MANDATORY environments:**
+- **Development**: Feature development and unit testing
+- **Staging**: Integration testing and pre-production validation
+- **Production**: Live production environment
+
+### 2. CI/CD Pipeline Rules
+
+**MANDATORY pipeline stages:**
+
+1. **Code Quality Gates**
+   - ESLint, Prettier, TypeScript compiler
+   - Unit tests (80%+ coverage)
+   - Security scanning (Snyk, SonarQube)
+
+2. **Infrastructure Validation**
+   - CDK diff validation
+   - Infrastructure security scanning
+   - Cost estimation
+
+3. **Deployment Stages**
+   - Automated testing in staging
+   - Blue-green deployment
+   - Automated rollback on failure
+
+### 3. Configuration Management
+
+```typescript
+// MANDATORY: Environment Configuration Pattern
+export interface EnvironmentConfig {
+  database: {
+    region: string;
+    tablePrefix: string;
+    readCapacity: number;
+    writeCapacity: number;
+  };
+  security: {
+    jwtSecret: string;
+    encryptionKey: string;
+    corsOrigins: string[];
+  };
+  integrations: {
+    paymentGatewayUrl: string;
+    emailServiceUrl: string;
+    fileStorageBucket: string;
+  };
+}
+
+// Load configuration from AWS Systems Manager Parameter Store
+export const loadConfig = async (): Promise<EnvironmentConfig> => {
+  // Implementation here
+};
+```
+
+---
+
+## 🔧 ERROR HANDLING & RESILIENCE PATTERNS
+
+### 1. Error Handling Standards
+
+```typescript
+// MANDATORY: Custom Error Classes
+export class DomainError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+    public statusCode: number,
+    public details?: any
+  ) {
+    super(message);
+    this.name = this.constructor.name;
+  }
+}
+
+export class ValidationError extends DomainError {
+  constructor(message: string, details?: any) {
+    super(message, 'VALIDATION_ERROR', 400, details);
+  }
+}
+
+export class NotFoundError extends DomainError {
+  constructor(resource: string, id: string) {
+    super(`${resource} with id ${id} not found`, 'NOT_FOUND', 404);
+  }
+}
+```
+
+### 2. Resilience Patterns
+
+**MANDATORY implementation:**
+
+- **Circuit Breaker**: Prevent cascade failures
+- **Retry with Exponential Backoff**: Handle transient failures
+- **Bulkhead**: Isolate critical resources
+- **Timeout**: Prevent resource exhaustion
+
+```typescript
+// MANDATORY: Retry Pattern Implementation
+export const retryWithBackoff = async <T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  baseDelay: number = 1000
+): Promise<T> => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (attempt === maxRetries) throw error;
+      
+      const delay = baseDelay * Math.pow(2, attempt - 1);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw new Error('Max retries exceeded');
+};
+```
+
+---
+
+## 🐳 DOCKER CONTAINERIZATION RULES
+
+### 1. Docker Standards & Best Practices
+
+**MANDATORY Docker implementation for all microservices:**
+
+- **Container-First Development**: Every microservice must run in Docker
+- **Multi-Stage Builds**: Optimize image size and security
+- **Non-Root User**: Never run containers as root user
+- **Health Checks**: All containers must implement health endpoints
+- **Resource Limits**: Set memory and CPU limits
+- **Environment Parity**: Identical behavior across dev/staging/prod
+
+### 2. Dockerfile Template Standards
+
+**MANDATORY Dockerfile structure for Node.js/TypeScript services:**
+
+```dockerfile
+# Multi-stage build for optimized production images
+FROM node:18-alpine AS base
+WORKDIR /app
+
+# Install dependencies stage
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+COPY package.json package-lock.json ./
+RUN npm ci --only=production --frozen-lockfile
+
+# Build stage
+FROM base AS build
+COPY package.json package-lock.json ./
+RUN npm ci --frozen-lockfile
+COPY . .
+RUN npm run build
+RUN npm prune --production
+
+# Production stage
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Security: Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs
+
+# Copy built application
+COPY --from=build --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nodejs:nodejs /app/package.json ./package.json
+
+# Security and optimization
+USER nodejs
+EXPOSE 3000
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+CMD ["node", "dist/index.js"]
+```
+
+### 3. Service-Specific Docker Configuration
+
+**User Management Service Dockerfile:**
+```dockerfile
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# ... (follow template above)
+
+# Service-specific environment
+ENV SERVICE_NAME=user-management
+ENV PORT=3001
+
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+CMD ["node", "dist/user-service.js"]
+```
+
+**Event Management Service Dockerfile:**
+```dockerfile
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+RUN apk add --no-cache curl
+
+# ... (follow template above)
+
+ENV SERVICE_NAME=event-management
+ENV PORT=3002
+
+EXPOSE 3002
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3002/health || exit 1
+
+CMD ["node", "dist/event-service.js"]
+```
+
+### 4. Docker Compose for Local Development
+
+**MANDATORY docker-compose.yml for full-stack development:**
+
+```yaml
+version: '3.8'
+
+services:
+  # User Management Service
+  user-service:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - JWT_SECRET=dev-secret-key
+      - AWS_REGION=ca-central-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Event Management Service
+  event-service:
+    build:
+      context: ./services/event-management
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-event-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - AWS_REGION=ca-central-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Booking Service
+  booking-service:
+    build:
+      context: ./services/booking
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-booking-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - STRIPE_SECRET_KEY=sk_test_...
+      - AWS_REGION=ca-central-1
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - STRIPE_SECRET_KEY=sk_test_...
+      - STRIPE_WEBHOOK_SECRET=whsec_...
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-notification-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+    depends_on:
+      - dynamodb-local
+      - mailhog
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # API Gateway (Local Development Proxy)
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: event-platform-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - USER_SERVICE_URL=http://user-service:3001
+      - EVENT_SERVICE_URL=http://event-service:3002
+      - BOOKING_SERVICE_URL=http://booking-service:3003
+      - PAYMENT_SERVICE_URL=http://payment-service:3004
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+    depends_on:
+      - user-service
+      - event-service
+      - booking-service
+      - payment-service
+      - notification-service
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Local AWS Services
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: event-platform-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Redis for Caching
+  redis:
+    image: redis:7-alpine
+    container_name: event-platform-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # S3 Local (MinIO)
+  minio:
+    image: minio/minio:latest
+    container_name: event-platform-s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+
+  # Local Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: event-platform-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Monitoring & Observability
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: event-platform-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: event-platform-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+networks:
+  event-platform-network:
+    driver: bridge
+
+volumes:
+  dynamodb-data:
+  redis-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+```
+
+### 5. Environment-Specific Docker Configurations
+
+**Development docker-compose.override.yml:**
+```yaml
+version: '3.8'
+
+services:
+  user-service:
+    volumes:
+      - ./services/user-management:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+
+  event-service:
+    volumes:
+      - ./services/event-management:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+```
+
+**Production docker-compose.prod.yml:**
+```yaml
+version: '3.8'
+
+services:
+  user-service:
+    image: your-registry/event-platform-user-service:latest
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+```
+
+### 6. Docker Image Optimization Rules
+
+**MANDATORY optimization practices:**
+
+```dockerfile
+# Use specific versions, not 'latest'
+FROM node:18.17.0-alpine AS base
+
+# Minimize layers
+RUN apk add --no-cache \
+    curl \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Use .dockerignore
+# Create .dockerignore file:
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
+.nyc_output
+coverage
+.env
+dist
+build
+```
+
+### 7. Health Check Implementation
+
+**MANDATORY health check endpoint for all services:**
+
+```typescript
+// health-check.ts - Standard health check implementation
+import express from 'express';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import Redis from 'ioredis';
+
+interface HealthStatus {
+  status: 'healthy' | 'unhealthy';
+  timestamp: string;
+  service: string;
+  version: string;
+  dependencies: {
+    database: 'connected' | 'disconnected';
+    redis: 'connected' | 'disconnected';
+    [key: string]: 'connected' | 'disconnected';
+  };
+  uptime: number;
+}
+
+export const healthCheckHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  
+  try {
+    // Check database connection
+    const dbStatus = await checkDatabaseHealth();
+    
+    // Check Redis connection
+    const redisStatus = await checkRedisHealth();
+    
+    const healthStatus: HealthStatus = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: process.env.SERVICE_NAME || 'unknown',
+      version: process.env.SERVICE_VERSION || '1.0.0',
+      dependencies: {
+        database: dbStatus ? 'connected' : 'disconnected',
+        redis: redisStatus ? 'connected' : 'disconnected'
+      },
+      uptime: process.uptime()
+    };
+
+    // If any critical dependency is down, mark as unhealthy
+    const isHealthy = dbStatus && redisStatus;
+    healthStatus.status = isHealthy ? 'healthy' : 'unhealthy';
+
+    res.status(isHealthy ? 200 : 503).json(healthStatus);
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+};
+
+const checkDatabaseHealth = async (): Promise<boolean> => {
+  try {
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION });
+    await client.send(new ListTablesCommand({}));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const checkRedisHealth = async (): Promise<boolean> => {
+  try {
+    const redis = new Redis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT || '6379')
+    });
+    await redis.ping();
+    redis.disconnect();
+    return true;
+  } catch {
+    return false;
+  }
+};
+```
+
+### 8. Docker Development Scripts
+
+**MANDATORY package.json scripts:**
+
+```json
+{
+  "scripts": {
+    "docker:build": "docker build -t event-platform-service .",
+    "docker:run": "docker run -p 3000:3000 event-platform-service",
+    "docker:dev": "docker-compose up --build",
+    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "docker:test": "docker-compose -f docker-compose.test.yml up --abort-on-container-exit",
+    "docker:clean": "docker-compose down -v && docker system prune -f",
+    "docker:logs": "docker-compose logs -f",
+    "docker:shell": "docker-compose exec user-service sh"
+  }
+}
+```
+
+### 9. Container Security Rules
+
+**MANDATORY security implementations:**
+
+```dockerfile
+# Security hardening
+FROM node:18-alpine AS base
+
+# Update packages and remove package manager
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set secure permissions
+COPY --chown=nodejs:nodejs . .
+RUN chmod -R 755 /app && \
+    chmod -R 644 /app/package*.json
+
+USER nodejs
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]
+```
+
+### 10. Docker Testing Strategy
+
+**Test docker-compose.test.yml:**
+
+```yaml
+version: '3.8'
+
+services:
+  user-service-test:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - DB_HOST=dynamodb-test
+    depends_on:
+      - dynamodb-test
+    command: npm test
+    networks:
+      - test-network
+
+  dynamodb-test:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+```
+
+---
+
+## 📋 DEVELOPMENT WORKFLOW RULES
+
+### 1. Code Organization Standards
+
+```
+src/
+├── domains/           # Business domains
+│   ├── events/
+│   ├── bookings/
+│   ├── users/
+│   └── payments/
+├── infrastructure/    # CDK stacks
+├── shared/           # Common utilities
+│   ├── types/
+│   ├── validators/
+│   ├── errors/
+│   └── utils/
+└── tests/           # Test files
+```
+
+### 2. Testing Requirements
+
+**MANDATORY test coverage:**
+
+- **Unit Tests**: 80%+ coverage for business logic
+- **Integration Tests**: All API endpoints
+- **Contract Tests**: Inter-service communication
+- **End-to-End Tests**: Critical user journeys
+- **Performance Tests**: Load testing for scalability
+- **Security Tests**: Penetration testing, vulnerability scanning
+
+### 3. Docker Development Commands
+
+**MANDATORY Docker commands for daily development:**
+
+```bash
+# Quick start (first time)
+make docker-setup
+
+# Daily development
+make docker-dev        # Start all services in development mode
+make docker-logs       # View logs from all services
+make docker-test       # Run all tests in containers
+make docker-clean      # Clean up containers and volumes
+
+# Individual service commands
+make user-service-dev   # Start only user service for debugging
+make event-service-logs # View logs from event service only
+make payment-service-shell # Shell into payment service container
+
+# Production deployment
+make docker-prod       # Deploy production containers locally
+make docker-deploy     # Deploy to remote Docker registry
+```
+
+### 4. Makefile for Docker Operations
+
+**MANDATORY Makefile for consistent operations:**
+
+```makefile
+# Event Platform Docker Operations
+.PHONY: help docker-setup docker-dev docker-prod docker-test docker-clean
+
+# Default target
+help:
+	@echo "Event Platform Docker Commands:"
+	@echo "  docker-setup    - Initial setup with database creation"
+	@echo "  docker-dev      - Start development environment"
+	@echo "  docker-prod     - Start production environment"
+	@echo "  docker-test     - Run all tests"
+	@echo "  docker-clean    - Clean up containers and volumes"
+	@echo "  docker-logs     - Show logs from all services"
+
+# Initial setup
+docker-setup: docker-clean
+	@echo "🚀 Setting up Event Platform development environment..."
+	docker-compose up -d dynamodb-local redis minio
+	@echo "⏳ Waiting for services to be ready..."
+	sleep 10
+	@echo "🗄️  Creating DynamoDB tables..."
+	npm run create-tables:local
+	@echo "📦 Building all services..."
+	docker-compose build
+	@echo "✅ Setup complete! Run 'make docker-dev' to start development."
+
+# Development environment
+docker-dev:
+	@echo "🔧 Starting development environment..."
+	docker-compose up --build
+
+# Production environment
+docker-prod:
+	@echo "🚀 Starting production environment..."
+	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Run tests
+docker-test:
+	@echo "🧪 Running all tests in containers..."
+	docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+	docker-compose -f docker-compose.test.yml down
+
+# Clean up
+docker-clean:
+	@echo "🧹 Cleaning up Docker containers and volumes..."
+	docker-compose down -v
+	docker system prune -f --volumes
+
+# View logs
+docker-logs:
+	docker-compose logs -f
+
+# Individual service operations
+user-service-dev:
+	docker-compose up --build user-service dynamodb-local redis
+
+event-service-logs:
+	docker-compose logs -f event-service
+
+payment-service-shell:
+	docker-compose exec payment-service sh
+
+# Database operations
+db-migrate:
+	docker-compose exec user-service npm run db:migrate
+
+db-seed:
+	docker-compose exec user-service npm run db:seed
+
+# Monitoring
+monitoring:
+	docker-compose up -d prometheus grafana
+	@echo "📊 Monitoring available at:"
+	@echo "  Prometheus: http://localhost:9090"
+	@echo "  Grafana: http://localhost:3001 (admin/admin123)"
+```
+
+### 5. Documentation Standards
+
+**MANDATORY documentation:**
+
+- **API Documentation**: OpenAPI 3.0 specifications
+- **Architecture Decision Records (ADRs)**: All major decisions
+- **Runbooks**: Operational procedures
+- **Security Playbooks**: Incident response procedures
+- **Docker Setup Guide**: Complete containerization documentation
+
+---
+
+## ⚡ PERFORMANCE OPTIMIZATION RULES
+
+### 1. Database Optimization
+
+**DynamoDB best practices:**
+
+- Use appropriate partition keys for even distribution
+- Implement Global Secondary Indexes (GSI) for query patterns
+- Use DynamoDB Streams for event sourcing
+- Implement connection pooling and query optimization
+
+### 2. Caching Strategy
+
+**Multi-layer caching:**
+
+- **Level 1**: In-memory caching in Lambda
+- **Level 2**: ElastiCache Redis for shared cache
+- **Level 3**: CDN caching for static content
+
+### 3. API Optimization
+
+**MANDATORY optimizations:**
+
+- Request/response compression
+- Pagination for large datasets
+- Field selection/projection
+- Query batching where appropriate
+
+---
+
+## 🎯 QUALITY GATES & COMPLIANCE
+
+### 1. Code Quality Requirements
+
+**MANDATORY quality checks:**
+
+- TypeScript strict mode enabled
+- Zero ESLint errors/warnings
+- 100% type coverage
+- No console.log statements in production
+- All TODO comments linked to tickets
+
+### 2. Security Compliance
+
+**MANDATORY security checks:**
+
+- OWASP Top 10 vulnerability assessment
+- Dependency vulnerability scanning
+- Secrets detection in code
+- Infrastructure security scanning
+- Regular penetration testing
+
+### 3. Operational Readiness
+
+**MANDATORY operational requirements:**
+
+- Health check endpoints
+- Readiness probes
+- Graceful shutdown handling
+- Resource limits configured
+- Monitoring and alerting set up
+
+---
+
+## 📈 SCALABILITY & CAPACITY PLANNING
+
+### 1. Auto-scaling Configuration
+
+```typescript
+// MANDATORY: Lambda Concurrency Settings
+export const lambdaFunction = new Function(this, 'EventHandler', {
+  // Set reserved concurrency to prevent one function consuming all capacity
+  reservedConcurrencyLimit: 100,
+  // Set provisioned concurrency for predictable workloads
+  currentVersionOptions: {
+    provisionedConcurrencyConfig: {
+      provisionedConcurrentExecutions: 10
+    }
+  }
+});
+```
+
+### 2. Database Scaling Strategy
+
+- **DynamoDB On-Demand**: For unpredictable workloads
+- **Auto Scaling**: For predictable growth patterns
+- **Global Tables**: For multi-region deployment
+- **Read Replicas**: For read-heavy workloads
+
+---
+
+## ✅ CHECKLIST FOR CURSOR AI IMPLEMENTATION
+
+Before implementing any component, ensure:
+
+- [ ] Business requirements clearly defined
+- [ ] Security requirements identified
+- [ ] Performance requirements specified
+- [ ] Error handling strategy defined
+- [ ] Monitoring and logging implemented
+- [ ] Testing strategy planned
+- [ ] Documentation created
+- [ ] Code review completed
+- [ ] Security review passed
+- [ ] Performance testing done
+
+---
+
+*These rules must be followed for every microservice, API, and infrastructure component. No exceptions without explicit architectural approval.*
