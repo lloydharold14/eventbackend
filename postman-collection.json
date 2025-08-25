@@ -85,7 +85,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"attendee@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+1234567890\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": false\n}"
+              "raw": "{\n  \"email\": \"attendee@example.com\",\n  \"username\": \"attendee123\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+1234567890\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -121,7 +121,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"organizer@example.com\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"phone\": \"+1234567891\",\n  \"dateOfBirth\": \"1985-05-15\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": true,\n  \"role\": \"organizer\"\n}"
+              "raw": "{\n  \"email\": \"tvigninou1@gmail.com\",\n  \"username\": \"haroldvigninou\",\n  \"password\": \"Campus2020$\",\n  \"firstName\": \"harold\",\n  \"lastName\": \"Vigninou\",\n  \"phone\": \"+4388871040\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": true,\n  \"role\": \"organizer\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
