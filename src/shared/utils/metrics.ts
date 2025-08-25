@@ -72,6 +72,8 @@ export enum BusinessMetricName {
   // Search Metrics
   SEARCHES_PERFORMED = 'SearchesPerformed',
   SEARCH_RESULTS_RETURNED = 'SearchResultsReturned',
+  SEARCH_INDEX_UPDATED = 'SearchIndexUpdated',
+  SEARCH_SUGGESTIONS_REQUESTED = 'SearchSuggestionsRequested',
   
   // Performance Metrics
   API_RESPONSE_TIME = 'ApiResponseTime',

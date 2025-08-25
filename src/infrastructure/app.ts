@@ -7,9 +7,9 @@ import { UserManagementStack } from './stacks/UserManagementStack';
 import { BookingServiceStack } from './stacks/BookingServiceStack';
 import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
 import { PaymentServiceStack } from './stacks/PaymentServiceStack';
-import { NotificationServiceStack } from './stacks/NotificationServiceStack';
-// import { SearchServiceStack } from './stacks/SearchServiceStack';
-// import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
+  import { NotificationServiceStack } from './stacks/NotificationServiceStack';
+  import { SearchServiceStack } from './stacks/SearchServiceStack';
+  // import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
 
 const app = new cdk.App();
 
@@ -84,16 +84,16 @@ const notificationServiceStack = new NotificationServiceStack(app, `Notification
   userPool: userManagementStack.userPool
 });
 
-// Search Service Stack - TODO: Implement full functionality
-// const searchServiceStack = new SearchServiceStack(app, `SearchService-${environment}`, {
-//   ...commonProps,
-//   environment,
-//   description: 'Search Service - Event Discovery and Search',
-//   vpc: eventManagementStack.vpc,
-//   securityGroup: eventManagementStack.securityGroup,
-//   userPool: userManagementStack.userPool,
-//   eventTable: eventManagementServiceStack.eventTable
-// });
+// Search Service Stack
+const searchServiceStack = new SearchServiceStack(app, `SearchService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Search Service - OpenSearch Integration for Event Discovery',
+  vpc: eventManagementStack.vpc,
+  securityGroup: eventManagementStack.securityGroup,
+  userPool: userManagementStack.userPool,
+  eventTable: eventManagementServiceStack.eventTable
+});
 
 // Analytics Service Stack - TODO: Implement full functionality
 // const analyticsServiceStack = new AnalyticsServiceStack(app, `AnalyticsService-${environment}`, {
