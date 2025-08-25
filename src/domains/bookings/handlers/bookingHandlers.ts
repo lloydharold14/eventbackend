@@ -10,6 +10,7 @@ import { getUserIdFromToken } from '../../../shared/utils/authUtils';
 import { initializeTracing, traceLambdaExecution, extractCorrelationId } from '../../../shared/utils/tracing';
 import { MetricsManager, BusinessMetricName } from '../../../shared/utils/metrics';
 import { ResilienceManager } from '../../../shared/utils/resilience';
+import { createBookingService } from '../services/BookingServiceFactory';
 
 // Initialize tracing, metrics, and resilience
 initializeTracing({
@@ -25,8 +26,8 @@ initializeTracing({
 const metricsManager = MetricsManager.getInstance();
 const resilienceManager = new ResilienceManager();
 
-// Initialize services
-const bookingService = new BookingService();
+// Initialize services using factory
+const bookingService = createBookingService();
 
 export const createBooking = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {

@@ -4,27 +4,7 @@ import { Logger } from '@aws-lambda-powertools/logger';
 
 const logger = new Logger({ serviceName: 'tracing' });
 
-// Mock AWSXRay for testing environment
-const isTest = process.env.NODE_ENV === 'test';
-if (isTest) {
-  // Mock AWSXRay methods for testing
-  (AWSXRay as any).setContextMissingStrategy = jest.fn();
-  (AWSXRay as any).setLogger = jest.fn();
-  (AWSXRay as any).captureHTTPsGlobal = jest.fn();
-  (AWSXRay as any).captureAWSClient = jest.fn();
-  (AWSXRay as any).capturePromise = jest.fn();
-  (AWSXRay as any).capturePostgres = jest.fn();
-  (AWSXRay as any).captureMySQL = jest.fn();
-  (AWSXRay as any).captureCallback = jest.fn();
-  (AWSXRay as any).getSegment = jest.fn(() => ({
-    addSubsegment: jest.fn(),
-    addAnnotation: jest.fn(),
-    addMetadata: jest.fn(),
-    close: jest.fn(),
-  }));
-  (AWSXRay as any).captureAsyncFunc = jest.fn((name, fn) => fn());
-  (AWSXRay as any).captureFunc = jest.fn((name, fn) => fn());
-}
+// Note: AWSXRay is mocked by Jest in test environment
 
 // X-Ray Tracing Configuration
 export interface TracingConfig {
@@ -48,12 +28,21 @@ export const DEFAULT_TRACING_CONFIG: TracingConfig = {
   captureError: true,
 };
 
+// Track if tracing has been initialized
+let tracingInitialized = false;
+
 // Initialize X-Ray tracing
 export function initializeTracing(config: Partial<TracingConfig> = {}): void {
+  // Prevent multiple initializations
+  if (tracingInitialized) {
+    return;
+  }
+  
   const tracingConfig = { ...DEFAULT_TRACING_CONFIG, ...config };
   
   if (!tracingConfig.enableTracing) {
     logger.info('X-Ray tracing disabled');
+    tracingInitialized = true;
     return;
   }
 
@@ -67,6 +56,7 @@ export function initializeTracing(config: Partial<TracingConfig> = {}): void {
     AWSXRay.setContextMissingStrategy('LOG_ERROR');
     
     logger.info('X-Ray tracing initialized', { config: tracingConfig });
+    tracingInitialized = true;
   } catch (error) {
     logger.error('Failed to initialize X-Ray tracing', { error });
   }
@@ -76,7 +66,11 @@ export function initializeTracing(config: Partial<TracingConfig> = {}): void {
 export function getCurrentSegment(): AWSXRay.Subsegment | undefined {
   try {
     const segment = AWSXRay.getSegment();
-    return segment instanceof AWSXRay.Subsegment ? segment : undefined;
+    // Check if AWSXRay.Subsegment is available and segment is an instance of it
+    if (AWSXRay.Subsegment && segment instanceof AWSXRay.Subsegment) {
+      return segment;
+    }
+    return undefined;
   } catch (error) {
     logger.warn('Failed to get current X-Ray segment', { error });
     return undefined;

@@ -12,33 +12,80 @@ import {
 } from '../models/Booking';
 import { EventService } from '../../events/services/EventService';
 import { UserService } from '../../users/services/UserService';
+import { PaymentService } from '../../payments/services/PaymentService';
+import { PaymentMethod, RefundReason } from '../../payments/models/Payment';
+import { NotificationService } from '../../notifications/services/NotificationService';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../../../shared/errors/DomainError';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../../../shared/utils/logger';
+
+// Service interfaces to avoid circular dependencies
+export interface IEventService {
+  getEventById(eventId: string): Promise<any>;
+  getEventBySlug(slug: string): Promise<any>;
+}
+
+export interface IUserService {
+  getUserById(userId: string): Promise<any>;
+  validateUserPermissions(userId: string, requiredRole?: string): Promise<boolean>;
+}
 
 export class BookingService {
   private bookingRepository: BookingRepository;
-  private eventService!: EventService;
-  private userService!: UserService;
+  private eventService: IEventService | null = null;
+  private userService: IUserService | null = null;
+  private paymentService: PaymentService;
+  private notificationService: NotificationService;
 
-  constructor() {
+  constructor(
+    eventService?: IEventService,
+    userService?: IUserService
+  ) {
     this.bookingRepository = new BookingRepository();
-    // TODO: Fix these service instantiations when circular dependencies are resolved
-    // this.eventService = new EventService();
-    // this.userService = new UserService();
+    this.paymentService = new PaymentService(process.env.PAYMENT_TABLE_NAME || 'Payments');
+    this.notificationService = new NotificationService();
+    
+    // Inject services if provided
+    if (eventService) {
+      this.eventService = eventService;
+    }
+    if (userService) {
+      this.userService = userService;
+    }
+  }
+
+  // Method to set services after construction (for dependency injection)
+  setEventService(eventService: IEventService): void {
+    this.eventService = eventService;
+  }
+
+  setUserService(userService: IUserService): void {
+    this.userService = userService;
   }
 
   async createBooking(userId: string, request: CreateBookingRequest): Promise<Booking> {
     try {
-      // TODO: Implement when EventService is available
-      // Validate event exists and is published
-      // const event = await this.eventService.getEventById(request.eventId);
-      // if (!event) {
-      //   throw new NotFoundError('Event', request.eventId);
-      // }
+      logger.info('Creating booking', { userId, eventId: request.eventId });
 
-      // if (event.status !== 'published') {
-      //   throw new ValidationError('Event is not available for booking');
-      // }
+      // Validate event exists and is published
+      if (this.eventService) {
+        const event = await this.eventService.getEventById(request.eventId);
+        if (!event) {
+          throw new NotFoundError('Event', request.eventId);
+        }
+
+        if (event.status !== 'published') {
+          throw new ValidationError('Event is not available for booking');
+        }
+      }
+
+      // Validate user permissions
+      if (this.userService) {
+        const hasPermission = await this.userService.validateUserPermissions(userId, 'attendee');
+        if (!hasPermission) {
+          throw new UnauthorizedError('User does not have permission to create bookings');
+        }
+      }
 
       // Check event capacity
       const capacity = await this.getEventCapacity(request.eventId);
@@ -54,12 +101,28 @@ export class BookingService {
         }
       }
 
+      // Get event details for pricing and organizer info
+      let eventDetails: any = {};
+      let organizerId = 'placeholder-organizer-id';
+      let eventDate = new Date().toISOString();
+      let currency = 'USD';
+
+      if (this.eventService) {
+        const event = await this.eventService.getEventById(request.eventId);
+        if (event) {
+          eventDetails = event;
+          organizerId = event.organizerId;
+          eventDate = event.startDate;
+          currency = event.pricing?.currency || 'USD';
+        }
+      }
+
       // Calculate total amount
       let totalAmount = 0;
       const bookingItems = [];
 
       for (const item of request.items) {
-        const ticketPrice = this.getTicketPrice({}, item.ticketType); // Placeholder event object
+        const ticketPrice = this.getTicketPrice(eventDetails, item.ticketType);
         const itemTotal = ticketPrice * item.quantity;
         totalAmount += itemTotal;
 
@@ -70,7 +133,7 @@ export class BookingService {
           quantity: item.quantity,
           unitPrice: ticketPrice,
           totalPrice: itemTotal,
-          currency: 'USD', // Placeholder
+          currency,
           ticketDetails: item.ticketDetails
         });
       }
@@ -79,32 +142,42 @@ export class BookingService {
       const booking: Omit<Booking, 'id' | 'createdAt' | 'updatedAt'> = {
         userId,
         eventId: request.eventId,
-        organizerId: 'placeholder-organizer-id', // TODO: Get from event
+        organizerId,
         status: BookingStatus.PENDING,
         items: bookingItems,
         totalAmount,
-        currency: 'USD', // Placeholder
+        currency,
         paymentInfo: {
           paymentMethodId: request.paymentMethodId,
           amount: totalAmount,
-          currency: 'USD', // Placeholder
+          currency,
           status: PaymentStatus.PENDING
         },
         attendeeInfo: request.attendeeInfo,
         bookingDate: new Date().toISOString(),
-        eventDate: new Date().toISOString(), // TODO: Get from event
+        eventDate,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000).toISOString(), // 30 minutes
         notes: request.notes
       };
 
       const createdBooking = await this.bookingRepository.createBooking(booking);
 
-      // TODO: Process payment through Payment Service
-      // await this.processPayment(createdBooking);
+      // Process payment through Payment Service
+      await this.processPayment(createdBooking);
+
+      // Send booking confirmation notification
+      await this.sendBookingConfirmationNotification(createdBooking);
+
+      logger.info('Booking created successfully', { 
+        bookingId: createdBooking.id, 
+        eventId: createdBooking.eventId,
+        userId,
+        totalAmount 
+      });
 
       return createdBooking;
     } catch (error: any) {
-      console.error('Error creating booking:', error);
+      logger.error('Error creating booking:', { error: error.message, userId, eventId: request.eventId });
       throw error;
     }
   }
@@ -177,8 +250,11 @@ export class BookingService {
       cancellationReason: reason
     } as any);
 
-    // TODO: Process refund through Payment Service
-    // await this.processRefund(cancelledBooking);
+    // Process refund through Payment Service
+    await this.processRefund(cancelledBooking);
+
+    // Send booking cancellation notification
+    await this.sendBookingCancellationNotification(cancelledBooking);
 
     return cancelledBooking;
   }
@@ -257,18 +333,49 @@ export class BookingService {
 
   async generateBookingConfirmation(bookingId: string): Promise<BookingConfirmation> {
     const booking = await this.getBookingById(bookingId);
-    // TODO: Implement when EventService and UserService are available
-    // const event = await this.eventService.getEventById(booking.eventId);
-    // if (!event) {
-    //   throw new NotFoundError('Event', booking.eventId);
-    // }
-    // const organizer = await this.userService.getUserById(booking.organizerId);
+    
+    // Get event and organizer details if services are available
+    let eventTitle = 'Event Title';
+    let eventLocation = 'Event Location';
+    let organizerContact = {
+      name: 'Organizer Name',
+      email: 'organizer@example.com',
+      phone: '123-456-7890'
+    };
+
+    if (this.eventService) {
+      try {
+        const event = await this.eventService.getEventById(booking.eventId);
+        if (event) {
+          eventTitle = event.title;
+          eventLocation = event.location?.address || 'Event Location';
+          
+          // Get organizer details if user service is available
+          if (this.userService) {
+            try {
+              const organizer = await this.userService.getUserById(booking.organizerId);
+              if (organizer) {
+                organizerContact = {
+                  name: `${organizer.firstName} ${organizer.lastName}`,
+                  email: organizer.email,
+                  phone: organizer.phoneNumber || '123-456-7890'
+                };
+              }
+            } catch (error: any) {
+              logger.warn('Could not fetch organizer details', { organizerId: booking.organizerId, error: error.message });
+            }
+          }
+        }
+      } catch (error: any) {
+        logger.warn('Could not fetch event details', { eventId: booking.eventId, error: error.message });
+      }
+    }
 
     return {
       bookingId: booking.id,
-      eventTitle: 'Event Title', // TODO: Get from event
+      eventTitle,
       eventDate: booking.eventDate,
-      eventLocation: 'Event Location', // TODO: Get from event
+      eventLocation,
       attendeeName: `${booking.attendeeInfo.firstName} ${booking.attendeeInfo.lastName}`,
       ticketDetails: booking.items.map(item => ({
         ticketType: item.ticketType,
@@ -284,28 +391,37 @@ export class BookingService {
       bookingDate: booking.bookingDate,
       qrCode: `booking-${booking.id}`, // TODO: Generate actual QR code
       ticketUrl: `${process.env.FRONTEND_URL}/tickets/${booking.id}`,
-      organizerContact: {
-        name: 'Organizer Name', // TODO: Get from organizer
-        email: 'organizer@example.com', // TODO: Get from organizer
-        phone: '123-456-7890' // TODO: Get from organizer
-      }
+      organizerContact
     };
   }
 
   private getTicketPrice(event: any, ticketType: TicketType): number {
-    // TODO: Implement when EventService is available
-    // const pricing = event.pricing?.find(p => 
-    //   p.tier.toLowerCase() === ticketType.toLowerCase()
-    // );
+    // Try to get pricing from event object first
+    if (event && event.pricing) {
+      // Handle different pricing models
+      if (event.pricing.model === 'tiered' && event.pricing.tiers) {
+        const tier = event.pricing.tiers.find((t: any) => 
+          t.name.toLowerCase() === ticketType.toLowerCase()
+        );
+        if (tier) {
+          return tier.price;
+        }
+      } else if (event.pricing.model === 'paid' && event.pricing.basePrice) {
+        // For simple paid events, use base price with multipliers
+        const priceMultipliers: Record<TicketType, number> = {
+          [TicketType.GENERAL]: 1.0,
+          [TicketType.VIP]: 3.0,
+          [TicketType.EARLY_BIRD]: 0.7,
+          [TicketType.STUDENT]: 0.5,
+          [TicketType.SENIOR]: 0.6,
+          [TicketType.CHILD]: 0.3
+        };
+        return event.pricing.basePrice * (priceMultipliers[ticketType] || 1.0);
+      }
+    }
     
-    // if (!pricing) {
-    //   throw new ValidationError(`No pricing found for ticket type: ${ticketType}`);
-    // }
-
-    // return pricing.price;
-    
-    // Placeholder pricing
-    const pricingMap: Record<TicketType, number> = {
+    // Fallback to default pricing if event pricing is not available
+    const defaultPricingMap: Record<TicketType, number> = {
       [TicketType.GENERAL]: 50,
       [TicketType.VIP]: 150,
       [TicketType.EARLY_BIRD]: 35,
@@ -314,7 +430,7 @@ export class BookingService {
       [TicketType.CHILD]: 15
     };
 
-    return pricingMap[ticketType] || 50;
+    return defaultPricingMap[ticketType] || 50;
   }
 
   private validateStatusTransition(currentStatus: BookingStatus, newStatus: BookingStatus): void {
@@ -335,12 +451,164 @@ export class BookingService {
   // TODO: Implement payment processing
   private async processPayment(booking: Booking): Promise<void> {
     // Integration with Payment Service
-    console.log('Processing payment for booking:', booking.id);
+    logger.info('Processing payment for booking:', { bookingId: booking.id });
+    try {
+      // Create payment intent first
+      const paymentIntent = await this.paymentService.createPaymentIntent({
+        bookingId: booking.id,
+        userId: booking.userId,
+        eventId: booking.eventId,
+        amount: booking.totalAmount,
+        currency: booking.currency,
+        paymentMethod: PaymentMethod.CREDIT_CARD, // Default payment method
+        metadata: {
+          bookingId: booking.id,
+          eventId: booking.eventId,
+          organizerId: booking.organizerId
+        }
+      });
+
+      // Update booking with payment intent ID
+      await this.bookingRepository.updateBooking(booking.id, {
+        paymentInfo: {
+          ...booking.paymentInfo,
+          paymentIntentId: paymentIntent.id,
+          status: PaymentStatus.PROCESSING
+        }
+      });
+
+      logger.info('Payment intent created successfully', { 
+        bookingId: booking.id, 
+        paymentIntentId: paymentIntent.id 
+      });
+
+      // Note: Payment confirmation will be handled by the payment webhook
+      // or through a separate API call from the frontend
+    } catch (error: any) {
+      logger.error('Error processing payment:', { bookingId: booking.id, error: error.message });
+      await this.bookingRepository.updateBooking(booking.id, {
+        paymentInfo: {
+          ...booking.paymentInfo,
+          status: PaymentStatus.FAILED,
+          failureReason: error.message
+        }
+      });
+      throw new ValidationError(`Payment failed: ${error.message}`);
+    }
   }
 
   // TODO: Implement refund processing
   private async processRefund(booking: Booking): Promise<void> {
     // Integration with Payment Service
-    console.log('Processing refund for booking:', booking.id);
+    logger.info('Processing refund for booking:', { bookingId: booking.id });
+    try {
+      // Get the payment for this booking
+      const payments = await this.paymentService.getBookingPayments(booking.id);
+      if (payments.length === 0) {
+        throw new ValidationError('No payment found for this booking');
+      }
+
+      const payment = payments[0]; // Get the first payment
+      
+      // Process refund
+      const refund = await this.paymentService.processRefund({
+        paymentId: payment.id,
+        amount: payment.amount,
+        reason: RefundReason.REQUESTED_BY_CUSTOMER,
+        metadata: {
+          bookingId: booking.id,
+          cancelledBy: booking.cancelledBy || 'system'
+        }
+      });
+
+      // Update booking with refund information
+      await this.bookingRepository.updateBooking(booking.id, {
+        paymentInfo: {
+          ...booking.paymentInfo,
+          status: PaymentStatus.REFUNDED,
+          refundAmount: refund.amount
+        },
+        refundAmount: refund.amount,
+        refundedAt: new Date().toISOString(),
+        refundedBy: booking.cancelledBy
+      });
+
+      logger.info('Refund completed successfully', { 
+        bookingId: booking.id, 
+        refundId: refund.id 
+      });
+    } catch (error: any) {
+      logger.error('Error processing refund:', { bookingId: booking.id, error: error.message });
+      // Update booking status even if refund fails
+      await this.bookingRepository.updateBooking(booking.id, {
+        paymentInfo: {
+          ...booking.paymentInfo,
+          status: PaymentStatus.REFUNDED
+        },
+        refundedAt: new Date().toISOString(),
+        refundedBy: booking.cancelledBy
+      });
+      throw new ValidationError(`Refund failed: ${error.message}`);
+    }
+  }
+
+  // Notification methods
+  private async sendBookingConfirmationNotification(booking: Booking): Promise<void> {
+    try {
+      // Generate booking confirmation data
+      const bookingConfirmation = await this.generateBookingConfirmation(booking.id);
+      
+      await this.notificationService.sendBookingConfirmation(booking.userId, {
+        bookingId: booking.id,
+        eventTitle: bookingConfirmation.eventTitle,
+        eventDate: bookingConfirmation.eventDate,
+        eventLocation: bookingConfirmation.eventLocation || 'TBD',
+        attendeeName: bookingConfirmation.attendeeName,
+        ticketDetails: bookingConfirmation.ticketDetails,
+        totalAmount: booking.totalAmount,
+        currency: booking.currency,
+        bookingDate: booking.bookingDate,
+        qrCode: bookingConfirmation.qrCode || `booking-${booking.id}`,
+        ticketUrl: bookingConfirmation.ticketUrl || `${process.env.FRONTEND_URL}/tickets/${booking.id}`,
+        organizerContact: {
+          name: bookingConfirmation.organizerContact?.name || 'Event Organizer',
+          email: bookingConfirmation.organizerContact?.email || 'organizer@example.com',
+          phone: bookingConfirmation.organizerContact?.phone || 'N/A'
+        }
+      });
+
+      logger.info('Booking confirmation notification sent', { bookingId: booking.id });
+    } catch (error: any) {
+      logger.error('Failed to send booking confirmation notification', { 
+        bookingId: booking.id, 
+        error: error.message 
+      });
+      // Don't throw error to avoid breaking the booking flow
+    }
+  }
+
+  private async sendBookingCancellationNotification(booking: Booking): Promise<void> {
+    try {
+      // Generate booking confirmation data for cancellation
+      const bookingConfirmation = await this.generateBookingConfirmation(booking.id);
+      
+      await this.notificationService.sendBookingCancellation(booking.userId, {
+        bookingId: booking.id,
+        eventTitle: bookingConfirmation.eventTitle,
+        eventDate: bookingConfirmation.eventDate,
+        totalAmount: booking.totalAmount,
+        currency: booking.currency,
+        refundAmount: booking.refundAmount,
+        cancellationReason: booking.cancellationReason
+      });
+
+      logger.info('Booking cancellation notification sent', { bookingId: booking.id });
+    } catch (error: any) {
+      logger.error('Failed to send booking cancellation notification', { 
+        bookingId: booking.id, 
+        error: error.message 
+      });
+      // Don't throw error to avoid breaking the cancellation flow
+    }
   }
 }
