@@ -10,6 +10,7 @@ import { PaymentServiceStack } from './stacks/PaymentServiceStack';
   import { NotificationServiceStack } from './stacks/NotificationServiceStack';
   import { SearchServiceStack } from './stacks/SearchServiceStack';
   import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
+import { MobileServiceStack } from './stacks/MobileServiceStack';
 
 const app = new cdk.App();
 
@@ -119,6 +120,25 @@ const analyticsServiceStack = new AnalyticsServiceStack(app, `AnalyticsService-$
 // searchServiceStack.addDependency(eventManagementServiceStack);
 analyticsServiceStack.addDependency(userManagementStack);
 
+// Mobile Service Stack
+const mobileServiceStack = new MobileServiceStack(app, `MobileService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Mobile Service - Compose Multiplatform Integration',
+  vpc: eventManagementStack.vpc,
+  securityGroup: eventManagementStack.securityGroup,
+  userPool: userManagementStack.userPool,
+  eventTable: eventManagementServiceStack.eventTable,
+  bookingTable: bookingServiceStack.bookingTable,
+  paymentTable: paymentServiceStack.paymentTable,
+  userTable: userManagementStack.userTable,
+  notificationTable: notificationServiceStack.notificationTable,
+  analyticsTable: analyticsServiceStack.analyticsTable
+});
+
+mobileServiceStack.addDependency(userManagementStack);
+mobileServiceStack.addDependency(analyticsServiceStack);
+
 // Output the API Gateway URL
 new cdk.CfnOutput(eventManagementStack, 'ApiGatewayUrl', {
   value: eventManagementStack.apiGateway.url,
@@ -207,6 +227,27 @@ new cdk.CfnOutput(analyticsServiceStack, 'MonitoringDashboardUrl', {
   value: `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#dashboards:name=EventManagement-${environment}`,
   description: 'CloudWatch Monitoring Dashboard URL',
   exportName: `EventManagement-${environment}-MonitoringDashboardUrl`
+});
+
+// Output the Mobile API Gateway URL
+new cdk.CfnOutput(mobileServiceStack, 'MobileApiGatewayUrl', {
+  value: mobileServiceStack.mobileApiGateway.url,
+  description: 'Mobile API Gateway URL',
+  exportName: `EventManagement-${environment}-MobileApiGatewayUrl`
+});
+
+// Output the Push Notification Topic ARN
+new cdk.CfnOutput(mobileServiceStack, 'PushNotificationTopicArn', {
+  value: mobileServiceStack.pushNotificationTopic.topicArn,
+  description: 'Push Notification SNS Topic ARN',
+  exportName: `EventManagement-${environment}-PushNotificationTopicArn`
+});
+
+// Output the Mobile Analytics Bucket Name
+new cdk.CfnOutput(mobileServiceStack, 'MobileAnalyticsBucketName', {
+  value: mobileServiceStack.mobileAnalyticsBucket.bucketName,
+  description: 'Mobile Analytics S3 Bucket Name',
+  exportName: `EventManagement-${environment}-MobileAnalyticsBucketName`
 });
 
 // Output the X-Ray tracing URL
