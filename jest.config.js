@@ -13,12 +13,17 @@ module.exports = {
   // Test file extensions
   moduleFileExtensions: ['ts', 'js', 'json'],
   
+  // Module directories
+  moduleDirectories: ['node_modules', 'src'],
+  
   // Module name mapping
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@/shared/(.*)$': '<rootDir>/src/shared/$1',
     '^@/domains/(.*)$': '<rootDir>/src/domains/$1',
-    '^@/infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1'
+    '^@/infrastructure/(.*)$': '<rootDir>/src/infrastructure/$1',
+    // Add direct path mappings for test files
+    '^src/(.*)$': '<rootDir>/src/$1'
   },
   
   // Transform configuration

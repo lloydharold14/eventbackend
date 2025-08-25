@@ -7,7 +7,7 @@ import { UserManagementStack } from './stacks/UserManagementStack';
 import { BookingServiceStack } from './stacks/BookingServiceStack';
 import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
 import { PaymentServiceStack } from './stacks/PaymentServiceStack';
-// import { NotificationServiceStack } from './stacks/NotificationServiceStack';
+import { NotificationServiceStack } from './stacks/NotificationServiceStack';
 // import { SearchServiceStack } from './stacks/SearchServiceStack';
 // import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
 
@@ -74,15 +74,15 @@ const paymentServiceStack = new PaymentServiceStack(app, `PaymentService-${envir
   bookingTable: bookingServiceStack.bookingTable
 });
 
-// Notification Service Stack - TODO: Implement full functionality
-// const notificationServiceStack = new NotificationServiceStack(app, `NotificationService-${environment}`, {
-//   ...commonProps,
-//   environment,
-//   description: 'Notification Service - Email, SMS, and Push Notifications',
-//   vpc: eventManagementStack.vpc,
-//   securityGroup: eventManagementStack.securityGroup,
-//   userPool: userManagementStack.userPool
-// });
+// Notification Service Stack
+const notificationServiceStack = new NotificationServiceStack(app, `NotificationService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Notification Service - Email, SMS, and Push Notifications',
+  vpc: eventManagementStack.vpc,
+  securityGroup: eventManagementStack.securityGroup,
+  userPool: userManagementStack.userPool
+});
 
 // Search Service Stack - TODO: Implement full functionality
 // const searchServiceStack = new SearchServiceStack(app, `SearchService-${environment}`, {

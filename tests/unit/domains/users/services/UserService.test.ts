@@ -3,6 +3,8 @@ import { UserRepository } from '../../../../src/domains/users/repositories/UserR
 import { AuthService } from '../../../../src/domains/users/services/AuthService';
 import { testUtils, testDB, testAuth, testPerf } from '../../../../src/shared/utils/testing';
 import { ValidationError, NotFoundError } from '../../../../src/shared/errors/DomainError';
+import { User, UserRole, UserStatus } from '../../../../src/domains/users/models/User';
+import { CreateUserRequest, UpdateUserRequest } from '../../../../src/domains/users/models/User';
 
 // Mock dependencies
 jest.mock('../../../../src/domains/users/repositories/UserRepository');
