@@ -98,11 +98,19 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
                   "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('userId', response.user.id);",
-                  "    pm.collectionVariables.set('accessToken', response.accessToken);",
-                  "    console.log('Attendee registered successfully:', response.user.id);",
+                  "    if (response.success && response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "        pm.collectionVariables.set('userEmail', response.data.user.email);",
+                  "        pm.collectionVariables.set('username', response.data.user.username);",
+                  "        pm.collectionVariables.set('userRole', response.data.user.role);",
+                  "        console.log('✅ User registered successfully:', response.data.user.id);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('👤 Role:', response.data.user.role);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Registration failed:', pm.response.text());",
                   "}"
                 ]
               }
@@ -134,11 +142,19 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
                   "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('organizerId', response.user.id);",
-                  "    pm.collectionVariables.set('organizerToken', response.accessToken);",
-                  "    console.log('Organizer registered successfully:', response.user.id);",
+                  "    if (response.success && response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('organizerId', response.data.user.id);",
+                  "        pm.collectionVariables.set('organizerEmail', response.data.user.email);",
+                  "        pm.collectionVariables.set('organizerUsername', response.data.user.username);",
+                  "        pm.collectionVariables.set('organizerRole', response.data.user.role);",
+                  "        console.log('✅ Organizer registered successfully:', response.data.user.id);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('👤 Role:', response.data.user.role);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Organizer registration failed:', pm.response.text());",
                   "}"
                 ]
               }
@@ -172,9 +188,36 @@
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('accessToken', response.accessToken);",
-                  "    pm.collectionVariables.set('userId', response.user.id);",
-                  "    console.log('User logged in successfully');",
+                  "    if (response.success && response.data) {",
+                  "        // Set user information",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "        pm.collectionVariables.set('userEmail', response.data.user.email);",
+                  "        pm.collectionVariables.set('username', response.data.user.username);",
+                  "        pm.collectionVariables.set('userRole', response.data.user.role);",
+                  "        ",
+                  "        // Set authentication tokens",
+                  "        pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "        pm.collectionVariables.set('tokenExpiresIn', response.data.expiresIn);",
+                  "        ",
+                  "        // Set role-specific variables",
+                  "        if (response.data.user.role === 'organizer') {",
+                  "            pm.collectionVariables.set('organizerId', response.data.user.id);",
+                  "            pm.collectionVariables.set('organizerToken', response.data.accessToken);",
+                  "        } else if (response.data.user.role === 'attendee') {",
+                  "            pm.collectionVariables.set('attendeeId', response.data.user.id);",
+                  "            pm.collectionVariables.set('attendeeToken', response.data.accessToken);",
+                  "        }",
+                  "        ",
+                  "        console.log('✅ Login successful!');",
+                  "        console.log('👤 User ID:', response.data.user.id);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('👤 Role:', response.data.user.role);",
+                  "        console.log('🔑 Access Token:', response.data.accessToken.substring(0, 50) + '...');",
+                  "        console.log('⏰ Token expires in:', response.data.expiresIn, 'seconds');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Login failed:', pm.response.text());",
                   "}"
                 ]
               }
@@ -185,7 +228,12 @@
           "name": "Get User Profile",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/users/profile",
               "host": ["{{baseUrl}}"],
@@ -201,6 +249,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -227,6 +279,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
@@ -244,10 +300,19 @@
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 201 || pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    pm.collectionVariables.set('eventId', response.event.id);",
-                  "    console.log('Event created successfully:', response.event.id);",
+                  "    if (response.success && response.data && response.data.id) {",
+                  "        pm.collectionVariables.set('eventId', response.data.id);",
+                  "        pm.collectionVariables.set('eventTitle', response.data.title);",
+                  "        pm.collectionVariables.set('eventSlug', response.data.slug);",
+                  "        console.log('✅ Event created successfully!');",
+                  "        console.log('🎉 Event ID:', response.data.id);",
+                  "        console.log('📝 Title:', response.data.title);",
+                  "        console.log('🔗 Slug:', response.data.slug);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Event creation failed:', pm.response.text());",
                   "}"
                 ]
               }
