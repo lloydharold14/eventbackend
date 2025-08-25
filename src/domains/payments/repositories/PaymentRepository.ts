@@ -228,6 +228,31 @@ export class PaymentRepository {
     }
   }
 
+  async getPaymentByPaymentIntentId(paymentIntentId: string): Promise<Payment | null> {
+    try {
+      const result = await this.client.send(new QueryCommand({
+        TableName: this.tableName,
+        IndexName: 'PaymentIntentIndex',
+        KeyConditionExpression: 'GSI3PK = :paymentIntentId',
+        FilterExpression: 'begins_with(SK, :paymentPrefix)',
+        ExpressionAttributeValues: {
+          ':paymentIntentId': `PAYMENT_INTENT#${paymentIntentId}`,
+          ':paymentPrefix': 'PAYMENT#',
+        },
+        Limit: 1,
+      }));
+
+      if (!result.Items || result.Items.length === 0) {
+        return null;
+      }
+
+      return this.mapDynamoDBToPayment(result.Items[0]);
+    } catch (error) {
+      logger.error('Error getting payment by payment intent ID', { error, paymentIntentId });
+      throw error;
+    }
+  }
+
   async getUserPayments(userId: string, limit: number = 20, lastEvaluatedKey?: any): Promise<{ payments: Payment[]; lastEvaluatedKey?: any }> {
     try {
       const queryParams: any = {

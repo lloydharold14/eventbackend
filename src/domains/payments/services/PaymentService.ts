@@ -2,6 +2,7 @@ import { Logger } from '@aws-lambda-powertools/logger';
 import { v4 as uuidv4 } from 'uuid';
 import { PaymentRepository } from '../repositories/PaymentRepository';
 import { PaymentGatewayManager } from '../gateways/PaymentGatewayManager';
+import { NotificationService } from '../../notifications/services/NotificationService';
 import {
   PaymentIntent,
   Payment,
@@ -26,10 +27,12 @@ const logger = new Logger({ serviceName: 'payment-service' });
 export class PaymentService {
   private gatewayManager: PaymentGatewayManager;
   private repository: PaymentRepository;
+  private notificationService: NotificationService;
 
   constructor(paymentTableName: string) {
     this.gatewayManager = new PaymentGatewayManager();
     this.repository = new PaymentRepository(paymentTableName);
+    this.notificationService = new NotificationService();
   }
 
   // Payment Intent Operations
@@ -172,6 +175,9 @@ export class PaymentService {
         updatedAt: new Date().toISOString(),
       });
 
+      // Send payment confirmation notification
+      await this.sendPaymentConfirmationNotification(createdPayment);
+
       logger.info('Payment confirmed successfully', { 
         paymentId: createdPayment.id,
         paymentIntentId: paymentIntent.id 
@@ -180,6 +186,17 @@ export class PaymentService {
       return createdPayment;
     } catch (error) {
       logger.error('Error confirming payment', { error, request });
+      
+      // Send payment failed notification
+      try {
+        const paymentIntent = await this.repository.getPaymentIntent(request.paymentIntentId);
+        if (paymentIntent) {
+          await this.sendPaymentFailedNotification(paymentIntent, error instanceof Error ? error.message : 'Unknown error');
+        }
+      } catch (notificationError) {
+        logger.error('Failed to send payment failed notification', { notificationError });
+      }
+      
       if (error instanceof PaymentGatewayError) {
         throw error;
       }
@@ -478,6 +495,12 @@ export class PaymentService {
           status: PaymentStatus.SUCCEEDED,
           updatedAt: new Date().toISOString(),
         });
+
+        // Send payment confirmation notification
+        const payment = await this.repository.getPaymentByPaymentIntentId(existingPaymentIntent.id);
+        if (payment) {
+          await this.sendPaymentConfirmationNotification(payment);
+        }
       }
     } catch (error) {
       logger.error('Error handling payment intent succeeded', { error, paymentIntent });
@@ -492,6 +515,10 @@ export class PaymentService {
           status: PaymentStatus.FAILED,
           updatedAt: new Date().toISOString(),
         });
+
+        // Send payment failed notification
+        const failureReason = paymentIntent.last_payment_error?.message || 'Payment processing failed';
+        await this.sendPaymentFailedNotification(existingPaymentIntent, failureReason);
       }
     } catch (error) {
       logger.error('Error handling payment intent failed', { error, paymentIntent });
@@ -513,6 +540,57 @@ export class PaymentService {
       }
     } catch (error) {
       logger.error('Error handling charge refunded', { error, charge });
+    }
+  }
+
+  // Notification methods
+  private async sendPaymentConfirmationNotification(payment: Payment): Promise<void> {
+    try {
+      // Get event details for notification
+      const eventTitle = payment.metadata?.eventTitle || 'Event';
+      
+      await this.notificationService.sendPaymentConfirmation(payment.userId, {
+        paymentId: payment.id,
+        amount: payment.amount,
+        currency: payment.currency,
+        bookingId: payment.bookingId,
+        eventTitle,
+        paymentMethod: payment.paymentMethod,
+        receiptUrl: payment.receiptUrl
+      });
+
+      logger.info('Payment confirmation notification sent', { paymentId: payment.id });
+    } catch (error: any) {
+      logger.error('Failed to send payment confirmation notification', { 
+        paymentId: payment.id, 
+        error: error.message 
+      });
+      // Don't throw error to avoid breaking the payment flow
+    }
+  }
+
+  private async sendPaymentFailedNotification(paymentIntent: PaymentIntent, failureReason: string): Promise<void> {
+    try {
+      // Get event details for notification
+      const eventTitle = paymentIntent.metadata?.eventTitle || 'Event';
+      
+      await this.notificationService.sendPaymentFailed(paymentIntent.userId, {
+        paymentId: paymentIntent.id,
+        amount: paymentIntent.amount,
+        currency: paymentIntent.currency,
+        bookingId: paymentIntent.bookingId,
+        eventTitle,
+        failureReason,
+        retryUrl: `${process.env.FRONTEND_URL}/payments/${paymentIntent.id}/retry`
+      });
+
+      logger.info('Payment failed notification sent', { paymentIntentId: paymentIntent.id });
+    } catch (error: any) {
+      logger.error('Failed to send payment failed notification', { 
+        paymentIntentId: paymentIntent.id, 
+        error: error.message 
+      });
+      // Don't throw error to avoid breaking the payment flow
     }
   }
 }

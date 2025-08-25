@@ -76,11 +76,12 @@ export class NotificationServiceStack extends cdk.Stack {
       projectionType: dynamodb.ProjectionType.ALL
     });
 
-    // SES Email Identity
-    this.sesIdentity = new ses.EmailIdentity(this, 'NotificationEmailIdentity', {
-      identity: ses.Identity.email('notifications@eventplatform.com'),
-      mailFromDomain: 'notifications.eventplatform.com'
-    });
+               // SES Email Identity - Temporarily disabled due to SES service issues
+           // TODO: Re-enable when SES service is stable or use verified domain
+           // this.sesIdentity = new ses.EmailIdentity(this, 'NotificationEmailIdentity', {
+           //   identity: ses.Identity.email('notifications@example.com')
+           // });
+           this.sesIdentity = null as any; // Temporary workaround
 
     // SNS Topic for notifications
     this.notificationTopic = new sns.Topic(this, 'NotificationTopic', {
@@ -116,18 +117,18 @@ export class NotificationServiceStack extends cdk.Stack {
     // Add DynamoDB permissions
     this.notificationTable.grantReadWriteData(this.notificationLambdaRole);
 
-    // Add SES permissions
-    this.notificationLambdaRole.addToPolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: [
-        'ses:SendEmail',
-        'ses:SendRawEmail',
-        'ses:SendTemplatedEmail',
-        'ses:GetSendQuota',
-        'ses:GetSendStatistics'
-      ],
-      resources: ['*']
-    }));
+               // Add SES permissions (commented out until SES is re-enabled)
+           // this.notificationLambdaRole.addToPolicy(new iam.PolicyStatement({
+           //   effect: iam.Effect.ALLOW,
+           //   actions: [
+           //     'ses:SendEmail',
+           //     'ses:SendRawEmail',
+           //     'ses:SendTemplatedEmail',
+           //     'ses:GetSendQuota',
+           //     'ses:GetSendStatistics'
+           //   ],
+           //   resources: ['*']
+           // }));
 
     // Add SNS permissions
     this.notificationTopic.grantPublish(this.notificationLambdaRole);
@@ -143,21 +144,20 @@ export class NotificationServiceStack extends cdk.Stack {
       code: lambda.Code.fromAsset('dist'),
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
-      environment: {
-        NODE_ENV: environment,
-        ENVIRONMENT: environment,
-        SERVICE_NAME: 'NotificationService',
-        SERVICE_VERSION: '1.0.0',
-        ENABLE_TRACING: 'true',
-        ENABLE_METRICS: 'true',
-        LOG_LEVEL: environment === 'prod' ? 'INFO' : 'DEBUG',
-        NOTIFICATION_TABLE_NAME: this.notificationTable.tableName,
-        SES_IDENTITY_ARN: this.sesIdentity.emailIdentityArn,
-        SNS_TOPIC_ARN: this.notificationTopic.topicArn,
-        SQS_QUEUE_URL: this.notificationQueue.queueUrl,
-        USER_POOL_ID: userPool.userPoolId,
-        AWS_REGION: this.region
-      },
+                   environment: {
+               NODE_ENV: environment,
+               ENVIRONMENT: environment,
+               SERVICE_NAME: 'NotificationService',
+               SERVICE_VERSION: '1.0.0',
+               ENABLE_TRACING: 'true',
+               ENABLE_METRICS: 'true',
+               LOG_LEVEL: environment === 'prod' ? 'INFO' : 'DEBUG',
+               NOTIFICATION_TABLE_NAME: this.notificationTable.tableName,
+               SES_IDENTITY_ARN: 'disabled', // Temporarily disabled
+               SNS_TOPIC_ARN: this.notificationTopic.topicArn,
+               SQS_QUEUE_URL: this.notificationQueue.queueUrl,
+               USER_POOL_ID: userPool.userPoolId
+             },
       vpc,
       vpcSubnets: {
         subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS
@@ -254,10 +254,10 @@ export class NotificationServiceStack extends cdk.Stack {
       description: 'Notification SQS queue URL'
     });
 
-    new cdk.CfnOutput(this, 'SESIdentityEmail', {
-      value: this.sesIdentity.emailIdentityArn,
-      description: 'SES email identity ARN'
-    });
+               new cdk.CfnOutput(this, 'SESIdentityEmail', {
+             value: 'disabled', // Temporarily disabled
+             description: 'SES email identity ARN (disabled)'
+           });
 
     // Tags
     cdk.Tags.of(this).add('Service', 'NotificationService');
