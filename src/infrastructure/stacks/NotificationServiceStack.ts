@@ -8,9 +8,11 @@ import * as sqs from 'aws-cdk-lib/aws-sqs';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { Construct } from 'constructs';
+import { EnvironmentConfig } from '../config/environments';
 
 export interface NotificationServiceStackProps extends cdk.StackProps {
   environment: string;
+  config: EnvironmentConfig;
   vpc: ec2.IVpc;
   securityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
@@ -141,7 +143,7 @@ export class NotificationServiceStack extends cdk.Stack {
     const lambdaConfig = {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('dist'),
+      code: lambda.Code.fromAsset('dist/bundled'),
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
                    environment: {
@@ -171,37 +173,37 @@ export class NotificationServiceStack extends cdk.Stack {
       sendNotification: new lambda.Function(this, 'SendNotificationFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-send-notification`,
-        handler: 'domains/notifications/handlers/notificationHandlers.sendNotification'
+        handler: 'notifications/handlers/notificationHandlers.sendNotification'
       }),
 
       sendBookingConfirmation: new lambda.Function(this, 'SendBookingConfirmationFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-send-booking-confirmation`,
-        handler: 'domains/notifications/handlers/notificationHandlers.sendBookingConfirmation'
+        handler: 'notifications/handlers/notificationHandlers.sendBookingConfirmation'
       }),
 
       sendBookingCancellation: new lambda.Function(this, 'SendBookingCancellationFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-send-booking-cancellation`,
-        handler: 'domains/notifications/handlers/notificationHandlers.sendBookingCancellation'
+        handler: 'notifications/handlers/notificationHandlers.sendBookingCancellation'
       }),
 
       sendPaymentConfirmation: new lambda.Function(this, 'SendPaymentConfirmationFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-send-payment-confirmation`,
-        handler: 'domains/notifications/handlers/notificationHandlers.sendPaymentConfirmation'
+        handler: 'notifications/handlers/notificationHandlers.sendPaymentConfirmation'
       }),
 
       sendPaymentFailed: new lambda.Function(this, 'SendPaymentFailedFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-send-payment-failed`,
-        handler: 'domains/notifications/handlers/notificationHandlers.sendPaymentFailed'
+        handler: 'notifications/handlers/notificationHandlers.sendPaymentFailed'
       }),
 
       healthCheck: new lambda.Function(this, 'NotificationHealthCheckFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-health-check`,
-        handler: 'domains/notifications/handlers/notificationHandlers.healthCheck'
+        handler: 'notifications/handlers/notificationHandlers.healthCheck'
       })
     };
 

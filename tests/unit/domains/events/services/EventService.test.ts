@@ -1,14 +1,14 @@
 import { jest } from '@jest/globals';
-import { EventService } from '../../../../src/domains/events/services/EventService';
-import { EventRepository } from '../../../../src/domains/events/repositories/EventRepository';
-import { Event, EventType, EventStatus, EventVisibility, PricingModel } from '../../../../src/domains/events/models/Event';
-import { CreateEventRequest, UpdateEventRequest } from '../../../../src/domains/events/models/Event';
-import { ValidationError, NotFoundError, UnauthorizedError } from '../../../../src/shared/errors/DomainError';
-import { testUtils, testPerf, testData } from '../../../../src/shared/utils/testing';
+import { EventService } from '@/domains/events/services/EventService';
+import { EventRepository } from '@/domains/events/repositories/EventRepository';
+import { Event, EventType, EventStatus, EventVisibility, PricingModel } from '@/domains/events/models/Event';
+import { CreateEventRequest, UpdateEventRequest } from '@/domains/events/models/Event';
+import { ValidationError, NotFoundError, UnauthorizedError } from '@/shared/errors/DomainError';
+import { TestUtils, TestPerformanceHelper, TestDataFactory } from '@/shared/utils/testing';
 
 // Mock dependencies
-jest.mock('../../../../src/domains/events/repositories/EventRepository');
-jest.mock('../../../../src/shared/utils/logger');
+jest.mock('@/domains/events/repositories/EventRepository');
+jest.mock('@/shared/utils/logger');
 
 const MockEventRepository = EventRepository as jest.MockedClass<typeof EventRepository>;
 
@@ -109,7 +109,7 @@ describe('EventService', () => {
       mockEventRepository.createEvent.mockResolvedValue(expectedEvent);
 
       // Act
-      const { result, duration } = await testPerf.measureExecutionTime(() =>
+      const { result, duration } = await TestPerformanceHelper.measureExecutionTime(() =>
         eventService.createEvent(organizerId, organizerName, organizerEmail, validEventData)
       );
 
@@ -168,7 +168,7 @@ describe('EventService', () => {
     it('should return event when found', async () => {
       // Arrange
       const eventId = 'test-event-id';
-      const expectedEvent = testData.createTestEvent({ id: eventId });
+      const expectedEvent = TestDataFactory.createTestEvent({ id: eventId });
       mockEventRepository.getEventById.mockResolvedValue(expectedEvent);
 
       // Act
@@ -199,7 +199,7 @@ describe('EventService', () => {
       // Arrange
       const eventId = 'test-event-id';
       const organizerId = 'test-organizer-id';
-      const existingEvent = testData.createTestEvent({ 
+      const existingEvent = TestDataFactory.createTestEvent({ 
         id: eventId, 
         organizerId,
         status: EventStatus.DRAFT 
@@ -225,7 +225,7 @@ describe('EventService', () => {
       const eventId = 'test-event-id';
       const organizerId = 'test-organizer-id';
       const differentOrganizerId = 'different-organizer-id';
-      const existingEvent = testData.createTestEvent({ 
+      const existingEvent = TestDataFactory.createTestEvent({ 
         id: eventId, 
         organizerId: differentOrganizerId 
       });
@@ -256,7 +256,7 @@ describe('EventService', () => {
       // Arrange
       const eventId = 'test-event-id';
       const organizerId = 'test-organizer-id';
-      const existingEvent = testData.createTestEvent({ 
+      const existingEvent = TestDataFactory.createTestEvent({ 
         id: eventId, 
         organizerId,
         status: EventStatus.DRAFT 
@@ -290,7 +290,7 @@ describe('EventService', () => {
       const eventId = 'test-event-id';
       const organizerId = 'test-organizer-id';
       const differentOrganizerId = 'different-organizer-id';
-      const existingEvent = testData.createTestEvent({ 
+      const existingEvent = TestDataFactory.createTestEvent({ 
         id: eventId, 
         organizerId: differentOrganizerId 
       });
@@ -312,7 +312,7 @@ describe('EventService', () => {
         type: EventType.CONFERENCE
       };
       const expectedResponse = {
-        events: testData.generateEvents(5),
+        events: TestDataFactory.generateEvents(5),
         pagination: {
           page: 1,
           limit: 20,
@@ -340,7 +340,7 @@ describe('EventService', () => {
       const page = 2;
       const limit = 10;
       const expectedResponse = {
-        events: testData.generateEvents(10),
+        events: TestDataFactory.generateEvents(10),
         pagination: {
           page: 2,
           limit: 10,
@@ -370,12 +370,12 @@ describe('EventService', () => {
       const organizerId = 'test-organizer-id';
       const organizerName = 'Test Organizer';
       const organizerEmail = 'organizer@test.com';
-      const eventData = testData.createTestEvent();
+      const eventData = TestDataFactory.createTestEvent();
       
       mockEventRepository.createEvent.mockResolvedValue(eventData);
 
       // Act
-      const { totalDuration, averageDuration, errors } = await testPerf.loadTest(
+      const { totalDuration, averageDuration, errors } = await TestPerformanceHelper.loadTest(
         () => eventService.createEvent(organizerId, organizerName, organizerEmail, eventData),
         10, // concurrency
         50  // iterations
@@ -389,7 +389,7 @@ describe('EventService', () => {
 
     it('should handle bulk event retrieval efficiently', async () => {
       // Arrange
-      const events = testData.generateEvents(100);
+      const events = TestDataFactory.generateEvents(100);
       const expectedResponse = {
         events,
         pagination: {
@@ -406,13 +406,13 @@ describe('EventService', () => {
       mockEventRepository.searchEvents.mockResolvedValue(expectedResponse);
 
       // Act
-      const { result, duration } = await testPerf.measureExecutionTime(() =>
+      const { result, duration } = await TestPerformanceHelper.measureExecutionTime(() =>
         eventService.searchEvents({}, 1, 100)
       );
 
       // Assert
       expect(result.events).toHaveLength(100);
-      testPerf.assertPerformanceThreshold(duration, 1000); // Should complete within 1 second
+      TestPerformanceHelper.assertPerformanceThreshold(duration, 1000); // Should complete within 1 second
     });
   });
 
@@ -467,7 +467,7 @@ describe('EventService', () => {
     it('should validate event title is not empty', async () => {
       // Arrange
       const invalidEventData = {
-        ...testData.createTestEvent(),
+        ...TestDataFactory.createTestEvent(),
         title: ''
       };
 
@@ -480,7 +480,7 @@ describe('EventService', () => {
     it('should validate maxAttendees is positive', async () => {
       // Arrange
       const invalidEventData = {
-        ...testData.createTestEvent(),
+        ...TestDataFactory.createTestEvent(),
         maxAttendees: -1
       };
 
@@ -496,7 +496,7 @@ describe('EventService', () => {
       pastDate.setFullYear(pastDate.getFullYear() - 1);
       
       const invalidEventData = {
-        ...testData.createTestEvent(),
+        ...TestDataFactory.createTestEvent(),
         startDate: pastDate.toISOString(),
         endDate: pastDate.toISOString()
       };

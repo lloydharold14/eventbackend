@@ -69,7 +69,44 @@ paths:
   /auth/register:
     post:
       summary: Register a new user
-      description: Create a new user account with email verification
+      description: |
+        Create a new user account with email verification.
+        
+        **Role Options:**
+        - `attendee` (default) - Can book events
+        - `organizer` - Can create and manage events
+        - `admin` - Full platform access
+        
+        **Examples:**
+        
+        **Attendee Registration:**
+        ```json
+        {
+          "email": "attendee@example.com",
+          "username": "attendee123",
+          "password": "TestPassword123!",
+          "firstName": "John",
+          "lastName": "Doe",
+          "phone": "+1234567890",
+          "acceptTerms": true,
+          "marketingConsent": false
+        }
+        ```
+        
+        **Organizer Registration:**
+        ```json
+        {
+          "email": "organizer@example.com",
+          "username": "organizer123",
+          "password": "TestPassword123!",
+          "firstName": "Jane",
+          "lastName": "Smith",
+          "phone": "+1234567891",
+          "acceptTerms": true,
+          "marketingConsent": true,
+          "role": "organizer"
+        }
+        ```
       tags: [Authentication]
       requestBody:
         required: true
@@ -102,9 +139,26 @@ paths:
                   minLength: 2
                   maxLength: 50
                   example: "Doe"
+                phoneNumber:
+                  type: string
+                  pattern: "^\\+?[\\d\\s\\-\\(\\)]{10,}$"
+                  example: "+1234567890"
+                dateOfBirth:
+                  type: string
+                  format: date
+                  example: "1990-01-01"
                 acceptTerms:
                   type: boolean
                   example: true
+                marketingConsent:
+                  type: boolean
+                  example: false
+                role:
+                  type: string
+                  enum: [admin, organizer, attendee]
+                  default: attendee
+                  example: "organizer"
+                  description: "User role - 'attendee' (default), 'organizer', or 'admin'"
       responses:
         '201':
           description: User registered successfully

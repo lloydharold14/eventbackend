@@ -17,9 +17,11 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
+import { EnvironmentConfig } from '../config/environments';
 
 export interface EventManagementStackProps extends cdk.StackProps {
   environment: string;
+  config: EnvironmentConfig;
 }
 
 export class EventManagementStack extends cdk.Stack {

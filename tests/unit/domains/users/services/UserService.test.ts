@@ -1,14 +1,14 @@
-import { UserService } from '../../../../src/domains/users/services/UserService';
-import { UserRepository } from '../../../../src/domains/users/repositories/UserRepository';
-import { AuthService } from '../../../../src/domains/users/services/AuthService';
-import { testUtils, testDB, testAuth, testPerf } from '../../../../src/shared/utils/testing';
-import { ValidationError, NotFoundError } from '../../../../src/shared/errors/DomainError';
-import { User, UserRole, UserStatus } from '../../../../src/domains/users/models/User';
-import { CreateUserRequest, UpdateUserRequest } from '../../../../src/domains/users/models/User';
+import { UserService } from '@/domains/users/services/UserService';
+import { UserRepository } from '@/domains/users/repositories/UserRepository';
+import { AuthService } from '@/domains/users/services/AuthService';
+import { TestUtils, TestDatabaseHelper, TestAuthHelper, TestPerformanceHelper } from '@/shared/utils/testing';
+import { ValidationError, NotFoundError } from '@/shared/errors/DomainError';
+import { User, UserRole, UserStatus } from '@/domains/users/models/User';
+import { CreateUserRequest, UpdateUserRequest } from '@/domains/users/models/User';
 
 // Mock dependencies
-jest.mock('../../../../src/domains/users/repositories/UserRepository');
-jest.mock('../../../../src/domains/users/services/AuthService');
+jest.mock('@/domains/users/repositories/UserRepository');
+jest.mock('@/domains/users/services/AuthService');
 
 describe('UserService', () => {
   let userService: UserService;
@@ -17,7 +17,7 @@ describe('UserService', () => {
 
   beforeEach(() => {
     // Setup test environment
-    testUtils.createTestEnvironment();
+    TestUtils.createTestEnvironment();
     
     // Reset mocks
     jest.clearAllMocks();
@@ -31,15 +31,15 @@ describe('UserService', () => {
   });
 
   afterEach(() => {
-    testUtils.cleanupTestEnvironment();
-    testUtils.resetMocks();
+    TestUtils.cleanupTestEnvironment();
+    TestUtils.resetMocks();
   });
 
   describe('getUserById', () => {
     it('should return user when user exists', async () => {
       // Arrange
       const userId = 'test-user-id';
-      const expectedUser = testUtils.createTestUser({ id: userId });
+      const expectedUser = TestUtils.createTestUser({ id: userId });
       
       mockUserRepository.getUserById.mockResolvedValue(expectedUser);
 
@@ -77,18 +77,18 @@ describe('UserService', () => {
     it('should meet performance requirements', async () => {
       // Arrange
       const userId = 'test-user-id';
-      const expectedUser = testUtils.createTestUser({ id: userId });
+      const expectedUser = TestUtils.createTestUser({ id: userId });
       
       mockUserRepository.getUserById.mockResolvedValue(expectedUser);
 
       // Act
-      const { result, duration } = await testPerf.measureExecutionTime(() =>
+      const { result, duration } = await TestPerformanceHelper.measureExecutionTime(() =>
         userService.getUserById(userId)
       );
 
       // Assert
       expect(result).toEqual(expectedUser);
-      testPerf.assertPerformanceThreshold(duration, 100); // Should complete within 100ms
+      TestPerformanceHelper.assertPerformanceThreshold(duration, 100); // Should complete within 100ms
     });
   });
 
@@ -96,7 +96,7 @@ describe('UserService', () => {
     it('should return user when email exists', async () => {
       // Arrange
       const email = 'test@example.com';
-      const expectedUser = testUtils.createTestUser({ email });
+      const expectedUser = TestUtils.createTestUser({ email });
       
       mockUserRepository.getUserByEmail.mockResolvedValue(expectedUser);
 
@@ -132,7 +132,7 @@ describe('UserService', () => {
         lastName: 'Name',
         phoneNumber: '+1234567890',
       };
-      const existingUser = testUtils.createTestUser({ id: userId });
+      const existingUser = TestUtils.createTestUser({ id: userId });
       const updatedUser = { ...existingUser, ...updateData };
       
       mockUserRepository.getUserById.mockResolvedValue(existingUser);
@@ -152,7 +152,7 @@ describe('UserService', () => {
       const updateData = {
         phoneNumber: 'invalid-phone',
       };
-      const existingUser = testUtils.createTestUser({ id: userId });
+      const existingUser = TestUtils.createTestUser({ id: userId });
       
       mockUserRepository.getUserById.mockResolvedValue(existingUser);
 
@@ -167,7 +167,7 @@ describe('UserService', () => {
       const updateData = {
         dateOfBirth: 'invalid-date',
       };
-      const existingUser = testUtils.createTestUser({ id: userId });
+      const existingUser = TestUtils.createTestUser({ id: userId });
       
       mockUserRepository.getUserById.mockResolvedValue(existingUser);
 
@@ -196,7 +196,7 @@ describe('UserService', () => {
       const page = 1;
       const pageSize = 10;
       const expectedResponse = {
-        users: testUtils.generateUsers(5),
+        users: TestUtils.generateUsers(5),
         totalCount: 25,
         page: 1,
         pageSize: 10,
@@ -244,7 +244,7 @@ describe('UserService', () => {
       const page = 1;
       const pageSize = 20;
       const expectedResponse = {
-        users: testUtils.generateUsers(3, { role }),
+        users: TestUtils.generateUsers(3, { role }),
         totalCount: 3,
         page: 1,
         pageSize: 20,
@@ -269,7 +269,7 @@ describe('UserService', () => {
       // Arrange
       const userId = 'test-user-id';
       const verificationData = { token: 'valid-token' };
-      const existingUser = testUtils.createTestUser({ id: userId, emailVerified: false });
+      const existingUser = TestUtils.createTestUser({ id: userId, emailVerified: false });
       
       mockUserRepository.getUserById.mockResolvedValue(existingUser);
       mockUserRepository.verifyEmail.mockResolvedValue();
@@ -299,7 +299,7 @@ describe('UserService', () => {
       // Arrange
       const userId = 'test-user-id';
       const verificationData = { phoneNumber: '+1234567890', code: '123456' };
-      const existingUser = testUtils.createTestUser({ id: userId, phoneVerified: false });
+      const existingUser = TestUtils.createTestUser({ id: userId, phoneVerified: false });
       
       mockUserRepository.getUserById.mockResolvedValue(existingUser);
       mockUserRepository.verifyPhone.mockResolvedValue();
@@ -319,7 +319,7 @@ describe('UserService', () => {
       const newRole = 'organizer';
       const requestingUserId = 'admin-user-id';
       const requestingUserRole = 'admin';
-      const existingUser = testUtils.createTestUser({ id: userId, role: 'attendee' });
+      const existingUser = TestUtils.createTestUser({ id: userId, role: 'attendee' });
       const updatedUser = { ...existingUser, role: newRole };
       
       mockUserRepository.getUserById.mockResolvedValue(existingUser);
@@ -352,7 +352,7 @@ describe('UserService', () => {
       const newRole = 'attendee';
       const requestingUserId = 'another-admin-id';
       const requestingUserRole = 'admin';
-      const existingUser = testUtils.createTestUser({ id: userId, role: 'admin' });
+      const existingUser = TestUtils.createTestUser({ id: userId, role: 'admin' });
       
       mockUserRepository.getUserById.mockResolvedValue(existingUser);
 
@@ -380,7 +380,7 @@ describe('UserService', () => {
 
       // Mock repository methods
       mockUserRepository.listUsers.mockResolvedValue({
-        users: testUtils.generateUsers(100),
+        users: TestUtils.generateUsers(100),
         totalCount: 100,
         page: 1,
         pageSize: 100,
@@ -429,7 +429,7 @@ describe('UserService', () => {
     it('should handle concurrent user lookups', async () => {
       // Arrange
       const userIds = Array.from({ length: 10 }, (_, i) => `user-${i}`);
-      const users = userIds.map(id => testUtils.createTestUser({ id }));
+      const users = userIds.map(id => TestUtils.createTestUser({ id }));
       
       mockUserRepository.getUserById.mockImplementation((id) => {
         const user = users.find(u => u.id === id);
@@ -437,7 +437,7 @@ describe('UserService', () => {
       });
 
       // Act
-      const { totalDuration, averageDuration, errors } = await testPerf.loadTest(
+      const { totalDuration, averageDuration, errors } = await TestPerformanceHelper.loadTest(
         () => userService.getUserById(userIds[Math.floor(Math.random() * userIds.length)]),
         5, // concurrency
         20  // iterations

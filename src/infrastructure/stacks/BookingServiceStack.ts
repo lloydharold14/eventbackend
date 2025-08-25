@@ -5,9 +5,11 @@ import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
+import { EnvironmentConfig } from '../config/environments';
 
 export interface BookingServiceStackProps extends cdk.StackProps {
   environment: string;
+  config: EnvironmentConfig;
 }
 
 export class BookingServiceStack extends cdk.Stack {
@@ -91,8 +93,8 @@ export class BookingServiceStack extends cdk.Stack {
     // Lambda Configuration
     const lambdaConfig = {
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/bookings/handlers/bookingHandlers.handlerName',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'bookings/handlers/bookingHandlers.handlerName',
+      code: lambda.Code.fromAsset('dist/bundled'),
       timeout: cdk.Duration.seconds(30),
       memorySize: 512,
       environment: {
@@ -109,77 +111,77 @@ export class BookingServiceStack extends cdk.Stack {
     this.bookingLambdaFunctions = {
       createBooking: new lambda.Function(this, 'CreateBookingFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.createBooking',
+        handler: 'bookings/handlers/bookingHandlers.createBooking',
         functionName: `booking-create-${environment}`,
         description: 'Create a new booking'
       }),
 
       getBookingById: new lambda.Function(this, 'GetBookingByIdFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.getBookingById',
+        handler: 'bookings/handlers/bookingHandlers.getBookingById',
         functionName: `booking-get-${environment}`,
         description: 'Get booking by ID'
       }),
 
       updateBooking: new lambda.Function(this, 'UpdateBookingFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.updateBooking',
+        handler: 'bookings/handlers/bookingHandlers.updateBooking',
         functionName: `booking-update-${environment}`,
         description: 'Update booking'
       }),
 
       cancelBooking: new lambda.Function(this, 'CancelBookingFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.cancelBooking',
+        handler: 'bookings/handlers/bookingHandlers.cancelBooking',
         functionName: `booking-cancel-${environment}`,
         description: 'Cancel booking'
       }),
 
       getBookingsByUser: new lambda.Function(this, 'GetBookingsByUserFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.getBookingsByUser',
+        handler: 'bookings/handlers/bookingHandlers.getBookingsByUser',
         functionName: `booking-user-${environment}`,
         description: 'Get bookings by user'
       }),
 
       getBookingsByEvent: new lambda.Function(this, 'GetBookingsByEventFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.getBookingsByEvent',
+        handler: 'bookings/handlers/bookingHandlers.getBookingsByEvent',
         functionName: `booking-event-${environment}`,
         description: 'Get bookings by event'
       }),
 
       getBookingsByOrganizer: new lambda.Function(this, 'GetBookingsByOrganizerFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.getBookingsByOrganizer',
+        handler: 'bookings/handlers/bookingHandlers.getBookingsByOrganizer',
         functionName: `booking-organizer-${environment}`,
         description: 'Get bookings by organizer'
       }),
 
       getBookingStatistics: new lambda.Function(this, 'GetBookingStatisticsFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.getBookingStatistics',
+        handler: 'bookings/handlers/bookingHandlers.getBookingStatistics',
         functionName: `booking-stats-${environment}`,
         description: 'Get booking statistics'
       }),
 
       getEventCapacity: new lambda.Function(this, 'GetEventCapacityFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.getEventCapacity',
+        handler: 'bookings/handlers/bookingHandlers.getEventCapacity',
         functionName: `booking-capacity-${environment}`,
         description: 'Get event capacity'
       }),
 
       generateBookingConfirmation: new lambda.Function(this, 'GenerateBookingConfirmationFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.generateBookingConfirmation',
+        handler: 'bookings/handlers/bookingHandlers.generateBookingConfirmation',
         functionName: `booking-confirmation-${environment}`,
         description: 'Generate booking confirmation'
       }),
 
       healthCheck: new lambda.Function(this, 'BookingHealthCheckFunction', {
         ...lambdaConfig,
-        handler: 'domains/bookings/handlers/bookingHandlers.healthCheck',
+        handler: 'bookings/handlers/bookingHandlers.healthCheck',
         functionName: `booking-health-${environment}`,
         description: 'Booking service health check'
       })

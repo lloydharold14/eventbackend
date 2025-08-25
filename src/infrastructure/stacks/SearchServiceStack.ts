@@ -7,9 +7,11 @@ import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import { Construct } from 'constructs';
+import { EnvironmentConfig } from '../config/environments';
 
 export interface SearchServiceStackProps extends cdk.StackProps {
   environment: string;
+  config: EnvironmentConfig;
   vpc: ec2.IVpc;
   securityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
@@ -27,18 +29,85 @@ export class SearchServiceStack extends cdk.Stack {
     const { environment, vpc, securityGroup, userPool, eventTable } = props;
     const resourcePrefix = `${id}-${environment}`;
 
-    // OpenSearch Domain
-    this.openSearchDomain = new opensearch.Domain(this, 'EventSearchDomain', {
-      domainName: `${resourcePrefix}-events`,
-      version: opensearch.EngineVersion.OPENSEARCH_2_5,
-      capacity: {
-        dataNodes: environment === 'prod' ? 2 : 1,
-        dataNodeInstanceType: environment === 'prod' ? 't3.medium.search' : 't3.small.search',
-        masterNodes: environment === 'prod' ? 3 : 0,
-        masterNodeInstanceType: 't3.small.search',
-        warmNodes: 0,
-        warmInstanceType: 'ultrawarm1.medium.search'
-      },
+    // OpenSearch Domain - Simplified configuration for dev environment
+    if (environment === 'dev') {
+      // For development, use a simpler configuration without VPC
+      this.openSearchDomain = new opensearch.Domain(this, 'EventSearchDomain', {
+        domainName: `${resourcePrefix}-events`,
+        version: opensearch.EngineVersion.OPENSEARCH_2_5,
+        capacity: {
+          dataNodes: 1,
+          dataNodeInstanceType: 't3.small.search',
+          masterNodes: 0,
+          warmNodes: 0
+        },
+        ebs: {
+          volumeSize: 20,
+          volumeType: ec2.EbsDeviceVolumeType.GP3,
+          iops: 3000,
+          throughput: 125
+        },
+        encryptionAtRest: {
+          enabled: true
+        },
+        nodeToNodeEncryption: true,
+        enforceHttps: true,
+        tlsSecurityPolicy: opensearch.TLSSecurityPolicy.TLS_1_2,
+        logging: {
+          slowSearchLogEnabled: true,
+          slowIndexLogEnabled: true,
+          appLogEnabled: true,
+          auditLogEnabled: false,
+          slowSearchLogGroup: new logs.LogGroup(this, 'SlowSearchLogs', {
+            logGroupName: `/aws/opensearch/${resourcePrefix}-slow-search`,
+            retention: logs.RetentionDays.ONE_MONTH,
+            removalPolicy: cdk.RemovalPolicy.DESTROY
+          }),
+          slowIndexLogGroup: new logs.LogGroup(this, 'SlowIndexLogs', {
+            logGroupName: `/aws/opensearch/${resourcePrefix}-slow-index`,
+            retention: logs.RetentionDays.ONE_MONTH,
+            removalPolicy: cdk.RemovalPolicy.DESTROY
+          }),
+          appLogGroup: new logs.LogGroup(this, 'AppLogs', {
+            logGroupName: `/aws/opensearch/${resourcePrefix}-app`,
+            retention: logs.RetentionDays.ONE_MONTH,
+            removalPolicy: cdk.RemovalPolicy.DESTROY
+          })
+        },
+        accessPolicies: [
+          new iam.PolicyStatement({
+            effect: iam.Effect.ALLOW,
+            actions: [
+              'es:ESHttp*'
+            ],
+            principals: [
+              new iam.ServicePrincipal('lambda.amazonaws.com')
+            ],
+            resources: [
+              `arn:aws:es:${this.region}:${this.account}:domain/${resourcePrefix}-events/*`
+            ]
+          })
+        ],
+        removalPolicy: cdk.RemovalPolicy.DESTROY
+      });
+    } else {
+      // For staging and production, use full configuration with VPC
+      this.openSearchDomain = new opensearch.Domain(this, 'EventSearchDomain', {
+        domainName: `${resourcePrefix}-events`,
+        version: opensearch.EngineVersion.OPENSEARCH_2_5,
+        capacity: {
+          dataNodes: environment === 'prod' ? 2 : 1,
+          dataNodeInstanceType: environment === 'prod' ? 't3.medium.search' : 't3.small.search',
+          masterNodes: environment === 'prod' ? 3 : 0,
+          masterNodeInstanceType: 't3.small.search',
+          warmNodes: 0,
+          warmInstanceType: 'ultrawarm1.medium.search'
+        },
+        zoneAwareness: environment === 'prod' ? {
+          enabled: true
+        } : {
+          enabled: false
+        },
       ebs: {
         volumeSize: environment === 'prod' ? 100 : 20,
         volumeType: ec2.EbsDeviceVolumeType.GP3,
@@ -98,6 +167,7 @@ export class SearchServiceStack extends cdk.Stack {
       ],
       removalPolicy: environment === 'prod' ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY
     });
+    }
 
     // IAM Role for Lambda functions
     this.searchLambdaRole = new iam.Role(this, 'SearchLambdaRole', {
@@ -157,7 +227,7 @@ export class SearchServiceStack extends cdk.Stack {
     const lambdaConfig = {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('dist'),
+      code: lambda.Code.fromAsset('dist/bundled'),
       timeout: cdk.Duration.seconds(30),
       memorySize: 1024,
       environment: {
@@ -187,31 +257,31 @@ export class SearchServiceStack extends cdk.Stack {
       searchEvents: new lambda.Function(this, 'SearchEventsFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-search-events`,
-        handler: 'domains/search/handlers/searchHandlers.searchEvents'
+        handler: 'search/handlers/searchHandlers.searchEvents'
       }),
 
       indexEvent: new lambda.Function(this, 'IndexEventFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-index-event`,
-        handler: 'domains/search/handlers/searchHandlers.indexEvent'
+        handler: 'search/handlers/searchHandlers.indexEvent'
       }),
 
       updateEventIndex: new lambda.Function(this, 'UpdateEventIndexFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-update-event-index`,
-        handler: 'domains/search/handlers/searchHandlers.updateEventIndex'
+        handler: 'search/handlers/searchHandlers.updateEventIndex'
       }),
 
       deleteEventIndex: new lambda.Function(this, 'DeleteEventIndexFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-delete-event-index`,
-        handler: 'domains/search/handlers/searchHandlers.deleteEventIndex'
+        handler: 'search/handlers/searchHandlers.deleteEventIndex'
       }),
 
       bulkIndexEvents: new lambda.Function(this, 'BulkIndexEventsFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-bulk-index-events`,
-        handler: 'domains/search/handlers/searchHandlers.bulkIndexEvents',
+        handler: 'search/handlers/searchHandlers.bulkIndexEvents',
         timeout: cdk.Duration.seconds(300), // 5 minutes for bulk operations
         memorySize: 2048
       }),
@@ -219,13 +289,13 @@ export class SearchServiceStack extends cdk.Stack {
       searchSuggestions: new lambda.Function(this, 'SearchSuggestionsFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-search-suggestions`,
-        handler: 'domains/search/handlers/searchHandlers.searchSuggestions'
+        handler: 'search/handlers/searchHandlers.searchSuggestions'
       }),
 
       healthCheck: new lambda.Function(this, 'SearchHealthCheckFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-health-check`,
-        handler: 'domains/search/handlers/searchHandlers.healthCheck'
+        handler: 'search/handlers/searchHandlers.healthCheck'
       })
     };
 

@@ -93,23 +93,6 @@ export enum BusinessMetricName {
   USER_GROWTH_RETRIEVED = 'UserGrowthRetrieved',
   ANALYTICS_RECORDS_UPDATED = 'AnalyticsRecordsUpdated',
   ANALYTICS_RECORDS_DELETED = 'AnalyticsRecordsDeleted',
-
-  // Mobile App Metrics
-  MOBILE_SYNC_COMPLETED = 'MobileSyncCompleted',
-  PUSH_TOKEN_REGISTERED = 'PushTokenRegistered',
-  PUSH_NOTIFICATION_SENT = 'PushNotificationSent',
-  MOBILE_EVENTS_RETRIEVED = 'MobileEventsRetrieved',
-  MOBILE_BOOKINGS_RETRIEVED = 'MobileBookingsRetrieved',
-  MOBILE_PAYMENTS_RETRIEVED = 'MobilePaymentsRetrieved',
-  MOBILE_USER_RETRIEVED = 'MobileUserRetrieved',
-  MOBILE_SEARCH_PERFORMED = 'MobileSearchPerformed',
-  MOBILE_NEARBY_EVENTS_RETRIEVED = 'MobileNearbyEventsRetrieved',
-  MOBILE_ANALYTICS_RECORDED = 'MobileAnalyticsRecorded',
-  MOBILE_OFFLINE_CHANGES_PROCESSED = 'MobileOfflineChangesProcessed',
-  MOBILE_SESSION_STARTED = 'MobileSessionStarted',
-  MOBILE_SESSION_ENDED = 'MobileSessionEnded',
-  MOBILE_APP_CRASH = 'MobileAppCrash',
-  MOBILE_PERFORMANCE_METRIC = 'MobilePerformanceMetric',
   
   // Performance Metrics
   API_RESPONSE_TIME = 'ApiResponseTime',

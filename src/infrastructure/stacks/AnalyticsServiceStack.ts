@@ -9,9 +9,11 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as cloudwatch from 'aws-cdk-lib/aws-cloudwatch';
 import { Construct } from 'constructs';
+import { EnvironmentConfig } from '../config/environments';
 
 export interface AnalyticsServiceStackProps extends cdk.StackProps {
   environment: string;
+  config: EnvironmentConfig;
   vpc: ec2.IVpc;
   securityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
@@ -94,7 +96,7 @@ export class AnalyticsServiceStack extends cdk.Stack {
 
     // S3 Bucket for Analytics Exports
     const analyticsExportBucket = new s3.Bucket(this, 'AnalyticsExportBucket', {
-      bucketName: `${resourcePrefix}-analytics-exports`,
+      bucketName: `${resourcePrefix.toLowerCase()}-analytics-exports`,
       versioned: true,
       encryption: s3.BucketEncryption.S3_MANAGED,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ALL,
@@ -167,7 +169,7 @@ export class AnalyticsServiceStack extends cdk.Stack {
     const lambdaConfig = {
       runtime: lambda.Runtime.NODEJS_18_X,
       handler: 'index.handler',
-      code: lambda.Code.fromAsset('dist'),
+      code: lambda.Code.fromAsset('dist/bundled'),
       timeout: cdk.Duration.seconds(30),
       memorySize: 1024,
       environment: {
@@ -185,8 +187,7 @@ export class AnalyticsServiceStack extends cdk.Stack {
         USER_TABLE_NAME: userTable.tableName,
         NOTIFICATION_TABLE_NAME: notificationTable.tableName,
         ANALYTICS_EXPORT_BUCKET: analyticsExportBucket.bucketName,
-        USER_POOL_ID: userPool.userPoolId,
-        AWS_REGION: this.region
+        USER_POOL_ID: userPool.userPoolId
       },
       vpc,
       vpcSubnets: {
@@ -201,21 +202,21 @@ export class AnalyticsServiceStack extends cdk.Stack {
       generateAnalytics: new lambda.Function(this, 'GenerateAnalyticsFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-generate-analytics`,
-        handler: 'domains/analytics/handlers/analyticsHandlers.generateAnalytics',
+        handler: 'analytics/handlers/analyticsHandlers.generateAnalytics',
         timeout: cdk.Duration.seconds(60)
       }),
 
       generateDashboard: new lambda.Function(this, 'GenerateDashboardFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-generate-dashboard`,
-        handler: 'domains/analytics/handlers/analyticsHandlers.generateDashboard',
+        handler: 'analytics/handlers/analyticsHandlers.generateDashboard',
         timeout: cdk.Duration.seconds(60)
       }),
 
       generateReport: new lambda.Function(this, 'GenerateReportFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-generate-report`,
-        handler: 'domains/analytics/handlers/analyticsHandlers.generateReport',
+        handler: 'analytics/handlers/analyticsHandlers.generateReport',
         timeout: cdk.Duration.seconds(120), // Longer timeout for report generation
         memorySize: 2048
       }),
@@ -223,14 +224,14 @@ export class AnalyticsServiceStack extends cdk.Stack {
       getRealTimeMetrics: new lambda.Function(this, 'GetRealTimeMetricsFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-real-time-metrics`,
-        handler: 'domains/analytics/handlers/analyticsHandlers.getRealTimeMetrics',
+        handler: 'analytics/handlers/analyticsHandlers.getRealTimeMetrics',
         timeout: cdk.Duration.seconds(30)
       }),
 
       exportAnalytics: new lambda.Function(this, 'ExportAnalyticsFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-export-analytics`,
-        handler: 'domains/analytics/handlers/analyticsHandlers.exportAnalytics',
+        handler: 'analytics/handlers/analyticsHandlers.exportAnalytics',
         timeout: cdk.Duration.seconds(120), // Longer timeout for exports
         memorySize: 2048
       }),
@@ -238,14 +239,14 @@ export class AnalyticsServiceStack extends cdk.Stack {
       getHealthStatus: new lambda.Function(this, 'GetHealthStatusFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-health-status`,
-        handler: 'domains/analytics/handlers/analyticsHandlers.getHealthStatus',
+        handler: 'analytics/handlers/analyticsHandlers.getHealthStatus',
         timeout: cdk.Duration.seconds(30)
       }),
 
       getAnalyticsConfig: new lambda.Function(this, 'GetAnalyticsConfigFunction', {
         ...lambdaConfig,
         functionName: `${resourcePrefix}-analytics-config`,
-        handler: 'domains/analytics/handlers/analyticsHandlers.getAnalyticsConfig',
+        handler: 'analytics/handlers/analyticsHandlers.getAnalyticsConfig',
         timeout: cdk.Duration.seconds(30)
       })
     };
@@ -268,7 +269,7 @@ export class AnalyticsServiceStack extends cdk.Stack {
       },
       deployOptions: {
         stageName: environment,
-        loggingLevel: apigateway.MethodLoggingLevel.INFO,
+        loggingLevel: environment === 'prod' ? apigateway.MethodLoggingLevel.INFO : apigateway.MethodLoggingLevel.OFF,
         dataTraceEnabled: environment !== 'prod',
         metricsEnabled: true,
         tracingEnabled: environment !== 'prod'

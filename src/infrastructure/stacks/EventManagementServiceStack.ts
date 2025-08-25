@@ -5,9 +5,11 @@ import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
+import { EnvironmentConfig } from '../config/environments';
 
 export interface EventManagementServiceStackProps extends cdk.StackProps {
   environment: string;
+  config: EnvironmentConfig;
 }
 
 export class EventManagementServiceStack extends cdk.Stack {
@@ -168,117 +170,117 @@ export class EventManagementServiceStack extends cdk.Stack {
     this.eventLambdaFunctions.createEvent = new lambda.Function(this, 'CreateEventFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-create-event`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.createEvent',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.createEvent',
     });
 
     this.eventLambdaFunctions.getEventById = new lambda.Function(this, 'GetEventByIdFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-event-by-id`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.getEventById',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.getEventById',
     });
 
     this.eventLambdaFunctions.getEventBySlug = new lambda.Function(this, 'GetEventBySlugFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-event-by-slug`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.getEventBySlug',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.getEventBySlug',
     });
 
     this.eventLambdaFunctions.updateEvent = new lambda.Function(this, 'UpdateEventFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-update-event`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.updateEvent',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.updateEvent',
     });
 
     this.eventLambdaFunctions.deleteEvent = new lambda.Function(this, 'DeleteEventFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-delete-event`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.deleteEvent',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.deleteEvent',
     });
 
     // Event Status Management Lambda functions
     this.eventLambdaFunctions.publishEvent = new lambda.Function(this, 'PublishEventFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-publish-event`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.publishEvent',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.publishEvent',
     });
 
     this.eventLambdaFunctions.cancelEvent = new lambda.Function(this, 'CancelEventFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-cancel-event`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.cancelEvent',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.cancelEvent',
     });
 
     this.eventLambdaFunctions.duplicateEvent = new lambda.Function(this, 'DuplicateEventFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-duplicate-event`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.duplicateEvent',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.duplicateEvent',
     });
 
     // Event Search and Listing Lambda functions
     this.eventLambdaFunctions.searchEvents = new lambda.Function(this, 'SearchEventsFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-search-events`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.searchEvents',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.searchEvents',
     });
 
     this.eventLambdaFunctions.getEventsByOrganizer = new lambda.Function(this, 'GetEventsByOrganizerFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-events-by-organizer`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.getEventsByOrganizer',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.getEventsByOrganizer',
     });
 
     this.eventLambdaFunctions.getEventsByCategory = new lambda.Function(this, 'GetEventsByCategoryFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-events-by-category`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.getEventsByCategory',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.getEventsByCategory',
     });
 
     // Event Category Lambda functions
     this.eventLambdaFunctions.createCategory = new lambda.Function(this, 'CreateCategoryFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-create-category`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.createCategory',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.createCategory',
     });
 
     this.eventLambdaFunctions.getAllCategories = new lambda.Function(this, 'GetAllCategoriesFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-all-categories`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.getAllCategories',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.getAllCategories',
     });
 
     // Event Media Lambda functions
     this.eventLambdaFunctions.addEventMedia = new lambda.Function(this, 'AddEventMediaFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-add-event-media`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.addEventMedia',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.addEventMedia',
     });
 
     this.eventLambdaFunctions.getEventMedia = new lambda.Function(this, 'GetEventMediaFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-event-media`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.getEventMedia',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.getEventMedia',
     });
 
     this.eventLambdaFunctions.deleteEventMedia = new lambda.Function(this, 'DeleteEventMediaFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-delete-event-media`,
-      code: lambda.Code.fromAsset('dist'),
-      handler: 'domains/events/handlers/eventHandlers.deleteEventMedia',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'eventHandlers.deleteEventMedia',
     });
 
     // Create API Gateway resources and methods

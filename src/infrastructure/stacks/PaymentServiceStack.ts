@@ -8,9 +8,11 @@ import * as logs from 'aws-cdk-lib/aws-logs';
 import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as ec2 from 'aws-cdk-lib/aws-ec2';
 import * as path from 'path';
+import { EnvironmentConfig } from '../config/environments';
 
 export interface PaymentServiceStackProps extends cdk.StackProps {
   environment: string;
+  config: EnvironmentConfig;
   vpc: ec2.IVpc;
   securityGroup: ec2.ISecurityGroup;
   userPool: cognito.IUserPool;
@@ -154,8 +156,8 @@ export class PaymentServiceStack extends cdk.Stack {
     const createPaymentIntentFunction = new lambda.Function(this, 'CreatePaymentIntentFunction', {
       functionName: `${resourcePrefix}-create-payment-intent`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/payments/handlers/paymentHandlers.createPaymentIntent',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'payments/handlers/paymentHandlers.createPaymentIntent',
+      code: lambda.Code.fromAsset('dist/bundled'),
       role: this.paymentLambdaRole,
       environment: {
         ENVIRONMENT: environment,
@@ -179,8 +181,8 @@ export class PaymentServiceStack extends cdk.Stack {
     const confirmPaymentFunction = new lambda.Function(this, 'ConfirmPaymentFunction', {
       functionName: `${resourcePrefix}-confirm-payment`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/payments/handlers/paymentHandlers.confirmPayment',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'payments/handlers/paymentHandlers.confirmPayment',
+      code: lambda.Code.fromAsset('dist/bundled'),
       role: this.paymentLambdaRole,
       environment: {
         ENVIRONMENT: environment,
@@ -204,8 +206,8 @@ export class PaymentServiceStack extends cdk.Stack {
     const getPaymentStatusFunction = new lambda.Function(this, 'GetPaymentStatusFunction', {
       functionName: `${resourcePrefix}-get-payment-status`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/payments/handlers/paymentHandlers.getPaymentStatus',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'payments/handlers/paymentHandlers.getPaymentStatus',
+      code: lambda.Code.fromAsset('dist/bundled'),
       role: this.paymentLambdaRole,
       environment: {
         ENVIRONMENT: environment,
@@ -226,8 +228,8 @@ export class PaymentServiceStack extends cdk.Stack {
     const processRefundFunction = new lambda.Function(this, 'ProcessRefundFunction', {
       functionName: `${resourcePrefix}-process-refund`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/payments/handlers/paymentHandlers.processRefund',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'payments/handlers/paymentHandlers.processRefund',
+      code: lambda.Code.fromAsset('dist/bundled'),
       role: this.paymentLambdaRole,
       environment: {
         ENVIRONMENT: environment,
@@ -250,8 +252,8 @@ export class PaymentServiceStack extends cdk.Stack {
     const stripeWebhookFunction = new lambda.Function(this, 'StripeWebhookFunction', {
       functionName: `${resourcePrefix}-stripe-webhook`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/payments/handlers/paymentHandlers.handleStripeWebhook',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'payments/handlers/paymentHandlers.handleStripeWebhook',
+      code: lambda.Code.fromAsset('dist/bundled'),
       role: this.paymentLambdaRole,
       environment: {
         ENVIRONMENT: environment,
@@ -275,8 +277,8 @@ export class PaymentServiceStack extends cdk.Stack {
     const getUserPaymentsFunction = new lambda.Function(this, 'GetUserPaymentsFunction', {
       functionName: `${resourcePrefix}-get-user-payments`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/payments/handlers/paymentHandlers.getUserPayments',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'payments/handlers/paymentHandlers.getUserPayments',
+      code: lambda.Code.fromAsset('dist/bundled'),
       role: this.paymentLambdaRole,
       environment: {
         ENVIRONMENT: environment,
@@ -297,8 +299,8 @@ export class PaymentServiceStack extends cdk.Stack {
     const healthCheckFunction = new lambda.Function(this, 'PaymentHealthCheckFunction', {
       functionName: `${resourcePrefix}-health-check`,
       runtime: lambda.Runtime.NODEJS_18_X,
-      handler: 'domains/payments/handlers/paymentHandlers.healthCheck',
-      code: lambda.Code.fromAsset('dist'),
+      handler: 'payments/handlers/paymentHandlers.healthCheck',
+      code: lambda.Code.fromAsset('dist/bundled'),
       role: this.paymentLambdaRole,
       environment: {
         ENVIRONMENT: environment,

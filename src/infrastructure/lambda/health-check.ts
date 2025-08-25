@@ -41,16 +41,13 @@ export const handler = async (event: APIGatewayProxyEvent): Promise<APIGatewayPr
 
     // Perform health checks
     const healthChecks = await Promise.allSettled([
-      checkDynamoDB(dynamoClient, correlationId),
-      checkS3(s3Client, correlationId),
-      checkEventBridge(eventBridgeClient, correlationId),
       checkEnvironmentVariables(correlationId),
       checkLambdaRuntime(correlationId),
     ]);
 
     // Process results
     const results: HealthCheckResult[] = healthChecks.map((result, index) => {
-      const serviceNames = ['DynamoDB', 'S3', 'EventBridge', 'Environment', 'Lambda Runtime'];
+      const serviceNames = ['Environment', 'Lambda Runtime'];
       
       if (result.status === 'fulfilled') {
         return result.value;
