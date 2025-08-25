@@ -73,7 +73,7 @@ export const loginUser = async (event: APIGatewayProxyEvent): Promise<APIGateway
     const body = JSON.parse(event.body || '{}');
     
     // Validate input
-    const validation = validateSchema(userLoginSchema, body);
+    const validation = validateSchemaTyped<UserLoginRequest>(userLoginSchema, body);
     if (!validation.isValid) {
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
@@ -118,7 +118,7 @@ export const changePassword = async (event: APIGatewayProxyEvent): Promise<APIGa
     const body = JSON.parse(event.body || '{}');
     
     // Validate input
-    const validation = validateSchema(passwordChangeSchema, body);
+    const validation = validateSchemaTyped<any>(passwordChangeSchema, body);
     if (!validation.isValid) {
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
@@ -147,7 +147,7 @@ export const resetPassword = async (event: APIGatewayProxyEvent): Promise<APIGat
     const body = JSON.parse(event.body || '{}');
     
     // Validate input
-    const validation = validateSchema(passwordResetSchema, body);
+    const validation = validateSchemaTyped<any>(passwordResetSchema, body);
     if (!validation.isValid) {
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
@@ -169,7 +169,7 @@ export const confirmPasswordReset = async (event: APIGatewayProxyEvent): Promise
     const body = JSON.parse(event.body || '{}');
     
     // Validate input
-    const validation = validateSchema(passwordResetConfirmSchema, body);
+    const validation = validateSchemaTyped<any>(passwordResetConfirmSchema, body);
     if (!validation.isValid) {
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
@@ -212,7 +212,7 @@ export const updateUserProfile = async (event: APIGatewayProxyEvent): Promise<AP
     const body = JSON.parse(event.body || '{}');
     
     // Validate input
-    const validation = validateSchema(userUpdateSchema, body);
+    const validation = validateSchemaTyped<UpdateUserRequest>(userUpdateSchema, body);
     if (!validation.isValid) {
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
@@ -274,7 +274,7 @@ export const verifyEmail = async (event: APIGatewayProxyEvent): Promise<APIGatew
     const body = JSON.parse(event.body || '{}');
     
     // Validate input
-    const validation = validateSchema(emailVerificationSchema, body);
+    const validation = validateSchemaTyped<EmailVerificationConfirmRequest>(emailVerificationSchema, body);
     if (!validation.isValid) {
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
@@ -303,7 +303,7 @@ export const verifyPhone = async (event: APIGatewayProxyEvent): Promise<APIGatew
     const body = JSON.parse(event.body || '{}');
     
     // Validate input
-    const validation = validateSchema(phoneVerificationSchema, body);
+    const validation = validateSchemaTyped<PhoneVerificationConfirmRequest>(phoneVerificationSchema, body);
     if (!validation.isValid) {
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
@@ -357,7 +357,7 @@ export const listUsers = async (event: APIGatewayProxyEvent): Promise<APIGateway
       searchTerm: queryParams.searchTerm,
     };
 
-    const validation = validateSchema(userSearchSchema, searchParams);
+    const validation = validateSchemaTyped<UserSearchFilters>(userSearchSchema, searchParams);
     if (!validation.isValid) {
       return formatErrorResponse(validation.errors);
     }

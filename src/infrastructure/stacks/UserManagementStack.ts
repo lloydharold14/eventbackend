@@ -164,7 +164,7 @@ export class UserManagementStack extends cdk.Stack {
       memorySize: 512,
       environment: {
         USER_TABLE_NAME: this.userTable.tableName,
-        AWS_REGION: this.region,
+
         JWT_SECRET: process.env['JWT_SECRET'] || 'default-secret-key',
         JWT_EXPIRES_IN: '1h',
         REFRESH_TOKEN_EXPIRES_IN: '7d',
@@ -188,145 +188,145 @@ export class UserManagementStack extends cdk.Stack {
     this.userLambdaFunctions.registerUser = new lambda.Function(this, 'RegisterUserFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-register-user`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.registerUser',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.registerUser',
     });
 
     this.userLambdaFunctions.loginUser = new lambda.Function(this, 'LoginUserFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-login-user`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.loginUser',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.loginUser',
     });
 
     this.userLambdaFunctions.refreshToken = new lambda.Function(this, 'RefreshTokenFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-refresh-token`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.refreshToken',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.refreshToken',
     });
 
     this.userLambdaFunctions.changePassword = new lambda.Function(this, 'ChangePasswordFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-change-password`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.changePassword',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.changePassword',
     });
 
     this.userLambdaFunctions.resetPassword = new lambda.Function(this, 'ResetPasswordFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-reset-password`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.resetPassword',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.resetPassword',
     });
 
     this.userLambdaFunctions.confirmPasswordReset = new lambda.Function(this, 'ConfirmPasswordResetFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-confirm-password-reset`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.confirmPasswordReset',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.confirmPasswordReset',
     });
 
     // User profile Lambda functions
     this.userLambdaFunctions.getUserProfile = new lambda.Function(this, 'GetUserProfileFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-user-profile`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.getUserProfile',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.getUserProfile',
     });
 
     this.userLambdaFunctions.updateUserProfile = new lambda.Function(this, 'UpdateUserProfileFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-update-user-profile`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.updateUserProfile',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.updateUserProfile',
     });
 
     this.userLambdaFunctions.getUserById = new lambda.Function(this, 'GetUserByIdFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-user-by-id`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.getUserById',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.getUserById',
     });
 
     // Verification Lambda functions
     this.userLambdaFunctions.verifyEmail = new lambda.Function(this, 'VerifyEmailFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-verify-email`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.verifyEmail',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.verifyEmail',
     });
 
     this.userLambdaFunctions.verifyPhone = new lambda.Function(this, 'VerifyPhoneFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-verify-phone`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.verifyPhone',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.verifyPhone',
     });
 
     // Admin Lambda functions
     this.userLambdaFunctions.listUsers = new lambda.Function(this, 'ListUsersFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-list-users`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.listUsers',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.listUsers',
     });
 
     this.userLambdaFunctions.deleteUser = new lambda.Function(this, 'DeleteUserFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-delete-user`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.deleteUser',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.deleteUser',
     });
 
     this.userLambdaFunctions.changeUserRole = new lambda.Function(this, 'ChangeUserRoleFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-change-user-role`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.changeUserRole',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.changeUserRole',
     });
 
     this.userLambdaFunctions.getUserStats = new lambda.Function(this, 'GetUserStatsFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-user-stats`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'userHandlers.getUserStats',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/userHandlers.getUserStats',
     });
 
     // OAuth Lambda functions
     this.userLambdaFunctions.oauthLogin = new lambda.Function(this, 'OAuthLoginFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-oauth-login`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'oauthHandlers.oauthLogin',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/oauthHandlers.oauthLogin',
     });
 
     this.userLambdaFunctions.linkOAuthAccount = new lambda.Function(this, 'LinkOAuthAccountFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-link-oauth-account`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'oauthHandlers.linkOAuthAccount',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/oauthHandlers.linkOAuthAccount',
     });
 
     this.userLambdaFunctions.unlinkOAuthAccount = new lambda.Function(this, 'UnlinkOAuthAccountFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-unlink-oauth-account`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'oauthHandlers.unlinkOAuthAccount',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/oauthHandlers.unlinkOAuthAccount',
     });
 
     this.userLambdaFunctions.getLinkedOAuthAccounts = new lambda.Function(this, 'GetLinkedOAuthAccountsFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-linked-oauth-accounts`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'oauthHandlers.getLinkedOAuthAccounts',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/oauthHandlers.getLinkedOAuthAccounts',
     });
 
     this.userLambdaFunctions.getOAuthAuthorizationUrl = new lambda.Function(this, 'GetOAuthAuthorizationUrlFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-oauth-authorization-url`,
-      code: lambda.Code.fromAsset('src/domains/users/handlers'),
-      handler: 'oauthHandlers.getOAuthAuthorizationUrl',
+      code: lambda.Code.fromAsset('dist'),
+      handler: 'domains/users/handlers/oauthHandlers.getOAuthAuthorizationUrl',
     });
 
     // Create API Gateway resources and methods
@@ -343,15 +343,19 @@ export class UserManagementStack extends cdk.Stack {
     authResource.addResource('confirm-reset').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.confirmPasswordReset));
 
     // OAuth endpoints
-    authResource.addResource('oauth').addResource('login').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.oauthLogin));
-    authResource.addResource('oauth').addResource('authorization-url').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getOAuthAuthorizationUrl));
-    usersResource.addResource('oauth').addResource('link').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.linkOAuthAccount));
-    usersResource.addResource('oauth').addResource('unlink').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.unlinkOAuthAccount));
-    usersResource.addResource('oauth').addResource('accounts').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getLinkedOAuthAccounts));
+    const authOAuthResource = authResource.addResource('oauth');
+    authOAuthResource.addResource('login').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.oauthLogin));
+    authOAuthResource.addResource('authorization-url').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getOAuthAuthorizationUrl));
+    
+    const usersOAuthResource = usersResource.addResource('oauth');
+    usersOAuthResource.addResource('link').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.linkOAuthAccount));
+    usersOAuthResource.addResource('unlink').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.unlinkOAuthAccount));
+    usersOAuthResource.addResource('accounts').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getLinkedOAuthAccounts));
 
     // User profile endpoints
-    usersResource.addResource('profile').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getUserProfile));
-    usersResource.addResource('profile').addMethod('PUT', new apigateway.LambdaIntegration(this.userLambdaFunctions.updateUserProfile));
+    const profileResource = usersResource.addResource('profile');
+    profileResource.addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getUserProfile));
+    profileResource.addMethod('PUT', new apigateway.LambdaIntegration(this.userLambdaFunctions.updateUserProfile));
     usersResource.addResource('{userId}').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getUserById));
 
     // Verification endpoints
@@ -359,9 +363,13 @@ export class UserManagementStack extends cdk.Stack {
     usersResource.addResource('verify-phone').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifyPhone));
 
     // Admin endpoints
-    adminResource.addResource('users').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.listUsers));
-    adminResource.addResource('users').addResource('{userId}').addMethod('DELETE', new apigateway.LambdaIntegration(this.userLambdaFunctions.deleteUser));
-    adminResource.addResource('users').addResource('{userId}').addResource('role').addMethod('PUT', new apigateway.LambdaIntegration(this.userLambdaFunctions.changeUserRole));
+    const adminUsersResource = adminResource.addResource('users');
+    adminUsersResource.addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.listUsers));
+    
+    const adminUserResource = adminUsersResource.addResource('{userId}');
+    adminUserResource.addMethod('DELETE', new apigateway.LambdaIntegration(this.userLambdaFunctions.deleteUser));
+    adminUserResource.addResource('role').addMethod('PUT', new apigateway.LambdaIntegration(this.userLambdaFunctions.changeUserRole));
+    
     adminResource.addResource('stats').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getUserStats));
 
     // Create CloudWatch alarms for Lambda functions

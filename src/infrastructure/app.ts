@@ -4,18 +4,20 @@ import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { EventManagementStack } from './stacks/EventManagementStack';
 import { UserManagementStack } from './stacks/UserManagementStack';
-import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
-import { BookingServiceStack } from './stacks/BookingServiceStack';
-import { PaymentServiceStack } from './stacks/PaymentServiceStack';
-import { NotificationServiceStack } from './stacks/NotificationServiceStack';
-import { SearchServiceStack } from './stacks/SearchServiceStack';
-import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
+// TODO: Uncomment when circular dependency is resolved
+// import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
+// TODO: Uncomment when other services are implemented
+// import { BookingServiceStack } from './stacks/BookingServiceStack';
+// import { PaymentServiceStack } from './stacks/PaymentServiceStack';
+// import { NotificationServiceStack } from './stacks/NotificationServiceStack';
+// import { SearchServiceStack } from './stacks/SearchServiceStack';
+// import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
 
 const app = new cdk.App();
 
 // Environment configuration
 const environment = app.node.tryGetContext('environment') || 'dev';
-const region = app.node.tryGetContext('region') || 'us-east-1';
+const region = app.node.tryGetContext('region') || 'ca-central-1';
 const account = app.node.tryGetContext('account') || process.env['CDK_DEFAULT_ACCOUNT'];
 
 // Common stack props
@@ -39,87 +41,85 @@ const eventManagementStack = new EventManagementStack(app, `EventManagement-${en
   description: 'Event Management Platform - Shared Infrastructure'
 });
 
-// User Management Service Stack
-const userManagementStack = new UserManagementStack(app, `UserManagement-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'User Management Service - Authentication and User Management',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  apiGateway: eventManagementStack.apiGateway
-});
+  // User Management Service Stack
+  const userManagementStack = new UserManagementStack(app, `UserManagement-${environment}`, {
+    ...commonProps,
+    environment,
+    description: 'User Management Service - Authentication and User Management',
+    vpc: eventManagementStack.vpc,
+    securityGroup: eventManagementStack.securityGroup,
+    apiGateway: eventManagementStack.apiGateway
+  });
 
-// Event Management Service Stack
-const eventManagementServiceStack = new EventManagementServiceStack(app, `EventManagementService-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'Event Management Service - Event CRUD Operations',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  userPool: userManagementStack.userPool
-});
+  // Event Management Service Stack - TODO: Uncomment when circular dependency is resolved
+  // const eventManagementServiceStack = new EventManagementServiceStack(app, `EventManagementService-${environment}`, {
+  //   ...commonProps,
+  //   environment,
+  //   description: 'Event Management Service - Event CRUD, Categories, and Media Management',
+  //   apiGateway: eventManagementStack.apiGateway
+  // });
 
-// Booking Service Stack
-const bookingServiceStack = new BookingServiceStack(app, `BookingService-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'Booking Service - Ticket Reservations and Management',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  userPool: userManagementStack.userPool,
-  eventTable: eventManagementServiceStack.eventTable
-});
+// Booking Service Stack - TODO: Implement full functionality
+// const bookingServiceStack = new BookingServiceStack(app, `BookingService-${environment}`, {
+//   ...commonProps,
+//   environment,
+//   description: 'Booking Service - Ticket Reservations and Management',
+//   vpc: eventManagementStack.vpc,
+//   securityGroup: eventManagementStack.securityGroup,
+//   userPool: userManagementStack.userPool,
+//   eventTable: eventManagementServiceStack.eventTable
+// });
 
-// Payment Service Stack
-const paymentServiceStack = new PaymentServiceStack(app, `PaymentService-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'Payment Service - Payment Processing and Stripe Integration',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  userPool: userManagementStack.userPool,
-  bookingTable: bookingServiceStack.bookingTable
-});
+// Payment Service Stack - TODO: Implement full functionality
+// const paymentServiceStack = new PaymentServiceStack(app, `PaymentService-${environment}`, {
+//   ...commonProps,
+//   environment,
+//   description: 'Payment Service - Payment Processing and Stripe Integration',
+//   vpc: eventManagementStack.vpc,
+//   securityGroup: eventManagementStack.securityGroup,
+//   userPool: userManagementStack.userPool,
+//   bookingTable: bookingServiceStack.bookingTable
+// });
 
-// Notification Service Stack
-const notificationServiceStack = new NotificationServiceStack(app, `NotificationService-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'Notification Service - Email, SMS, and Push Notifications',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  userPool: userManagementStack.userPool
-});
+// Notification Service Stack - TODO: Implement full functionality
+// const notificationServiceStack = new NotificationServiceStack(app, `NotificationService-${environment}`, {
+//   ...commonProps,
+//   environment,
+//   description: 'Notification Service - Email, SMS, and Push Notifications',
+//   vpc: eventManagementStack.vpc,
+//   securityGroup: eventManagementStack.securityGroup,
+//   userPool: userManagementStack.userPool
+// });
 
-// Search Service Stack
-const searchServiceStack = new SearchServiceStack(app, `SearchService-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'Search Service - Event Discovery and Search',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  userPool: userManagementStack.userPool,
-  eventTable: eventManagementServiceStack.eventTable
-});
+// Search Service Stack - TODO: Implement full functionality
+// const searchServiceStack = new SearchServiceStack(app, `SearchService-${environment}`, {
+//   ...commonProps,
+//   environment,
+//   description: 'Search Service - Event Discovery and Search',
+//   vpc: eventManagementStack.vpc,
+//   securityGroup: eventManagementStack.securityGroup,
+//   userPool: userManagementStack.userPool,
+//   eventTable: eventManagementServiceStack.eventTable
+// });
 
-// Analytics Service Stack
-const analyticsServiceStack = new AnalyticsServiceStack(app, `AnalyticsService-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'Analytics Service - Business Intelligence and Reporting',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  userPool: userManagementStack.userPool
-});
+// Analytics Service Stack - TODO: Implement full functionality
+// const analyticsServiceStack = new AnalyticsServiceStack(app, `AnalyticsService-${environment}`, {
+//   ...commonProps,
+//   environment,
+//   description: 'Analytics Service - Business Intelligence and Reporting',
+//   vpc: eventManagementStack.vpc,
+//   securityGroup: eventManagementStack.securityGroup,
+//   userPool: userManagementStack.userPool
+// });
 
-// Stack dependencies
-userManagementStack.addDependency(eventManagementStack);
-eventManagementServiceStack.addDependency(userManagementStack);
-bookingServiceStack.addDependency(eventManagementServiceStack);
-paymentServiceStack.addDependency(bookingServiceStack);
-notificationServiceStack.addDependency(userManagementStack);
-searchServiceStack.addDependency(eventManagementServiceStack);
-analyticsServiceStack.addDependency(userManagementStack);
+// Stack dependencies - TODO: Add back when circular dependencies are resolved
+// eventManagementServiceStack.addDependency(userManagementStack);
+// TODO: Uncomment when other services are implemented
+// bookingServiceStack.addDependency(eventManagementServiceStack);
+// paymentServiceStack.addDependency(bookingServiceStack);
+// notificationServiceStack.addDependency(userManagementStack);
+// searchServiceStack.addDependency(eventManagementServiceStack);
+// analyticsServiceStack.addDependency(userManagementStack);
 
 // Output the API Gateway URL
 new cdk.CfnOutput(eventManagementStack, 'ApiGatewayUrl', {
@@ -163,12 +163,12 @@ new cdk.CfnOutput(eventManagementStack, 'EventBusArn', {
   exportName: `EventManagement-${environment}-EventBusArn`
 });
 
-// Output the OpenSearch domain endpoint
-new cdk.CfnOutput(searchServiceStack, 'OpenSearchEndpoint', {
-  value: searchServiceStack.openSearchDomain.domainEndpoint,
-  description: 'OpenSearch Domain Endpoint',
-  exportName: `EventManagement-${environment}-OpenSearchEndpoint`
-});
+// Output the OpenSearch domain endpoint - TODO: Uncomment when SearchService is implemented
+// new cdk.CfnOutput(searchServiceStack, 'OpenSearchEndpoint', {
+//   value: searchServiceStack.openSearchDomain.domainEndpoint,
+//   description: 'OpenSearch Domain Endpoint',
+//   exportName: `EventManagement-${environment}-OpenSearchEndpoint`
+// });
 
 // Output the ElastiCache Redis endpoint
 new cdk.CfnOutput(eventManagementStack, 'RedisEndpoint', {
@@ -177,18 +177,12 @@ new cdk.CfnOutput(eventManagementStack, 'RedisEndpoint', {
   exportName: `EventManagement-${environment}-RedisEndpoint`
 });
 
-// Output the DynamoDB table names
-new cdk.CfnOutput(eventManagementServiceStack, 'EventTableName', {
-  value: eventManagementServiceStack.eventTable.tableName,
-  description: 'Event Management DynamoDB Table Name',
-  exportName: `EventManagement-${environment}-EventTableName`
-});
-
-new cdk.CfnOutput(bookingServiceStack, 'BookingTableName', {
-  value: bookingServiceStack.bookingTable.tableName,
-  description: 'Booking Service DynamoDB Table Name',
-  exportName: `EventManagement-${environment}-BookingTableName`
-});
+// Output the DynamoDB table names - TODO: Uncomment when BookingService is implemented
+// new cdk.CfnOutput(bookingServiceStack, 'BookingTableName', {
+//   value: bookingServiceStack.bookingTable.tableName,
+//   description: 'Booking Service DynamoDB Table Name',
+//   exportName: `EventManagement-${environment}-BookingTableName`
+// });
 
 new cdk.CfnOutput(userManagementStack, 'UserTableName', {
   value: userManagementStack.userTable.tableName,
@@ -196,12 +190,12 @@ new cdk.CfnOutput(userManagementStack, 'UserTableName', {
   exportName: `EventManagement-${environment}-UserTableName`
 });
 
-// Output the Stripe webhook endpoint
-new cdk.CfnOutput(paymentServiceStack, 'StripeWebhookEndpoint', {
-  value: `${eventManagementStack.apiGateway.url}/webhooks/stripe`,
-  description: 'Stripe Webhook Endpoint',
-  exportName: `EventManagement-${environment}-StripeWebhookEndpoint`
-});
+// Output the Stripe webhook endpoint - TODO: Uncomment when PaymentService is implemented
+// new cdk.CfnOutput(paymentServiceStack, 'StripeWebhookEndpoint', {
+//   value: `${eventManagementStack.apiGateway.url}/webhooks/stripe`,
+//   description: 'Stripe Webhook Endpoint',
+//   exportName: `EventManagement-${environment}-StripeWebhookEndpoint`
+// });
 
 // Output the health check endpoint
 new cdk.CfnOutput(eventManagementStack, 'HealthCheckEndpoint', {
@@ -210,12 +204,12 @@ new cdk.CfnOutput(eventManagementStack, 'HealthCheckEndpoint', {
   exportName: `EventManagement-${environment}-HealthCheckEndpoint`
 });
 
-// Output the monitoring dashboard URL
-new cdk.CfnOutput(analyticsServiceStack, 'MonitoringDashboardUrl', {
-  value: `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#dashboards:name=EventManagement-${environment}`,
-  description: 'CloudWatch Monitoring Dashboard URL',
-  exportName: `EventManagement-${environment}-MonitoringDashboardUrl`
-});
+// Output the monitoring dashboard URL - TODO: Uncomment when AnalyticsService is implemented
+// new cdk.CfnOutput(analyticsServiceStack, 'MonitoringDashboardUrl', {
+//   value: `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#dashboards:name=EventManagement-${environment}`,
+//   description: 'CloudWatch Monitoring Dashboard URL',
+//   exportName: `EventManagement-${environment}-MonitoringDashboardUrl`
+// });
 
 // Output the X-Ray tracing URL
 new cdk.CfnOutput(eventManagementStack, 'XRayTracingUrl', {

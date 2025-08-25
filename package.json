@@ -60,6 +60,7 @@
     "@aws-sdk/client-ssm": "^3.873.0",
     "@aws-sdk/lib-dynamodb": "^3.450.0",
     "@types/bcryptjs": "^2.4.6",
+    "@types/uuid": "^10.0.0",
     "aws-lambda": "^1.0.7",
     "bcryptjs": "^3.0.2",
     "joi": "^17.11.0",

@@ -407,4 +407,99 @@ export class UserRepository {
       throw error;
     }
   }
+
+  // OAuth-related methods
+  async getUserByOAuthProvider(provider: string, providerUserId: string): Promise<User | null> {
+    try {
+      const command = new QueryCommand({
+        TableName: this.tableName,
+        IndexName: this.gsiEmailIndex, // We'll use email index for now, could create a dedicated OAuth index
+        KeyConditionExpression: 'GSI1PK = :providerKey',
+        ExpressionAttributeValues: {
+          ':providerKey': `OAUTH#${provider}#${providerUserId}`,
+        },
+        Limit: 1,
+      });
+
+      const result = await this.client.send(command);
+      return result.Items?.[0] as User || null;
+    } catch (error: any) {
+      logger.error('Failed to get user by OAuth provider', { error: error.message, provider, providerUserId });
+      throw error;
+    }
+  }
+
+  async linkOAuthAccount(userId: string, oauthData: {
+    provider: string;
+    providerUserId: string;
+    accessToken: string;
+    refreshToken?: string;
+    expiresIn?: number;
+    tokenType?: string;
+    scope?: string;
+    expiresAt?: string;
+  }): Promise<void> {
+    try {
+      const command = new UpdateCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: `USER#${userId}`,
+        },
+        UpdateExpression: 'SET #oauthAccounts.#provider = :oauthData, #updatedAt = :updatedAt',
+        ExpressionAttributeNames: {
+          '#oauthAccounts': 'oauthAccounts',
+          '#provider': oauthData.provider,
+          '#updatedAt': 'updatedAt',
+        },
+        ExpressionAttributeValues: {
+          ':oauthData': oauthData,
+          ':updatedAt': new Date().toISOString(),
+        },
+      });
+
+      await this.client.send(command);
+      logger.info('OAuth account linked successfully', { userId, provider: oauthData.provider });
+    } catch (error: any) {
+      logger.error('Failed to link OAuth account', { error: error.message, userId, provider: oauthData.provider });
+      throw error;
+    }
+  }
+
+  async unlinkOAuthAccount(userId: string, provider: string): Promise<void> {
+    try {
+      const command = new UpdateCommand({
+        TableName: this.tableName,
+        Key: {
+          PK: `USER#${userId}`,
+          SK: `USER#${userId}`,
+        },
+        UpdateExpression: 'REMOVE #oauthAccounts.#provider, SET #updatedAt = :updatedAt',
+        ExpressionAttributeNames: {
+          '#oauthAccounts': 'oauthAccounts',
+          '#provider': provider,
+          '#updatedAt': 'updatedAt',
+        },
+        ExpressionAttributeValues: {
+          ':updatedAt': new Date().toISOString(),
+        },
+      });
+
+      await this.client.send(command);
+      logger.info('OAuth account unlinked successfully', { userId, provider });
+    } catch (error: any) {
+      logger.error('Failed to unlink OAuth account', { error: error.message, userId, provider });
+      throw error;
+    }
+  }
+
+  async getLinkedOAuthAccounts(userId: string): Promise<{ provider: string; providerUserId: string; linkedAt: string; }[]> {
+    try {
+      const user = await this.getUserById(userId);
+      return (user.oauthAccounts || []) as { provider: string; providerUserId: string; linkedAt: string; }[];
+    } catch (error: any) {
+      logger.error('Failed to get linked OAuth accounts', { error: error.message, userId });
+      throw error;
+    }
+  }
 }

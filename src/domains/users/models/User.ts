@@ -20,6 +20,7 @@ export interface User {
   preferences: UserPreferences;
   address?: UserAddress;
   socialLinks?: UserSocialLinks;
+  oauthAccounts?: Record<string, any>[];
   metadata?: Record<string, any>;
 }
 

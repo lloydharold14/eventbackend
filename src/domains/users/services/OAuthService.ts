@@ -31,6 +31,7 @@ export interface OAuthTokenResponse {
   expiresIn: number;
   tokenType: string;
   scope?: string;
+  expiresAt?: string;
 }
 
 export interface OAuthLoginRequest {
@@ -139,6 +140,9 @@ export class OAuthService {
         providerUserId: oauthUserInfo.providerUserId,
         accessToken: tokenResponse.accessToken,
         refreshToken: tokenResponse.refreshToken,
+        expiresIn: tokenResponse.expiresIn,
+        tokenType: tokenResponse.tokenType,
+        scope: tokenResponse.scope,
         expiresAt: new Date(Date.now() + tokenResponse.expiresIn * 1000).toISOString()
       });
 
@@ -207,7 +211,7 @@ export class OAuthService {
         throw new UnauthorizedError(`Failed to exchange code for token: ${response.statusText}`);
       }
 
-      const tokenData = await response.json();
+      const tokenData = await response.json() as any;
       return {
         accessToken: tokenData.access_token,
         refreshToken: tokenData.refresh_token,
@@ -329,6 +333,9 @@ export class OAuthService {
           providerUserId: oauthUserInfo.providerUserId,
           accessToken: '', // Will be updated later
           refreshToken: '',
+          expiresIn: 0,
+          tokenType: 'Bearer',
+          scope: '',
           expiresAt: new Date().toISOString()
         });
         return { user, isNewUser: false };
@@ -353,6 +360,9 @@ export class OAuthService {
         providerUserId: oauthUserInfo.providerUserId,
         accessToken: '',
         refreshToken: '',
+        expiresIn: 0,
+        tokenType: 'Bearer',
+        scope: '',
         expiresAt: new Date().toISOString()
       });
 

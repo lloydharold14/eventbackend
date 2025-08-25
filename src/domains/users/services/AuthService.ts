@@ -10,6 +10,7 @@ import { ValidationError, UnauthorizedError } from '../../../shared/errors/Domai
 export interface JwtPayload {
   userId: string;
   email: string;
+  name: string;
   role: UserRole;
   iat: number;
   exp: number;
@@ -287,15 +288,16 @@ export class AuthService {
     }
   }
 
-  private async generateTokenPair(user: User): Promise<TokenPair> {
+  public async generateTokenPair(user: User): Promise<TokenPair> {
     const payload: Omit<JwtPayload, 'iat' | 'exp'> = {
       userId: user.id,
       email: user.email,
+      name: `${user.firstName} ${user.lastName}`,
       role: user.role,
     };
 
-    const accessToken = jwt.sign(payload, this.jwtSecret, { expiresIn: this.jwtExpiresIn });
-    const refreshToken = jwt.sign(payload, this.jwtSecret, { expiresIn: this.refreshTokenExpiresIn });
+    const accessToken = jwt.sign(payload, this.jwtSecret, { expiresIn: this.jwtExpiresIn as any });
+    const refreshToken = jwt.sign(payload, this.jwtSecret, { expiresIn: this.refreshTokenExpiresIn as any });
 
     // Calculate expiration time in seconds
     const expiresIn = this.parseExpirationTime(this.jwtExpiresIn);

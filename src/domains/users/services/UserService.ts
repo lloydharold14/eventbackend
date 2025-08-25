@@ -66,8 +66,14 @@ export class UserService {
         throw new ValidationError('Cannot update profile for inactive user');
       }
 
+      // Convert UpdateUserRequest to Partial<User>
+      const userUpdates: Partial<User> = { 
+        ...updates,
+        preferences: updates.preferences ? { ...existingUser.preferences, ...updates.preferences } : undefined
+      };
+      
       // Update user
-      const updatedUser = await this.userRepository.updateUser(userId, updates);
+      const updatedUser = await this.userRepository.updateUser(userId, userUpdates);
       
       // Remove sensitive data
       const { passwordHash, ...userWithoutPassword } = updatedUser as any;
