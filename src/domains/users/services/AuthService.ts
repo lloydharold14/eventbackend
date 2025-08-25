@@ -6,6 +6,7 @@ import { UserRepository } from '../repositories/UserRepository';
 import { UserRole, UserStatus } from '../../../shared/types/common';
 import { logger } from '../../../shared/utils/logger';
 import { ValidationError, UnauthorizedError } from '../../../shared/errors/DomainError';
+import { VerificationService } from './VerificationService';
 
 export interface JwtPayload {
   userId: string;
@@ -24,6 +25,7 @@ export interface TokenPair {
 
 export class AuthService {
   private readonly userRepository: UserRepository;
+  private readonly verificationService: VerificationService;
   private readonly jwtSecret: string;
   private readonly jwtExpiresIn: string;
   private readonly refreshTokenExpiresIn: string;
@@ -34,9 +36,11 @@ export class AuthService {
     jwtSecret: string,
     jwtExpiresIn: string = '1h',
     refreshTokenExpiresIn: string = '7d',
-    saltRounds: number = 12
+    saltRounds: number = 12,
+    region: string = 'ca-central-1'
   ) {
     this.userRepository = userRepository;
+    this.verificationService = new VerificationService(region);
     this.jwtSecret = jwtSecret;
     this.jwtExpiresIn = jwtExpiresIn;
     this.refreshTokenExpiresIn = refreshTokenExpiresIn;
@@ -106,6 +110,28 @@ export class AuthService {
 
       // Create user in database
       const createdUser = await this.userRepository.createUser(userWithPassword as any);
+
+      // Send email verification
+      try {
+        await this.verificationService.sendEmailVerification({
+          userId: createdUser.id,
+          email: createdUser.email,
+          firstName: createdUser.firstName,
+          lastName: createdUser.lastName
+        });
+        
+        logger.info('Email verification sent successfully', { 
+          userId: createdUser.id, 
+          email: createdUser.email 
+        });
+      } catch (error: any) {
+        logger.warn('Failed to send email verification, but user was created', {
+          userId: createdUser.id,
+          email: createdUser.email,
+          error: error.message
+        });
+        // Don't fail registration if email verification fails
+      }
 
       // Remove password hash from response
       const { passwordHash, ...userWithoutPassword } = createdUser as any;
@@ -327,6 +353,128 @@ export class AuthService {
       case 'h': return value * 60 * 60;
       case 'd': return value * 24 * 60 * 60;
       default: return 3600; // Default to 1 hour
+    }
+  }
+
+  /**
+   * Verify email verification code
+   */
+  async verifyEmail(userId: string, code: string): Promise<User> {
+    try {
+      const user = await this.userRepository.getUserById(userId);
+      if (!user) {
+        throw new ValidationError('User not found');
+      }
+
+      if (user.emailVerified) {
+        throw new ValidationError('Email is already verified');
+      }
+
+      const isValid = await this.verificationService.verifyEmailCode(userId, code);
+      if (!isValid) {
+        throw new ValidationError('Invalid verification code');
+      }
+
+      // Update user as verified
+      const updatedUser = await this.userRepository.updateUser(userId, {
+        emailVerified: true,
+        status: UserStatus.ACTIVE
+      });
+
+      logger.info('Email verified successfully', { userId, email: user.email });
+      return updatedUser;
+    } catch (error: any) {
+      logger.error('Email verification failed', { error: error.message, userId, code });
+      throw error;
+    }
+  }
+
+  /**
+   * Send SMS verification code
+   */
+  async sendSMSVerification(userId: string): Promise<string> {
+    try {
+      const user = await this.userRepository.getUserById(userId);
+      if (!user) {
+        throw new ValidationError('User not found');
+      }
+
+      if (!user.phoneNumber) {
+        throw new ValidationError('Phone number not provided');
+      }
+
+      const verificationId = await this.verificationService.sendSMSVerification({
+        userId: user.id,
+        phoneNumber: user.phoneNumber,
+        firstName: user.firstName
+      });
+
+      logger.info('SMS verification sent successfully', { userId, phoneNumber: user.phoneNumber });
+      return verificationId;
+    } catch (error: any) {
+      logger.error('SMS verification failed', { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  /**
+   * Verify SMS OTP code
+   */
+  async verifySMS(userId: string, code: string): Promise<User> {
+    try {
+      const user = await this.userRepository.getUserById(userId);
+      if (!user) {
+        throw new ValidationError('User not found');
+      }
+
+      if (user.phoneVerified) {
+        throw new ValidationError('Phone is already verified');
+      }
+
+      const isValid = await this.verificationService.verifySMSCode(userId, code);
+      if (!isValid) {
+        throw new ValidationError('Invalid verification code');
+      }
+
+      // Update user as verified
+      const updatedUser = await this.userRepository.updateUser(userId, {
+        phoneVerified: true
+      });
+
+      logger.info('SMS verified successfully', { userId, phoneNumber: user.phoneNumber });
+      return updatedUser;
+    } catch (error: any) {
+      logger.error('SMS verification failed', { error: error.message, userId, code });
+      throw error;
+    }
+  }
+
+  /**
+   * Resend email verification
+   */
+  async resendEmailVerification(userId: string): Promise<string> {
+    try {
+      const user = await this.userRepository.getUserById(userId);
+      if (!user) {
+        throw new ValidationError('User not found');
+      }
+
+      if (user.emailVerified) {
+        throw new ValidationError('Email is already verified');
+      }
+
+      const verificationId = await this.verificationService.sendEmailVerification({
+        userId: user.id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName
+      });
+
+      logger.info('Email verification resent successfully', { userId, email: user.email });
+      return verificationId;
+    } catch (error: any) {
+      logger.error('Resend email verification failed', { error: error.message, userId });
+      throw error;
     }
   }
 }

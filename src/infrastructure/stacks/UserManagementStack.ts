@@ -154,6 +154,30 @@ export class UserManagementStack extends cdk.Stack {
     // Grant DynamoDB permissions
     this.userTable.grantReadWriteData(this.userLambdaRole);
 
+    // Grant SES permissions for email verification
+    this.userLambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'ses:SendEmail',
+        'ses:SendRawEmail',
+        'ses:VerifyEmailIdentity',
+        'ses:GetSendQuota',
+        'ses:GetSendStatistics'
+      ],
+      resources: ['*']
+    }));
+
+    // Grant SNS permissions for SMS verification
+    this.userLambdaRole.addToPolicy(new iam.PolicyStatement({
+      effect: iam.Effect.ALLOW,
+      actions: [
+        'sns:Publish',
+        'sns:GetSMSAttributes',
+        'sns:SetSMSAttributes'
+      ],
+      resources: ['*']
+    }));
+
     // Create Lambda functions for user management
     this.userLambdaFunctions = {};
 
@@ -331,6 +355,35 @@ export class UserManagementStack extends cdk.Stack {
       handler: 'oauthHandlers.getOAuthAuthorizationUrl',
     });
 
+    // Verification Lambda functions
+    this.userLambdaFunctions.verifyEmail = new lambda.Function(this, 'VerifyEmailFunction', {
+      ...lambdaConfig,
+      functionName: `${resourcePrefix}-verify-email`,
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'userHandlers.verifyEmail',
+    });
+
+    this.userLambdaFunctions.verifySMS = new lambda.Function(this, 'VerifySMSFunction', {
+      ...lambdaConfig,
+      functionName: `${resourcePrefix}-verify-sms`,
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'userHandlers.verifySMS',
+    });
+
+    this.userLambdaFunctions.resendEmailVerification = new lambda.Function(this, 'ResendEmailVerificationFunction', {
+      ...lambdaConfig,
+      functionName: `${resourcePrefix}-resend-email-verification`,
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'userHandlers.resendEmailVerification',
+    });
+
+    this.userLambdaFunctions.sendSMSVerification = new lambda.Function(this, 'SendSMSVerificationFunction', {
+      ...lambdaConfig,
+      functionName: `${resourcePrefix}-send-sms-verification`,
+      code: lambda.Code.fromAsset('dist/bundled'),
+      handler: 'userHandlers.sendSMSVerification',
+    });
+
     // Create API Gateway resources and methods
     const usersResource = apiGateway.root.addResource('users');
     const authResource = apiGateway.root.addResource('auth');
@@ -361,8 +414,10 @@ export class UserManagementStack extends cdk.Stack {
     usersResource.addResource('{userId}').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getUserById));
 
     // Verification endpoints
-    usersResource.addResource('verify-email').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifyEmail));
-    usersResource.addResource('verify-phone').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifyPhone));
+    authResource.addResource('verify-email').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifyEmail));
+    authResource.addResource('verify-sms').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifySMS));
+    authResource.addResource('resend-email-verification').addResource('{userId}').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.resendEmailVerification));
+    authResource.addResource('send-sms-verification').addResource('{userId}').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.sendSMSVerification));
 
     // Admin endpoints
     const adminUsersResource = adminResource.addResource('users');

@@ -317,64 +317,7 @@ export const getUserById = async (event: APIGatewayProxyEvent): Promise<APIGatew
   }
 };
 
-// Verification handlers
-export const verifyEmail = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    const body = JSON.parse(event.body || '{}');
-    
-    // Validate input
-    const validation = validateSchemaTyped<EmailVerificationConfirmRequest>(emailVerificationSchema, body);
-    if (!validation.isValid) {
-      return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
-    }
 
-    // Get user from JWT token
-    const token = event.headers.Authorization?.replace('Bearer ', '');
-    if (!token) {
-      return formatErrorResponse(new ValidationError('Authorization token is required'));
-    }
-
-    const payload = await authService.validateToken(token);
-    await userService.verifyEmail(payload.userId, validation.data!);
-    
-    logger.info('Email verification successful', { userId: payload.userId });
-    return formatSuccessResponse({
-      message: 'Email verified successfully'
-    });
-  } catch (error: any) {
-    logger.error('Email verification failed', { error: error.message, event });
-    return formatErrorResponse(error);
-  }
-};
-
-export const verifyPhone = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    const body = JSON.parse(event.body || '{}');
-    
-    // Validate input
-    const validation = validateSchemaTyped<PhoneVerificationConfirmRequest>(phoneVerificationSchema, body);
-    if (!validation.isValid) {
-      return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
-    }
-
-    // Get user from JWT token
-    const token = event.headers.Authorization?.replace('Bearer ', '');
-    if (!token) {
-      return formatErrorResponse(new ValidationError('Authorization token is required'));
-    }
-
-    const payload = await authService.validateToken(token);
-    await userService.verifyPhone(payload.userId, validation.data!);
-    
-    logger.info('Phone verification successful', { userId: payload.userId });
-    return formatSuccessResponse({
-      message: 'Phone number verified successfully'
-    });
-  } catch (error: any) {
-    logger.error('Phone verification failed', { error: error.message, event });
-    return formatErrorResponse(error);
-  }
-};
 
 // Admin handlers
 export const listUsers = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -511,4 +454,221 @@ export const getUserStats = async (event: APIGatewayProxyEvent): Promise<APIGate
     logger.error('Get user stats failed', { error: error.message, event });
     return formatErrorResponse(error);
   }
+};
+
+// Verification handlers
+export const verifyEmail = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
+    
+    try {
+      const body = JSON.parse(event.body || '{}');
+      
+      // Validate input
+      const validation = validateSchemaTyped<EmailVerificationConfirmRequest>(emailVerificationSchema, body);
+      if (!validation.isValid) {
+        metricsManager.recordError('VALIDATION_ERROR', 'UserManagementService', 'verifyEmail');
+        return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []), correlationId);
+      }
+
+      const user = await resilienceManager.executeWithResilience(
+        () => authService.verifyEmail(validation.data.userId, validation.data.code),
+        {
+          circuitBreakerKey: 'email-verification',
+          retryConfig: { maxRetries: 3, baseDelay: 1000 },
+          timeoutConfig: { timeoutMs: 10000 }
+        }
+      );
+      
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/auth/verify-email', 'POST', duration, 200);
+      metricsManager.recordBusinessMetric(BusinessMetricName.EMAILS_VERIFIED, 1);
+      
+      logger.info('Email verification successful', { 
+        userId: user.id, 
+        email: user.email, 
+        correlationId,
+        duration 
+      });
+      
+      return formatSuccessResponse({
+        message: 'Email verified successfully. Your account is now active.',
+        user: {
+          id: user.id,
+          email: user.email,
+          emailVerified: user.emailVerified,
+          status: user.status
+        }
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordError('EMAIL_VERIFICATION_ERROR', 'UserManagementService', 'verifyEmail');
+      
+      logger.error('Email verification failed', { 
+        error: error.message, 
+        correlationId,
+        duration 
+      });
+      
+      return formatErrorResponse(error, correlationId);
+    }
+  })(event);
+};
+
+export const resendEmailVerification = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
+    
+    try {
+      const userId = event.pathParameters?.userId;
+      if (!userId) {
+        return formatErrorResponse(new ValidationError('User ID is required'), correlationId);
+      }
+
+      const verificationId = await resilienceManager.executeWithResilience(
+        () => authService.resendEmailVerification(userId),
+        {
+          circuitBreakerKey: 'resend-email-verification',
+          retryConfig: { maxRetries: 2, baseDelay: 2000 },
+          timeoutConfig: { timeoutMs: 10000 }
+        }
+      );
+      
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/auth/resend-email-verification/{userId}', 'POST', duration, 200);
+      
+      logger.info('Email verification resent successfully', { 
+        userId, 
+        verificationId,
+        correlationId,
+        duration 
+      });
+      
+      return formatSuccessResponse({
+        message: 'Email verification code sent successfully. Please check your email.',
+        verificationId
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordError('RESEND_EMAIL_VERIFICATION_ERROR', 'UserManagementService', 'resendEmailVerification');
+      
+      logger.error('Resend email verification failed', { 
+        error: error.message, 
+        userId: event.pathParameters?.userId,
+        correlationId,
+        duration 
+      });
+      
+      return formatErrorResponse(error, correlationId);
+    }
+  })(event);
+};
+
+export const sendSMSVerification = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
+    
+    try {
+      const userId = event.pathParameters?.userId;
+      if (!userId) {
+        return formatErrorResponse(new ValidationError('User ID is required'));
+      }
+
+      const verificationId = await resilienceManager.executeWithResilience(
+        () => authService.sendSMSVerification(userId),
+        {
+          circuitBreakerKey: 'sms-verification',
+          retryConfig: { maxRetries: 2, baseDelay: 2000 },
+          timeoutConfig: { timeoutMs: 10000 }
+        }
+      );
+      
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/auth/send-sms-verification/{userId}', 'POST', duration, 200);
+      
+      logger.info('SMS verification sent successfully', { 
+        userId, 
+        verificationId,
+        correlationId,
+        duration 
+      });
+      
+      return formatSuccessResponse({
+        message: 'SMS verification code sent successfully. Please check your phone.',
+        verificationId
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordError('SMS_VERIFICATION_ERROR', 'UserManagementService', 'sendSMSVerification');
+      
+      logger.error('SMS verification failed', { 
+        error: error.message, 
+        userId: event.pathParameters?.userId,
+        correlationId,
+        duration 
+      });
+      
+      return formatErrorResponse(error);
+    }
+  })(event);
+};
+
+export const verifySMS = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
+    
+    try {
+      const body = JSON.parse(event.body || '{}');
+      
+      // Validate input
+      const validation = validateSchemaTyped<PhoneVerificationConfirmRequest>(phoneVerificationSchema, body);
+      if (!validation.isValid) {
+        metricsManager.recordError('VALIDATION_ERROR', 'UserManagementService', 'verifySMS');
+        return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
+      }
+
+      const user = await resilienceManager.executeWithResilience(
+        () => authService.verifySMS(validation.data.userId, validation.data.code),
+        {
+          circuitBreakerKey: 'sms-verification',
+          retryConfig: { maxRetries: 3, baseDelay: 1000 },
+          timeoutConfig: { timeoutMs: 10000 }
+        }
+      );
+      
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/auth/verify-sms', 'POST', duration, 200);
+      metricsManager.recordBusinessMetric(BusinessMetricName.PHONES_VERIFIED, 1);
+      
+      logger.info('SMS verification successful', { 
+        userId: user.id, 
+        phoneNumber: user.phoneNumber, 
+        correlationId,
+        duration 
+      });
+      
+      return formatSuccessResponse({
+        message: 'SMS verified successfully.',
+        user: {
+          id: user.id,
+          phoneVerified: user.phoneVerified
+        }
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordError('SMS_VERIFICATION_ERROR', 'UserManagementService', 'verifySMS');
+      
+      logger.error('SMS verification failed', { 
+        error: error.message, 
+        correlationId,
+        duration 
+      });
+      
+      return formatErrorResponse(error);
+    }
+  })(event);
 };

@@ -123,7 +123,8 @@ export interface EmailVerificationRequest {
 }
 
 export interface EmailVerificationConfirmRequest {
-  token: string;
+  userId: string;
+  code: string;
 }
 
 export interface PhoneVerificationRequest {
@@ -131,7 +132,7 @@ export interface PhoneVerificationRequest {
 }
 
 export interface PhoneVerificationConfirmRequest {
-  phoneNumber: string;
+  userId: string;
   code: string;
 }
 

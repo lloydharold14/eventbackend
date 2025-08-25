@@ -132,15 +132,21 @@ export const userSearchSchema = Joi.object({
 });
 
 export const emailVerificationSchema = Joi.object({
-  token: Joi.string().required().messages({
-    'any.required': 'Verification token is required'
+  userId: Joi.string().uuid().required().messages({
+    'string.guid': 'Please provide a valid user ID',
+    'any.required': 'User ID is required'
+  }),
+  code: Joi.string().length(6).pattern(/^\d{6}$/).required().messages({
+    'string.length': 'Verification code must be 6 digits',
+    'string.pattern.base': 'Verification code must contain only numbers',
+    'any.required': 'Verification code is required'
   })
 });
 
 export const phoneVerificationSchema = Joi.object({
-  phoneNumber: Joi.string().pattern(/^\+?[\d\s\-\(\)]{10,}$/).required().messages({
-    'string.pattern.base': 'Please provide a valid phone number',
-    'any.required': 'Phone number is required'
+  userId: Joi.string().uuid().required().messages({
+    'string.guid': 'Please provide a valid user ID',
+    'any.required': 'User ID is required'
   }),
   code: Joi.string().length(6).pattern(/^\d{6}$/).required().messages({
     'string.length': 'Verification code must be 6 digits',

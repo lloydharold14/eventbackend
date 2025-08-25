@@ -50,6 +50,8 @@ export enum BusinessMetricName {
   USERS_REGISTERED = 'UsersRegistered',
   USERS_ACTIVE = 'UsersActive',
   USERS_VERIFIED = 'UsersVerified',
+  EMAILS_VERIFIED = 'EmailsVerified',
+  PHONES_VERIFIED = 'PhonesVerified',
   
   // Booking Metrics
   BOOKINGS_CREATED = 'BookingsCreated',
