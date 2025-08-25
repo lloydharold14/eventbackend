@@ -219,7 +219,7 @@ Authorization: Bearer <access-token>
 
 ### **1. Get All Events (Public)** - ✅ OPERATIONAL
 ```http
-GET /events?page=1&limit=20&category=music&location=Toronto
+GET https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/events?page=1&limit=20&category=music&location=Toronto
 ```
 
 **Expected Response:**
@@ -288,7 +288,7 @@ GET /events?page=1&limit=20&category=music&location=Toronto
 
 ### **2. Get Event by ID (Public)** - ✅ OPERATIONAL
 ```http
-GET /events/event-001
+GET https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/events/event-001
 ```
 
 **Expected Response:**
@@ -353,12 +353,12 @@ GET /events/event-001
 
 ### **3. Search Events** - ✅ OPERATIONAL
 ```http
-GET /events/search?q=music&location=Toronto&date=2024-07&category=music&priceMin=50&priceMax=100
+GET https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/events/search?q=music&location=Toronto&date=2024-07&category=music&priceMin=50&priceMax=100
 ```
 
 ### **4. Get Event Categories** - ✅ OPERATIONAL
 ```http
-GET /events/categories
+GET https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/categories
 ```
 
 **Expected Response:**
@@ -791,11 +791,11 @@ curl -X GET "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev/event
 ### **Current Status:**
 - ✅ **User Management API**: `https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev/` (OPERATIONAL)
 - ✅ **Booking Service API**: `https://bxmcilkslg.execute-api.ca-central-1.amazonaws.com/prod/` (INFRASTRUCTURE DEPLOYED)
-- ✅ **Event Management API**: `https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/prod/` (FULLY OPERATIONAL)
+- ✅ **Event Management API**: `https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/` (FULLY OPERATIONAL)
 
 ### **Health Checks:**
 - **User Management**: `https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev/health`
-- **Event Management**: `https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/prod/health`
+- **Event Management**: `https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/health`
 - **Booking Service**: `https://bxmcilkslg.execute-api.ca-central-1.amazonaws.com/prod/health`
 
 ### **Database Status:**

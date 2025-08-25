@@ -33,6 +33,14 @@ export class EventManagementServiceStack extends cdk.Stack {
         allowCredentials: true,
         maxAge: cdk.Duration.seconds(300),
       },
+      deployOptions: {
+        stageName: environment,
+        loggingLevel: apigateway.MethodLoggingLevel.OFF,
+        dataTraceEnabled: false,
+        metricsEnabled: true,
+        tracingEnabled: true,
+      },
+      endpointTypes: [apigateway.EndpointType.REGIONAL],
     });
 
     // Create DynamoDB table for events with single-table design
