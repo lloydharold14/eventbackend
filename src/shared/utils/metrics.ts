@@ -1,4 +1,4 @@
-import { CloudWatchClient, PutMetricDataCommand } from '@aws-sdk/client-cloudwatch';
+import { CloudWatchClient, PutMetricDataCommand, StandardUnit } from '@aws-sdk/client-cloudwatch';
 import { Logger } from '@aws-lambda-powertools/logger';
 
 const logger = new Logger({ serviceName: 'metrics' });
@@ -419,7 +419,7 @@ export class MetricsManager {
         MetricData: metricsToSend.map(metric => ({
           MetricName: metric.MetricName,
           Value: metric.Value,
-          Unit: metric.Unit,
+          Unit: metric.Unit as StandardUnit,
           Timestamp: metric.Timestamp,
           Dimensions: metric.Dimensions ? Object.entries(metric.Dimensions).map(([Name, Value]) => ({ Name, Value })) : undefined,
         })),

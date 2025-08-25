@@ -141,6 +141,122 @@ export class UserService {
     }
   }
 
+  async getUserById(userId: string): Promise<User> {
+    try {
+      const user = await this.userRepository.getUserById(userId);
+      if (!user) {
+        throw new NotFoundError('User', userId);
+      }
+      
+      // Remove sensitive data
+      const { passwordHash, ...userWithoutPassword } = user as any;
+      return userWithoutPassword;
+    } catch (error: any) {
+      if (error instanceof NotFoundError) {
+        throw error;
+      }
+      logger.error('Failed to get user by ID', { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  async updateUser(userId: string, updates: UpdateUserRequest): Promise<User> {
+    try {
+      // Validate updates
+      this.validateProfileUpdates(updates);
+
+      // Check if user exists and is active
+      const existingUser = await this.userRepository.getUserById(userId);
+      if (!existingUser) {
+        throw new NotFoundError('User', userId);
+      }
+
+      if (existingUser.status !== UserStatus.ACTIVE) {
+        throw new ValidationError('Cannot update inactive user');
+      }
+
+      // Apply compliance validation if region is provided
+      if (updates.address?.country) {
+        const compliance = this.complianceService.getRegionalCompliance(updates.address.country);
+        if (compliance) {
+          // Log compliance information for organizers
+          if (existingUser.role === UserRole.ORGANIZER) {
+            logger.info('User update includes regional compliance check', {
+              userId,
+              region: updates.address.country,
+              compliance: {
+                businessRegistration: compliance.requirements.business.businessRegistration,
+                languageRequirements: compliance.requirements.business.languageRequirements,
+                taxRegistration: compliance.requirements.business.taxRegistration
+              }
+            });
+          }
+        }
+      }
+
+      // Convert UpdateUserRequest to Partial<User>
+      const userUpdates: Partial<User> = { 
+        ...updates,
+        preferences: updates.preferences ? { ...existingUser.preferences, ...updates.preferences } : undefined
+      };
+      
+      // Update user
+      const updatedUser = await this.userRepository.updateUser(userId, userUpdates);
+      
+      // Remove sensitive data
+      const { passwordHash, ...userWithoutPassword } = updatedUser as any;
+      
+      logger.info('User updated successfully', { userId, updates: Object.keys(updates) });
+      return userWithoutPassword;
+    } catch (error: any) {
+      if (error instanceof NotFoundError || error instanceof ValidationError) {
+        throw error;
+      }
+      logger.error('Failed to update user', { error: error.message, userId });
+      throw error;
+    }
+  }
+
+  async searchUsers(filters: UserSearchFilters, page: number = 1, pageSize: number = 20): Promise<UserListResponse> {
+    try {
+      // Apply localization filters if provided
+      const enhancedFilters = { ...filters };
+      
+      // If searching by region, apply compliance filtering
+      if (filters.searchTerm && filters.searchTerm.length > 0) {
+        // Enhanced search with localization support
+        // This could be extended to search in multiple languages
+        logger.info('Performing enhanced user search', { 
+          searchTerm: filters.searchTerm, 
+          page, 
+          pageSize 
+        });
+      }
+
+      const response = await this.userRepository.listUsers(enhancedFilters, page, pageSize);
+      
+      // Remove sensitive data from all users
+      const usersWithoutPasswords = response.users.map(user => {
+        const { passwordHash, ...userWithoutPassword } = user as any;
+        return userWithoutPassword;
+      });
+
+      // Apply regional compliance filtering if needed
+      const filteredUsers = usersWithoutPasswords.filter(user => {
+        // Add any compliance-based filtering here
+        return true; // For now, return all users
+      });
+
+      return {
+        ...response,
+        users: filteredUsers,
+      };
+    } catch (error: any) {
+      logger.error('Failed to search users', { error: error.message, filters });
+      throw error;
+    }
+  }
+
   async updateUserProfile(userId: string, updates: UpdateUserRequest): Promise<User> {
     try {
       // Validate updates
