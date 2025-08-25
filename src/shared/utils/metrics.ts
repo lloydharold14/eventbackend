@@ -75,6 +75,25 @@ export enum BusinessMetricName {
   SEARCH_INDEX_UPDATED = 'SearchIndexUpdated',
   SEARCH_SUGGESTIONS_REQUESTED = 'SearchSuggestionsRequested',
   
+  // Analytics Metrics
+  ANALYTICS_GENERATED = 'AnalyticsGenerated',
+  DASHBOARD_GENERATED = 'DashboardGenerated',
+  REPORT_GENERATED = 'ReportGenerated',
+  ANALYTICS_EXPORTED = 'AnalyticsExported',
+  REAL_TIME_METRICS_RETRIEVED = 'RealTimeMetricsRetrieved',
+  ANALYTICS_RECORDS_STORED = 'AnalyticsRecordsStored',
+  ANALYTICS_RECORDS_RETRIEVED = 'AnalyticsRecordsRetrieved',
+  ANALYTICS_METRICS_STORED = 'AnalyticsMetricsStored',
+  ANALYTICS_METRICS_RETRIEVED = 'AnalyticsMetricsRetrieved',
+  EVENT_ANALYTICS_RETRIEVED = 'EventAnalyticsRetrieved',
+  USER_ANALYTICS_RETRIEVED = 'UserAnalyticsRetrieved',
+  REVENUE_ANALYTICS_RETRIEVED = 'RevenueAnalyticsRetrieved',
+  TOP_EVENTS_RETRIEVED = 'TopEventsRetrieved',
+  TOP_ORGANIZERS_RETRIEVED = 'TopOrganizersRetrieved',
+  USER_GROWTH_RETRIEVED = 'UserGrowthRetrieved',
+  ANALYTICS_RECORDS_UPDATED = 'AnalyticsRecordsUpdated',
+  ANALYTICS_RECORDS_DELETED = 'AnalyticsRecordsDeleted',
+  
   // Performance Metrics
   API_RESPONSE_TIME = 'ApiResponseTime',
   DATABASE_QUERY_TIME = 'DatabaseQueryTime',

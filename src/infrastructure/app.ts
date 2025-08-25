@@ -9,7 +9,7 @@ import { EventManagementServiceStack } from './stacks/EventManagementServiceStac
 import { PaymentServiceStack } from './stacks/PaymentServiceStack';
   import { NotificationServiceStack } from './stacks/NotificationServiceStack';
   import { SearchServiceStack } from './stacks/SearchServiceStack';
-  // import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
+  import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
 
 const app = new cdk.App();
 
@@ -95,15 +95,20 @@ const searchServiceStack = new SearchServiceStack(app, `SearchService-${environm
   eventTable: eventManagementServiceStack.eventTable
 });
 
-// Analytics Service Stack - TODO: Implement full functionality
-// const analyticsServiceStack = new AnalyticsServiceStack(app, `AnalyticsService-${environment}`, {
-//   ...commonProps,
-//   environment,
-//   description: 'Analytics Service - Business Intelligence and Reporting',
-//   vpc: eventManagementStack.vpc,
-//   securityGroup: eventManagementStack.securityGroup,
-//   userPool: userManagementStack.userPool
-// });
+// Analytics Service Stack
+const analyticsServiceStack = new AnalyticsServiceStack(app, `AnalyticsService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Analytics Service - Business Intelligence and Reporting',
+  vpc: eventManagementStack.vpc,
+  securityGroup: eventManagementStack.securityGroup,
+  userPool: userManagementStack.userPool,
+  eventTable: eventManagementServiceStack.eventTable,
+  bookingTable: bookingServiceStack.bookingTable,
+  paymentTable: paymentServiceStack.paymentTable,
+  userTable: userManagementStack.userTable,
+  notificationTable: notificationServiceStack.notificationTable
+});
 
 // Stack dependencies - TODO: Add back when circular dependencies are resolved
 // eventManagementServiceStack.addDependency(userManagementStack);
@@ -112,7 +117,7 @@ const searchServiceStack = new SearchServiceStack(app, `SearchService-${environm
 // paymentServiceStack.addDependency(bookingServiceStack);
 // notificationServiceStack.addDependency(userManagementStack);
 // searchServiceStack.addDependency(eventManagementServiceStack);
-// analyticsServiceStack.addDependency(userManagementStack);
+analyticsServiceStack.addDependency(userManagementStack);
 
 // Output the API Gateway URL
 new cdk.CfnOutput(eventManagementStack, 'ApiGatewayUrl', {
@@ -197,12 +202,12 @@ new cdk.CfnOutput(eventManagementStack, 'HealthCheckEndpoint', {
   exportName: `EventManagement-${environment}-HealthCheckEndpoint`
 });
 
-// Output the monitoring dashboard URL - TODO: Uncomment when AnalyticsService is implemented
-// new cdk.CfnOutput(analyticsServiceStack, 'MonitoringDashboardUrl', {
-//   value: `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#dashboards:name=EventManagement-${environment}`,
-//   description: 'CloudWatch Monitoring Dashboard URL',
-//   exportName: `EventManagement-${environment}-MonitoringDashboardUrl`
-// });
+// Output the monitoring dashboard URL
+new cdk.CfnOutput(analyticsServiceStack, 'MonitoringDashboardUrl', {
+  value: `https://${region}.console.aws.amazon.com/cloudwatch/home?region=${region}#dashboards:name=EventManagement-${environment}`,
+  description: 'CloudWatch Monitoring Dashboard URL',
+  exportName: `EventManagement-${environment}-MonitoringDashboardUrl`
+});
 
 // Output the X-Ray tracing URL
 new cdk.CfnOutput(eventManagementStack, 'XRayTracingUrl', {
