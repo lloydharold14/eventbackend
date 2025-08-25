@@ -4,10 +4,10 @@ import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
 import { EventManagementStack } from './stacks/EventManagementStack';
 import { UserManagementStack } from './stacks/UserManagementStack';
+import { BookingServiceStack } from './stacks/BookingServiceStack';
 // TODO: Uncomment when circular dependency is resolved
 // import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
 // TODO: Uncomment when other services are implemented
-// import { BookingServiceStack } from './stacks/BookingServiceStack';
 // import { PaymentServiceStack } from './stacks/PaymentServiceStack';
 // import { NotificationServiceStack } from './stacks/NotificationServiceStack';
 // import { SearchServiceStack } from './stacks/SearchServiceStack';
@@ -59,16 +59,12 @@ const eventManagementStack = new EventManagementStack(app, `EventManagement-${en
   //   apiGateway: eventManagementStack.apiGateway
   // });
 
-// Booking Service Stack - TODO: Implement full functionality
-// const bookingServiceStack = new BookingServiceStack(app, `BookingService-${environment}`, {
-//   ...commonProps,
-//   environment,
-//   description: 'Booking Service - Ticket Reservations and Management',
-//   vpc: eventManagementStack.vpc,
-//   securityGroup: eventManagementStack.securityGroup,
-//   userPool: userManagementStack.userPool,
-//   eventTable: eventManagementServiceStack.eventTable
-// });
+// Booking Service Stack
+const bookingServiceStack = new BookingServiceStack(app, `BookingService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Booking Service - Ticket Reservations and Management'
+});
 
 // Payment Service Stack - TODO: Implement full functionality
 // const paymentServiceStack = new PaymentServiceStack(app, `PaymentService-${environment}`, {

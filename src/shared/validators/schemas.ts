@@ -687,3 +687,139 @@ export const customValidationRules = {
     return value;
   }
 };
+
+// Booking validation schemas
+export const createBookingSchema = Joi.object({
+  eventId: Joi.string().uuid().required().messages({
+    'string.guid': 'Event ID must be a valid UUID',
+    'any.required': 'Event ID is required'
+  }),
+  items: Joi.array().items(Joi.object({
+    ticketType: Joi.string().valid('general', 'vip', 'early_bird', 'student', 'senior', 'child').required().messages({
+      'any.only': 'Invalid ticket type',
+      'any.required': 'Ticket type is required'
+    }),
+    quantity: Joi.number().integer().min(1).max(100).required().messages({
+      'number.base': 'Quantity must be a number',
+      'number.integer': 'Quantity must be a whole number',
+      'number.min': 'Quantity must be at least 1',
+      'number.max': 'Quantity cannot exceed 100',
+      'any.required': 'Quantity is required'
+    }),
+    ticketDetails: Joi.object({
+      seatNumber: Joi.string().max(20).optional().messages({
+        'string.max': 'Seat number cannot exceed 20 characters'
+      }),
+      section: Joi.string().max(50).optional().messages({
+        'string.max': 'Section cannot exceed 50 characters'
+      }),
+      row: Joi.string().max(20).optional().messages({
+        'string.max': 'Row cannot exceed 20 characters'
+      }),
+      specialRequirements: Joi.array().items(Joi.string().max(200)).max(10).optional().messages({
+        'array.max': 'Cannot have more than 10 special requirements',
+        'string.max': 'Special requirement cannot exceed 200 characters'
+      })
+    }).optional()
+  })).min(1).required().messages({
+    'array.min': 'At least one booking item is required',
+    'any.required': 'Booking items are required'
+  }),
+  attendeeInfo: Joi.object({
+    firstName: Joi.string().min(2).max(50).required().messages({
+      'string.min': 'First name must be at least 2 characters long',
+      'string.max': 'First name cannot exceed 50 characters',
+      'any.required': 'First name is required'
+    }),
+    lastName: Joi.string().min(2).max(50).required().messages({
+      'string.min': 'Last name must be at least 2 characters long',
+      'string.max': 'Last name cannot exceed 50 characters',
+      'any.required': 'Last name is required'
+    }),
+    email: Joi.string().email().required().messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    }),
+    phone: Joi.string().pattern(/^\+?[\d\s\-\(\)]{10,}$/).optional().messages({
+      'string.pattern.base': 'Please provide a valid phone number'
+    }),
+    specialRequirements: Joi.array().items(Joi.string().max(200)).max(10).optional().messages({
+      'array.max': 'Cannot have more than 10 special requirements',
+      'string.max': 'Special requirement cannot exceed 200 characters'
+    })
+  }).required().messages({
+    'any.required': 'Attendee information is required'
+  }),
+  paymentMethodId: Joi.string().required().messages({
+    'any.required': 'Payment method ID is required'
+  }),
+  notes: Joi.string().max(1000).optional().messages({
+    'string.max': 'Notes cannot exceed 1000 characters'
+  })
+});
+
+export const updateBookingSchema = Joi.object({
+  status: Joi.string().valid('pending', 'confirmed', 'cancelled', 'refunded', 'expired').optional().messages({
+    'any.only': 'Invalid booking status'
+  }),
+  attendeeInfo: Joi.object({
+    firstName: Joi.string().min(2).max(50).optional().messages({
+      'string.min': 'First name must be at least 2 characters long',
+      'string.max': 'First name cannot exceed 50 characters'
+    }),
+    lastName: Joi.string().min(2).max(50).optional().messages({
+      'string.min': 'Last name must be at least 2 characters long',
+      'string.max': 'Last name cannot exceed 50 characters'
+    }),
+    email: Joi.string().email().optional().messages({
+      'string.email': 'Please provide a valid email address'
+    }),
+    phone: Joi.string().pattern(/^\+?[\d\s\-\(\)]{10,}$/).optional().messages({
+      'string.pattern.base': 'Please provide a valid phone number'
+    }),
+    specialRequirements: Joi.array().items(Joi.string().max(200)).max(10).optional().messages({
+      'array.max': 'Cannot have more than 10 special requirements',
+      'string.max': 'Special requirement cannot exceed 200 characters'
+    })
+  }).optional(),
+  notes: Joi.string().max(1000).optional().messages({
+    'string.max': 'Notes cannot exceed 1000 characters'
+  }),
+  metadata: Joi.object().optional()
+});
+
+export const bookingFiltersSchema = Joi.object({
+  userId: Joi.string().uuid().optional().messages({
+    'string.guid': 'User ID must be a valid UUID'
+  }),
+  eventId: Joi.string().uuid().optional().messages({
+    'string.guid': 'Event ID must be a valid UUID'
+  }),
+  organizerId: Joi.string().uuid().optional().messages({
+    'string.guid': 'Organizer ID must be a valid UUID'
+  }),
+  status: Joi.string().valid('pending', 'confirmed', 'cancelled', 'refunded', 'expired').optional().messages({
+    'any.only': 'Invalid booking status'
+  }),
+  paymentStatus: Joi.string().valid('pending', 'processing', 'completed', 'failed', 'refunded', 'cancelled').optional().messages({
+    'any.only': 'Invalid payment status'
+  }),
+  startDate: Joi.date().iso().optional().messages({
+    'date.format': 'Start date must be a valid ISO date'
+  }),
+  endDate: Joi.date().iso().optional().messages({
+    'date.format': 'End date must be a valid ISO date'
+  }),
+  page: Joi.number().integer().min(1).max(1000).optional().messages({
+    'number.base': 'Page must be a number',
+    'number.integer': 'Page must be a whole number',
+    'number.min': 'Page must be at least 1',
+    'number.max': 'Page cannot exceed 1000'
+  }),
+  limit: Joi.number().integer().min(1).max(100).optional().messages({
+    'number.base': 'Limit must be a number',
+    'number.integer': 'Limit must be a whole number',
+    'number.min': 'Limit must be at least 1',
+    'number.max': 'Limit cannot exceed 100'
+  })
+});
