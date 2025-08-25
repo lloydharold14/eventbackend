@@ -5,8 +5,7 @@ import * as cdk from 'aws-cdk-lib';
 import { EventManagementStack } from './stacks/EventManagementStack';
 import { UserManagementStack } from './stacks/UserManagementStack';
 import { BookingServiceStack } from './stacks/BookingServiceStack';
-// TODO: Uncomment when circular dependency is resolved
-// import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
+import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
 // TODO: Uncomment when other services are implemented
 // import { PaymentServiceStack } from './stacks/PaymentServiceStack';
 // import { NotificationServiceStack } from './stacks/NotificationServiceStack';
@@ -51,13 +50,12 @@ const eventManagementStack = new EventManagementStack(app, `EventManagement-${en
     apiGateway: eventManagementStack.apiGateway
   });
 
-  // Event Management Service Stack - TODO: Uncomment when circular dependency is resolved
-  // const eventManagementServiceStack = new EventManagementServiceStack(app, `EventManagementService-${environment}`, {
-  //   ...commonProps,
-  //   environment,
-  //   description: 'Event Management Service - Event CRUD, Categories, and Media Management',
-  //   apiGateway: eventManagementStack.apiGateway
-  // });
+  // Event Management Service Stack
+  const eventManagementServiceStack = new EventManagementServiceStack(app, `EventManagementService-${environment}`, {
+    ...commonProps,
+    environment,
+    description: 'Event Management Service - Event CRUD, Categories, and Media Management'
+  });
 
 // Booking Service Stack
 const bookingServiceStack = new BookingServiceStack(app, `BookingService-${environment}`, {

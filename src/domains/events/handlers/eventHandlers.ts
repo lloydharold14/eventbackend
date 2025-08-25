@@ -322,7 +322,7 @@ export const searchEvents = async (event: APIGatewayProxyEvent): Promise<APIGate
       categoryId: queryParams.categoryId,
       type: queryParams.type as any,
       status: queryParams.status as any,
-      visibility: queryParams.visibility as any,
+      visibility: queryParams.visibility as any || undefined, // Only set if explicitly provided
       startDate: queryParams.startDate,
       endDate: queryParams.endDate,
       hasAvailableSpots: queryParams.hasAvailableSpots === 'true',

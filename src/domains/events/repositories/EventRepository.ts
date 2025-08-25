@@ -188,41 +188,51 @@ export class EventRepository {
         expressionAttributeValues[':endDate'] = filters.endDate;
       }
 
-      if (filters.hasAvailableSpots) {
+      if (filters.hasAvailableSpots === true) {
         filterExpressions.push('#currentAttendees < #maxAttendees');
         expressionAttributeNames['#currentAttendees'] = 'currentAttendees';
         expressionAttributeNames['#maxAttendees'] = 'maxAttendees';
       }
 
-      if (filters.isFree) {
+      if (filters.isFree === true) {
         filterExpressions.push('#pricingModel = :pricingModel');
         expressionAttributeNames['#pricingModel'] = 'pricingModel';
         expressionAttributeValues[':pricingModel'] = 'free';
       }
 
-      if (filters.isVirtual) {
+      if (filters.isVirtual === true) {
         filterExpressions.push('#locationType = :locationType');
         expressionAttributeNames['#locationType'] = 'locationType';
         expressionAttributeValues[':locationType'] = 'virtual';
       }
 
-      if (filters.isHybrid) {
+      if (filters.isHybrid === true) {
         filterExpressions.push('#locationType = :locationType');
         expressionAttributeNames['#locationType'] = 'locationType';
         expressionAttributeValues[':locationType'] = 'hybrid';
       }
 
-      // Use GSI for efficient querying
-      const result = await this.client.send(new QueryCommand({
+      // Use Scan operation to get all events, then filter
+      logger.info('Executing DynamoDB scan', {
+        tableName: this.tableName,
+        filterExpressions: filterExpressions,
+        expressionAttributeNames: Object.keys(expressionAttributeNames),
+        expressionAttributeValues: Object.keys(expressionAttributeValues)
+      });
+
+      const result = await this.client.send(new ScanCommand({
         TableName: this.tableName,
-        IndexName: 'StatusDateIndex',
-        KeyConditionExpression: '#status = :status',
         FilterExpression: filterExpressions.length > 0 ? filterExpressions.join(' AND ') : undefined,
         ExpressionAttributeNames: Object.keys(expressionAttributeNames).length > 0 ? expressionAttributeNames : undefined,
         ExpressionAttributeValues: Object.keys(expressionAttributeValues).length > 0 ? expressionAttributeValues : undefined,
-        Limit: limit,
-        ScanIndexForward: false // Most recent first
+        Limit: limit
       }));
+
+      logger.info('DynamoDB scan completed', {
+        itemsCount: result.Items?.length || 0,
+        scannedCount: result.ScannedCount || 0,
+        count: result.Count || 0
+      });
 
       const events = (result.Items || []).map(item => this.mapDynamoDBToEvent(item));
       const total = result.Count || 0;
@@ -485,19 +495,19 @@ export class EventRepository {
   private mapDynamoDBToEvent(item: any): Event {
     const event = { ...item };
     delete event.PK;
-    delete item.SK;
-    delete item.GSI1PK;
-    delete item.GSI1SK;
-    delete item.GSI2PK;
-    delete item.GSI2SK;
-    delete item.GSI3PK;
-    delete item.GSI3SK;
-    delete item.GSI4PK;
-    delete item.GSI4SK;
-    delete item.GSI5PK;
-    delete item.GSI5SK;
-    delete item.locationType;
-    delete item.pricingModel;
+    delete event.SK;
+    delete event.GSI1PK;
+    delete event.GSI1SK;
+    delete event.GSI2PK;
+    delete event.GSI2SK;
+    delete event.GSI3PK;
+    delete event.GSI3SK;
+    delete event.GSI4PK;
+    delete event.GSI4SK;
+    delete event.GSI5PK;
+    delete event.GSI5SK;
+    delete event.locationType;
+    delete event.pricingModel;
     return event as Event;
   }
 

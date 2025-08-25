@@ -341,11 +341,12 @@ export class EventService {
   // Event Search and Listing
   async searchEvents(filters: EventSearchFilters, page: number = 1, limit: number = 20): Promise<EventListResponse> {
     try {
-      // Add visibility filter for public search
+      // Use the filters as provided, but don't filter by visibility since events don't have this field yet
       const searchFilters = {
-        ...filters,
-        visibility: EventVisibility.PUBLIC
+        ...filters
       };
+      // Remove visibility filter since events don't have this field in the database
+      delete searchFilters.visibility;
 
       const result = await this.eventRepository.searchEvents(searchFilters, page, limit);
 

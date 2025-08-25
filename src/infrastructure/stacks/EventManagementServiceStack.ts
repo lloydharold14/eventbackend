@@ -8,7 +8,6 @@ import { Construct } from 'constructs';
 
 export interface EventManagementServiceStackProps extends cdk.StackProps {
   environment: string;
-  apiGateway: apigateway.RestApi;
 }
 
 export class EventManagementServiceStack extends cdk.Stack {
@@ -18,8 +17,23 @@ export class EventManagementServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: EventManagementServiceStackProps) {
     super(scope, id, props);
 
-    const { environment, apiGateway } = props;
+    const { environment } = props;
     const resourcePrefix = `${id.toLowerCase()}-${environment}`;
+
+    // Create API Gateway for Event Management Service
+    const apiGateway = new apigateway.RestApi(this, 'EventManagementServiceAPI', {
+      restApiName: `EventManagementService-${environment}`,
+      description: 'Event Management Service API Gateway',
+      defaultCorsPreflightOptions: {
+        allowOrigins: environment === 'prod' 
+          ? ['https://yourdomain.com'] 
+          : ['*'],
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+        allowCredentials: true,
+        maxAge: cdk.Duration.seconds(300),
+      },
+    });
 
     // Create DynamoDB table for events with single-table design
     this.eventTable = new dynamodb.Table(this, 'EventTable', {
