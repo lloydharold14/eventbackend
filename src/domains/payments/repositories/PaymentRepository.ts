@@ -482,8 +482,8 @@ export class PaymentRepository {
       GSI2SK: `PAYMENT_INTENT#${paymentIntent.createdAt}`,
       GSI3PK: `STATUS#${paymentIntent.status}`,
       GSI3SK: `PAYMENT_INTENT#${paymentIntent.createdAt}`,
-      GSI4PK: paymentIntent.stripePaymentIntentId ? `STRIPE_PAYMENT_INTENT#${paymentIntent.stripePaymentIntentId}` : undefined,
-      GSI4SK: paymentIntent.stripePaymentIntentId ? `PAYMENT_INTENT#${paymentIntent.createdAt}` : undefined,
+      GSI4PK: paymentIntent.gatewayPaymentIntentId ? `${paymentIntent.paymentGateway.toUpperCase()}_PAYMENT_INTENT#${paymentIntent.gatewayPaymentIntentId}` : undefined,
+      GSI4SK: paymentIntent.gatewayPaymentIntentId ? `PAYMENT_INTENT#${paymentIntent.createdAt}` : undefined,
       ...paymentIntent,
     };
   }
@@ -513,7 +513,7 @@ export class PaymentRepository {
       GSI2SK: `PAYMENT#${payment.createdAt}`,
       GSI3PK: `STATUS#${payment.status}`,
       GSI3SK: `PAYMENT#${payment.createdAt}`,
-      GSI4PK: `STRIPE_PAYMENT#${payment.stripePaymentId}`,
+      GSI4PK: `${payment.paymentGateway.toUpperCase()}_PAYMENT#${payment.gatewayPaymentId}`,
       GSI4SK: `PAYMENT#${payment.createdAt}`,
       ...payment,
     };

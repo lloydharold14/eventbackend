@@ -9,7 +9,7 @@ import {
   PaymentValidationError,
   PaymentNotFoundError,
   PaymentProcessingError,
-  StripeError,
+  PaymentGatewayError,
 } from '../models/Payment';
 
 const logger = new Logger({ serviceName: 'payment-handlers' });
@@ -102,7 +102,7 @@ export const createPaymentIntent = async (event: APIGatewayProxyEvent): Promise<
     if (error instanceof PaymentValidationError) {
       return formatErrorResponse(error, 400);
     }
-    if (error instanceof StripeError) {
+    if (error instanceof PaymentGatewayError) {
       return formatErrorResponse(error, 400);
     }
     return formatErrorResponse(error as Error);
@@ -161,7 +161,7 @@ export const confirmPayment = async (event: APIGatewayProxyEvent): Promise<APIGa
     if (error instanceof PaymentNotFoundError) {
       return formatErrorResponse(error, 404);
     }
-    if (error instanceof StripeError) {
+    if (error instanceof PaymentGatewayError) {
       return formatErrorResponse(error, 400);
     }
     return formatErrorResponse(error as Error);
@@ -220,7 +220,7 @@ export const processRefund = async (event: APIGatewayProxyEvent): Promise<APIGat
     if (error instanceof PaymentNotFoundError) {
       return formatErrorResponse(error, 404);
     }
-    if (error instanceof StripeError) {
+    if (error instanceof PaymentGatewayError) {
       return formatErrorResponse(error, 400);
     }
     return formatErrorResponse(error as Error);

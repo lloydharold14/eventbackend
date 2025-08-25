@@ -1,7 +1,7 @@
 import { Logger } from '@aws-lambda-powertools/logger';
 import { v4 as uuidv4 } from 'uuid';
-import Stripe from 'stripe';
 import { PaymentRepository } from '../repositories/PaymentRepository';
+import { PaymentGatewayManager } from '../gateways/PaymentGatewayManager';
 import {
   PaymentIntent,
   Payment,
@@ -17,19 +17,18 @@ import {
   PaymentValidationError,
   PaymentNotFoundError,
   PaymentProcessingError,
-  StripeError,
+  PaymentGatewayError,
+  PaymentGateway,
 } from '../models/Payment';
 
 const logger = new Logger({ serviceName: 'payment-service' });
 
 export class PaymentService {
-  private stripe: Stripe;
+  private gatewayManager: PaymentGatewayManager;
   private repository: PaymentRepository;
 
   constructor(paymentTableName: string) {
-    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
-      apiVersion: '2023-10-16',
-    });
+    this.gatewayManager = new PaymentGatewayManager();
     this.repository = new PaymentRepository(paymentTableName);
   }
 
@@ -41,20 +40,20 @@ export class PaymentService {
       // Validate request
       this.validateCreatePaymentIntentRequest(request);
 
-      // Create Stripe payment intent
-      const stripePaymentIntent = await this.stripe.paymentIntents.create({
-        amount: Math.round(request.amount * 100), // Convert to cents
-        currency: request.currency.toLowerCase(),
-        metadata: {
-          bookingId: request.bookingId,
-          userId: request.userId,
-          eventId: request.eventId,
-          ...request.metadata,
-        },
-        automatic_payment_methods: {
-          enabled: true,
-        },
-      });
+      // Use gateway manager to create payment intent
+      const gatewayResponse = await this.gatewayManager.createPaymentIntent(request);
+      
+      if (!gatewayResponse.success) {
+        throw new PaymentGatewayError(
+          gatewayResponse.error || 'Payment gateway error',
+          PaymentGateway.STRIPE, // TODO: Get actual gateway from response
+          'PAYMENT_GATEWAY_ERROR',
+          400
+        );
+      }
+
+      // Get the selected gateway
+      const selectedGateway = this.gatewayManager.selectGateway(request);
 
       // Create payment intent record
       const paymentIntent: PaymentIntent = {
@@ -66,8 +65,9 @@ export class PaymentService {
         currency: request.currency,
         status: PaymentStatus.PENDING,
         paymentMethod: request.paymentMethod,
-        stripePaymentIntentId: stripePaymentIntent.id,
-        stripeClientSecret: stripePaymentIntent.client_secret || undefined,
+        paymentGateway: selectedGateway.gateway,
+        gatewayPaymentIntentId: gatewayResponse.gatewayTransactionId,
+        gatewayClientSecret: gatewayResponse.gatewayResponse?.client_secret || undefined,
         metadata: request.metadata,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -78,16 +78,22 @@ export class PaymentService {
 
       logger.info('Payment intent created successfully', { 
         paymentIntentId: createdPaymentIntent.id,
-        stripePaymentIntentId: stripePaymentIntent.id 
+        gatewayPaymentIntentId: gatewayResponse.gatewayTransactionId,
+        gateway: selectedGateway.gateway
       });
 
       return createdPaymentIntent;
     } catch (error) {
       logger.error('Error creating payment intent', { error, request });
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(`Stripe error: ${error.message}`, 'STRIPE_ERROR', 400, error);
+      if (error instanceof PaymentGatewayError) {
+        throw error;
       }
-      throw error;
+      throw new PaymentGatewayError(
+        error instanceof Error ? error.message : 'Unknown error',
+        PaymentGateway.STRIPE, // TODO: Get actual gateway
+        'PAYMENT_GATEWAY_ERROR',
+        500
+      );
     }
   }
 
@@ -124,13 +130,17 @@ export class PaymentService {
         throw new PaymentValidationError(`Payment intent is not in pending status: ${paymentIntent.status}`);
       }
 
-      // Confirm Stripe payment intent
-      const stripePaymentIntent = await this.stripe.paymentIntents.confirm(
-        paymentIntent.stripePaymentIntentId!,
-        {
-          payment_method: request.paymentMethodId,
-        }
-      );
+      // Use gateway manager to confirm payment
+      const gatewayResponse = await this.gatewayManager.confirmPayment(request);
+      
+      if (!gatewayResponse.success) {
+        throw new PaymentGatewayError(
+          gatewayResponse.error || 'Payment gateway error',
+          paymentIntent.paymentGateway,
+          'PAYMENT_GATEWAY_ERROR',
+          400
+        );
+      }
 
       // Create payment record
       const payment: Payment = {
@@ -141,12 +151,13 @@ export class PaymentService {
         eventId: paymentIntent.eventId,
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
-        status: this.mapStripeStatusToPaymentStatus(stripePaymentIntent.status),
-        paymentMethod: this.mapStripePaymentMethodToPaymentMethod(stripePaymentIntent.payment_method_types[0]),
-        stripePaymentId: stripePaymentIntent.id,
-        stripeChargeId: stripePaymentIntent.latest_charge as string,
-                receiptUrl: stripePaymentIntent.latest_charge ?
-          (await this.stripe.charges.retrieve(stripePaymentIntent.latest_charge as string)).receipt_url || undefined : undefined,
+        status: this.mapStripeStatusToPaymentStatus(gatewayResponse.gatewayResponse.status),
+        paymentMethod: this.mapStripePaymentMethodToPaymentMethod(gatewayResponse.gatewayResponse.payment_method_types?.[0]),
+        paymentGateway: paymentIntent.paymentGateway,
+        gatewayPaymentId: gatewayResponse.gatewayTransactionId,
+        gatewayChargeId: gatewayResponse.gatewayResponse.latest_charge as string,
+        receiptUrl: gatewayResponse.gatewayResponse.latest_charge ? 
+          gatewayResponse.gatewayResponse.receipt_url || undefined : undefined,
         metadata: request.metadata,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -169,10 +180,15 @@ export class PaymentService {
       return createdPayment;
     } catch (error) {
       logger.error('Error confirming payment', { error, request });
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(`Stripe error: ${error.message}`, 'STRIPE_ERROR', 400, error);
+      if (error instanceof PaymentGatewayError) {
+        throw error;
       }
-      throw error;
+      throw new PaymentGatewayError(
+        error instanceof Error ? error.message : 'Unknown error',
+        PaymentGateway.STRIPE, // TODO: Get actual gateway
+        'PAYMENT_GATEWAY_ERROR',
+        500
+      );
     }
   }
 
@@ -245,13 +261,17 @@ export class PaymentService {
 
       const refundAmount = request.amount || payment.amount;
 
-      // Process Stripe refund
-      const stripeRefund = await this.stripe.refunds.create({
-        payment_intent: payment.stripePaymentId,
-        amount: Math.round(refundAmount * 100), // Convert to cents
-        reason: this.mapRefundReasonToStripeReason(request.reason),
-        metadata: request.metadata,
-      });
+      // Use gateway manager to process refund
+      const gatewayResponse = await this.gatewayManager.processRefund(request);
+      
+      if (!gatewayResponse.success) {
+        throw new PaymentGatewayError(
+          gatewayResponse.error || 'Payment gateway error',
+          payment.paymentGateway,
+          'PAYMENT_GATEWAY_ERROR',
+          400
+        );
+      }
 
       // Create refund record
       const refund: Refund = {
@@ -261,9 +281,10 @@ export class PaymentService {
         userId: payment.userId,
         amount: refundAmount,
         currency: payment.currency,
-        status: this.mapStripeRefundStatusToRefundStatus(stripeRefund.status || 'pending'),
+        status: this.mapStripeRefundStatusToRefundStatus(gatewayResponse.gatewayResponse.status || 'pending'),
         reason: request.reason,
-        stripeRefundId: stripeRefund.id,
+        paymentGateway: payment.paymentGateway,
+        gatewayRefundId: gatewayResponse.gatewayTransactionId,
         metadata: request.metadata,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -289,10 +310,15 @@ export class PaymentService {
       return createdRefund;
     } catch (error) {
       logger.error('Error processing refund', { error, request });
-      if (error instanceof Stripe.errors.StripeError) {
-        throw new StripeError(`Stripe error: ${error.message}`, 'STRIPE_ERROR', 400, error);
+      if (error instanceof PaymentGatewayError) {
+        throw error;
       }
-      throw error;
+      throw new PaymentGatewayError(
+        error instanceof Error ? error.message : 'Unknown error',
+        PaymentGateway.STRIPE, // TODO: Get actual gateway
+        'PAYMENT_GATEWAY_ERROR',
+        500
+      );
     }
   }
 
@@ -418,7 +444,7 @@ export class PaymentService {
     }
   }
 
-  private mapRefundReasonToStripeReason(reason: RefundReason): Stripe.RefundCreateParams.Reason {
+  private mapRefundReasonToStripeReason(reason: RefundReason): string {
     switch (reason) {
       case RefundReason.REQUESTED_BY_CUSTOMER:
         return 'requested_by_customer';

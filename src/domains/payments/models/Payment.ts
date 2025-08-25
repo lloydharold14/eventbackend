@@ -35,6 +35,48 @@ export enum RefundReason {
   GENERAL = 'general'
 }
 
+// Payment Gateway Abstraction
+export enum PaymentGateway {
+  STRIPE = 'stripe',
+  PAYPAL = 'paypal',
+  SQUARE = 'square',
+  ADYEN = 'adyen',
+  RAZORPAY = 'razorpay',
+  PAYTM = 'paytm',
+  ALIPAY = 'alipay',
+  WECHAT_PAY = 'wechat_pay',
+  MERCADO_PAGO = 'mercado_pago',
+  PAGSEGURO = 'pagseguro'
+}
+
+export enum PaymentGatewayRegion {
+  NORTH_AMERICA = 'north_america',
+  EUROPE = 'europe',
+  ASIA_PACIFIC = 'asia_pacific',
+  LATIN_AMERICA = 'latin_america',
+  AFRICA = 'africa',
+  MIDDLE_EAST = 'middle_east'
+}
+
+export interface PaymentGatewayConfig {
+  gateway: PaymentGateway;
+  region: PaymentGatewayRegion;
+  isActive: boolean;
+  apiKey: string;
+  secretKey: string;
+  webhookSecret?: string;
+  supportedCurrencies: string[];
+  supportedPaymentMethods: PaymentMethod[];
+  metadata?: Record<string, any>;
+}
+
+export interface PaymentGatewayResponse {
+  success: boolean;
+  gatewayTransactionId: string;
+  gatewayResponse: any;
+  error?: string;
+}
+
 export interface PaymentIntent {
   id: string;
   bookingId: string;
@@ -44,8 +86,9 @@ export interface PaymentIntent {
   currency: string;
   status: PaymentStatus;
   paymentMethod?: PaymentMethod;
-  stripePaymentIntentId?: string;
-  stripeClientSecret?: string;
+  paymentGateway: PaymentGateway;
+  gatewayPaymentIntentId?: string;
+  gatewayClientSecret?: string;
   metadata?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
@@ -62,8 +105,9 @@ export interface Payment {
   currency: string;
   status: PaymentStatus;
   paymentMethod: PaymentMethod;
-  stripePaymentId: string;
-  stripeChargeId?: string;
+  paymentGateway: PaymentGateway;
+  gatewayPaymentId: string;
+  gatewayChargeId?: string;
   receiptUrl?: string;
   metadata?: Record<string, string>;
   createdAt: string;
@@ -80,7 +124,8 @@ export interface Refund {
   currency: string;
   status: RefundStatus;
   reason: RefundReason;
-  stripeRefundId: string;
+  paymentGateway: PaymentGateway;
+  gatewayRefundId: string;
   metadata?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
@@ -105,6 +150,7 @@ export interface CreatePaymentIntentRequest {
   amount: number;
   currency: string;
   paymentMethod?: PaymentMethod;
+  paymentGateway?: PaymentGateway;
   metadata?: Record<string, string>;
 }
 
@@ -127,6 +173,7 @@ export interface PaymentSearchFilters {
   eventId?: string;
   status?: PaymentStatus;
   paymentMethod?: PaymentMethod;
+  paymentGateway?: PaymentGateway;
   dateFrom?: string;
   dateTo?: string;
   amountMin?: number;
@@ -148,7 +195,7 @@ export interface PaymentSearchResponse {
   filters: PaymentSearchFilters;
 }
 
-export interface StripeWebhookEvent {
+export interface PaymentGatewayEvent {
   id: string;
   object: string;
   api_version: string;
@@ -206,14 +253,15 @@ export class PaymentProcessingError extends Error implements PaymentError {
   }
 }
 
-export class StripeError extends Error implements PaymentError {
+export class PaymentGatewayError extends Error implements PaymentError {
   constructor(
     message: string,
-    public code: string = 'STRIPE_ERROR',
+    public gateway: PaymentGateway,
+    public code: string = 'PAYMENT_GATEWAY_ERROR',
     public statusCode: number = 500,
     public details?: any
   ) {
     super(message);
-    this.name = 'StripeError';
+    this.name = 'PaymentGatewayError';
   }
 }

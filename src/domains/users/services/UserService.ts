@@ -1,31 +1,117 @@
-import { User, UpdateUserRequest, UserSearchFilters, UserListResponse, EmailVerificationConfirmRequest, PhoneVerificationConfirmRequest } from '../models/User';
+import { User, UpdateUserRequest, UserSearchFilters, UserListResponse, EmailVerificationConfirmRequest, PhoneVerificationConfirmRequest, UserRegistrationRequest } from '../models/User';
 import { UserRepository } from '../repositories/UserRepository';
 import { AuthService } from './AuthService';
 import { UserRole, UserStatus } from '../../../shared/types/common';
 import { logger } from '../../../shared/utils/logger';
 import { ValidationError, NotFoundError, UnauthorizedError } from '../../../shared/errors/DomainError';
+import { DomainEvent, EventType, UserRegisteredEvent } from '../../../shared/types/events';
+import { ComplianceService } from '../../../shared/compliance/RegionalCompliance';
+import { LocalizationService } from '../../../shared/localization/LocalizationService';
+import { EventBusFactory, EventBusConfigBuilder } from '../../../shared/events/EventBus';
+import { v4 as uuidv4 } from 'uuid';
 
 export class UserService {
   private readonly userRepository: UserRepository;
   private readonly authService: AuthService;
+  private readonly complianceService: ComplianceService;
+  private readonly localizationService: LocalizationService;
+  private readonly eventBus: any; // Using any for now to avoid import issues
 
-  constructor(userRepository: UserRepository, authService: AuthService) {
+  constructor(
+    userRepository: UserRepository,
+    authService: AuthService,
+    eventBus?: any
+  ) {
     this.userRepository = userRepository;
     this.authService = authService;
+    this.complianceService = ComplianceService.getInstance();
+    this.localizationService = LocalizationService.getInstance();
+    this.eventBus = eventBus;
   }
 
-  async getUserById(userId: string): Promise<User> {
+  async createUser(userData: UserRegistrationRequest, requestContext?: any): Promise<User> {
     try {
-      const user = await this.userRepository.getUserById(userId);
-      
-      // Remove sensitive data
-      const { passwordHash, ...userWithoutPassword } = user as any;
-      return userWithoutPassword;
-    } catch (error: any) {
-      logger.error('Failed to get user by ID', { error: error.message, userId });
+      // Use the existing AuthService to register the user
+      const user = await this.authService.registerUser(userData);
+
+      // Detect user locale from request headers
+      const locale = this.localizationService.detectLocale({
+        headers: requestContext?.headers || {},
+        country: requestContext?.country,
+        userPreferences: {
+          language: requestContext?.language
+        }
+      });
+
+      // Update user preferences with localization
+      await this.userRepository.updateUser(user.id, {
+        preferences: {
+          ...user.preferences,
+          language: locale,
+          currency: this.localizationService.getLocaleConfig(locale).currency,
+          timezone: this.localizationService.getLocaleConfig(locale).timezone
+        }
+      });
+
+      // Publish user registered event if event bus is available
+      if (this.eventBus) {
+        const userRegisteredEvent: UserRegisteredEvent = {
+          eventId: uuidv4(),
+          eventType: EventType.USER_REGISTERED,
+          aggregateId: user.id,
+          aggregateType: 'User',
+          version: 1,
+          timestamp: new Date(),
+          correlationId: requestContext?.correlationId || uuidv4(),
+          causationId: requestContext?.causationId || uuidv4(),
+          data: {
+            userId: user.id,
+            email: user.email,
+            username: user.username,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            role: user.role,
+            status: user.status,
+            emailVerified: user.emailVerified,
+            phoneVerified: user.phoneVerified,
+            createdAt: user.createdAt,
+            preferences: {
+              language: locale,
+              timezone: this.localizationService.getLocaleConfig(locale).timezone,
+              currency: this.localizationService.getLocaleConfig(locale).currency,
+              marketingConsent: userData.marketingConsent || false
+            }
+          },
+          metadata: {
+            userId: user.id,
+            region: requestContext?.country,
+            locale,
+            ipAddress: requestContext?.ipAddress,
+            userAgent: requestContext?.userAgent
+          }
+        };
+
+        await this.eventBus.publish(userRegisteredEvent);
+      }
+
+      logger.info('User created successfully with localization', {
+        userId: user.id,
+        email: user.email,
+        locale
+      });
+
+      return user;
+    } catch (error) {
+      logger.error('Failed to create user', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        userData: { email: userData.email }
+      });
       throw error;
     }
   }
+
+  // Enhanced user service methods with localization and compliance support
+  // Additional methods can be added here as needed
 
   async getUserByEmail(email: string): Promise<User | null> {
     try {
@@ -329,5 +415,10 @@ export class UserService {
   private isValidDate(dateString: string): boolean {
     const date = new Date(dateString);
     return !isNaN(date.getTime()) && date <= new Date();
+  }
+
+  // Helper method to get localized error messages
+  private async getLocalizedErrorMessage(errorKey: string, locale: string, interpolations?: Record<string, any>): Promise<string> {
+    return await this.localizationService.getText(errorKey, locale, interpolations);
   }
 }

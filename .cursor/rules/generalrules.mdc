@@ -1,6 +1,3 @@
----
-alwaysApply: true
----
 # Cursor AI Architecture Rules & Guidelines
 ## Senior Solution Architect | Cloud Architect | Cybersecurity Architect
 
@@ -495,6 +492,2527 @@ export const retryWithBackoff = async <T>(
   }
   throw new Error('Max retries exceeded');
 };
+```
+
+---
+
+## 🌍 INTERNATIONALIZATION & MULTI-CURRENCY RULES
+
+### 1. Global Market Requirements
+
+**MANDATORY: The platform must support multiple countries and currencies from Day 1**
+
+- **Primary Markets**: Canada, Benin, Togo, Ghana, Nigeria, WAEMU, United States, United Kingdom, European Union, Australia
+- **Secondary Markets**: Mexico, Brazil, Japan, India, Southeast Asia
+- **Currency Support**: CAD, XOF, USD, EUR, GBP, AUD, MXN, BRL, JPY, INR, SGD, etc...
+- **Language Support**: English (primary), French, Spanish, Portuguese, Japanese
+- **Regional Compliance**: GDPR (EU), PIPEDA (Canada), CCPA (California), PCI-DSS (Global) and the one about the corresponding regions
+
+### 2. Currency Architecture Standards
+
+**MANDATORY currency handling patterns:**
+
+```typescript
+// Currency Configuration
+export interface CurrencyConfig {
+  code: string;           // ISO 4217 currency code (CAD, USD, EUR)
+  symbol: string;         // Currency symbol ($, €, £)
+  name: string;           // Full currency name
+  decimalPlaces: number;  // Decimal precision (2 for most, 0 for JPY)
+  exchangeRate?: number;  // Rate to base currency (USD)
+  isActive: boolean;      // Whether accepting payments in this currency
+  regions: string[];      // Countries/regions using this currency
+}
+
+// MANDATORY: Base currency configuration
+export const SUPPORTED_CURRENCIES: CurrencyConfig[] = [
+  {
+    code: 'CAD',
+    symbol: 'C
+
+### 1. Docker Standards & Best Practices
+
+**MANDATORY Docker implementation for all microservices:**
+
+- **Container-First Development**: Every microservice must run in Docker
+- **Multi-Stage Builds**: Optimize image size and security
+- **Non-Root User**: Never run containers as root user
+- **Health Checks**: All containers must implement health endpoints
+- **Resource Limits**: Set memory and CPU limits
+- **Environment Parity**: Identical behavior across dev/staging/prod
+
+### 2. Dockerfile Template Standards
+
+**MANDATORY Dockerfile structure for Node.js/TypeScript services:**
+
+```dockerfile
+# Multi-stage build for optimized production images
+FROM node:18-alpine AS base
+WORKDIR /app
+
+# Install dependencies stage
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+COPY package.json package-lock.json ./
+RUN npm ci --only=production --frozen-lockfile
+
+# Build stage
+FROM base AS build
+COPY package.json package-lock.json ./
+RUN npm ci --frozen-lockfile
+COPY . .
+RUN npm run build
+RUN npm prune --production
+
+# Production stage
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Security: Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs
+
+# Copy built application
+COPY --from=build --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nodejs:nodejs /app/package.json ./package.json
+
+# Security and optimization
+USER nodejs
+EXPOSE 3000
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+CMD ["node", "dist/index.js"]
+```
+
+### 3. Service-Specific Docker Configuration
+
+**User Management Service Dockerfile:**
+```dockerfile
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# ... (follow template above)
+
+# Service-specific environment
+ENV SERVICE_NAME=user-management
+ENV PORT=3001
+
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+CMD ["node", "dist/user-service.js"]
+```
+
+**Event Management Service Dockerfile:**
+```dockerfile
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+RUN apk add --no-cache curl
+
+# ... (follow template above)
+
+ENV SERVICE_NAME=event-management
+ENV PORT=3002
+
+EXPOSE 3002
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3002/health || exit 1
+
+CMD ["node", "dist/event-service.js"]
+```
+
+### 4. Docker Compose for Local Development
+
+**MANDATORY docker-compose.yml for full-stack development:**
+
+```yaml
+version: '3.8'
+
+services:
+  # User Management Service
+  user-service:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - JWT_SECRET=dev-secret-key
+      - AWS_REGION=ca-central-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Event Management Service
+  event-service:
+    build:
+      context: ./services/event-management
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-event-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - AWS_REGION=ca-central-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Booking Service
+  booking-service:
+    build:
+      context: ./services/booking
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-booking-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - STRIPE_SECRET_KEY=sk_test_...
+      - AWS_REGION=ca-central-1
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - STRIPE_SECRET_KEY=sk_test_...
+      - STRIPE_WEBHOOK_SECRET=whsec_...
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-notification-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+    depends_on:
+      - dynamodb-local
+      - mailhog
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # API Gateway (Local Development Proxy)
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: event-platform-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - USER_SERVICE_URL=http://user-service:3001
+      - EVENT_SERVICE_URL=http://event-service:3002
+      - BOOKING_SERVICE_URL=http://booking-service:3003
+      - PAYMENT_SERVICE_URL=http://payment-service:3004
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+    depends_on:
+      - user-service
+      - event-service
+      - booking-service
+      - payment-service
+      - notification-service
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Local AWS Services
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: event-platform-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Redis for Caching
+  redis:
+    image: redis:7-alpine
+    container_name: event-platform-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # S3 Local (MinIO)
+  minio:
+    image: minio/minio:latest
+    container_name: event-platform-s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+
+  # Local Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: event-platform-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Monitoring & Observability
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: event-platform-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: event-platform-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+networks:
+  event-platform-network:
+    driver: bridge
+
+volumes:
+  dynamodb-data:
+  redis-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+```
+
+### 5. Environment-Specific Docker Configurations
+
+**Development docker-compose.override.yml:**
+```yaml
+version: '3.8'
+
+services:
+  user-service:
+    volumes:
+      - ./services/user-management:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+
+  event-service:
+    volumes:
+      - ./services/event-management:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+```
+
+**Production docker-compose.prod.yml:**
+```yaml
+version: '3.8'
+
+services:
+  user-service:
+    image: your-registry/event-platform-user-service:latest
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+```
+
+### 6. Docker Image Optimization Rules
+
+**MANDATORY optimization practices:**
+
+```dockerfile
+# Use specific versions, not 'latest'
+FROM node:18.17.0-alpine AS base
+
+# Minimize layers
+RUN apk add --no-cache \
+    curl \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Use .dockerignore
+# Create .dockerignore file:
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
+.nyc_output
+coverage
+.env
+dist
+build
+```
+
+### 7. Health Check Implementation
+
+**MANDATORY health check endpoint for all services:**
+
+```typescript
+// health-check.ts - Standard health check implementation
+import express from 'express';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import Redis from 'ioredis';
+
+interface HealthStatus {
+  status: 'healthy' | 'unhealthy';
+  timestamp: string;
+  service: string;
+  version: string;
+  dependencies: {
+    database: 'connected' | 'disconnected';
+    redis: 'connected' | 'disconnected';
+    [key: string]: 'connected' | 'disconnected';
+  };
+  uptime: number;
+}
+
+export const healthCheckHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  
+  try {
+    // Check database connection
+    const dbStatus = await checkDatabaseHealth();
+    
+    // Check Redis connection
+    const redisStatus = await checkRedisHealth();
+    
+    const healthStatus: HealthStatus = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: process.env.SERVICE_NAME || 'unknown',
+      version: process.env.SERVICE_VERSION || '1.0.0',
+      dependencies: {
+        database: dbStatus ? 'connected' : 'disconnected',
+        redis: redisStatus ? 'connected' : 'disconnected'
+      },
+      uptime: process.uptime()
+    };
+
+    // If any critical dependency is down, mark as unhealthy
+    const isHealthy = dbStatus && redisStatus;
+    healthStatus.status = isHealthy ? 'healthy' : 'unhealthy';
+
+    res.status(isHealthy ? 200 : 503).json(healthStatus);
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+};
+
+const checkDatabaseHealth = async (): Promise<boolean> => {
+  try {
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION });
+    await client.send(new ListTablesCommand({}));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const checkRedisHealth = async (): Promise<boolean> => {
+  try {
+    const redis = new Redis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT || '6379')
+    });
+    await redis.ping();
+    redis.disconnect();
+    return true;
+  } catch {
+    return false;
+  }
+};
+```
+
+### 8. Docker Development Scripts
+
+**MANDATORY package.json scripts:**
+
+```json
+{
+  "scripts": {
+    "docker:build": "docker build -t event-platform-service .",
+    "docker:run": "docker run -p 3000:3000 event-platform-service",
+    "docker:dev": "docker-compose up --build",
+    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "docker:test": "docker-compose -f docker-compose.test.yml up --abort-on-container-exit",
+    "docker:clean": "docker-compose down -v && docker system prune -f",
+    "docker:logs": "docker-compose logs -f",
+    "docker:shell": "docker-compose exec user-service sh"
+  }
+}
+```
+
+### 9. Container Security Rules
+
+**MANDATORY security implementations:**
+
+```dockerfile
+# Security hardening
+FROM node:18-alpine AS base
+
+# Update packages and remove package manager
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set secure permissions
+COPY --chown=nodejs:nodejs . .
+RUN chmod -R 755 /app && \
+    chmod -R 644 /app/package*.json
+
+USER nodejs
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]
+```
+
+### 10. Docker Testing Strategy
+
+**Test docker-compose.test.yml:**
+
+```yaml
+version: '3.8'
+
+services:
+  user-service-test:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - DB_HOST=dynamodb-test
+    depends_on:
+      - dynamodb-test
+    command: npm test
+    networks:
+      - test-network
+
+  dynamodb-test:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+```
+
+---
+
+## 📋 DEVELOPMENT WORKFLOW RULES
+
+### 1. Code Organization Standards
+
+```
+src/
+├── domains/           # Business domains
+│   ├── events/
+│   ├── bookings/
+│   ├── users/
+│   └── payments/
+├── infrastructure/    # CDK stacks
+├── shared/           # Common utilities
+│   ├── types/
+│   ├── validators/
+│   ├── errors/
+│   └── utils/
+└── tests/           # Test files
+```
+
+### 2. Testing Requirements
+
+**MANDATORY test coverage:**
+
+- **Unit Tests**: 80%+ coverage for business logic
+- **Integration Tests**: All API endpoints
+- **Contract Tests**: Inter-service communication
+- **End-to-End Tests**: Critical user journeys
+- **Performance Tests**: Load testing for scalability
+- **Security Tests**: Penetration testing, vulnerability scanning
+
+### 3. Docker Development Commands
+
+**MANDATORY Docker commands for daily development:**
+
+```bash
+# Quick start (first time)
+make docker-setup
+
+# Daily development
+make docker-dev        # Start all services in development mode
+make docker-logs       # View logs from all services
+make docker-test       # Run all tests in containers
+make docker-clean      # Clean up containers and volumes
+
+# Individual service commands
+make user-service-dev   # Start only user service for debugging
+make event-service-logs # View logs from event service only
+make payment-service-shell # Shell into payment service container
+
+# Production deployment
+make docker-prod       # Deploy production containers locally
+make docker-deploy     # Deploy to remote Docker registry
+```
+
+### 4. Makefile for Docker Operations
+
+**MANDATORY Makefile for consistent operations:**
+
+```makefile
+# Event Platform Docker Operations
+.PHONY: help docker-setup docker-dev docker-prod docker-test docker-clean
+
+# Default target
+help:
+	@echo "Event Platform Docker Commands:"
+	@echo "  docker-setup    - Initial setup with database creation"
+	@echo "  docker-dev      - Start development environment"
+	@echo "  docker-prod     - Start production environment"
+	@echo "  docker-test     - Run all tests"
+	@echo "  docker-clean    - Clean up containers and volumes"
+	@echo "  docker-logs     - Show logs from all services"
+
+# Initial setup
+docker-setup: docker-clean
+	@echo "🚀 Setting up Event Platform development environment..."
+	docker-compose up -d dynamodb-local redis minio
+	@echo "⏳ Waiting for services to be ready..."
+	sleep 10
+	@echo "🗄️  Creating DynamoDB tables..."
+	npm run create-tables:local
+	@echo "📦 Building all services..."
+	docker-compose build
+	@echo "✅ Setup complete! Run 'make docker-dev' to start development."
+
+# Development environment
+docker-dev:
+	@echo "🔧 Starting development environment..."
+	docker-compose up --build
+
+# Production environment
+docker-prod:
+	@echo "🚀 Starting production environment..."
+	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Run tests
+docker-test:
+	@echo "🧪 Running all tests in containers..."
+	docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+	docker-compose -f docker-compose.test.yml down
+
+# Clean up
+docker-clean:
+	@echo "🧹 Cleaning up Docker containers and volumes..."
+	docker-compose down -v
+	docker system prune -f --volumes
+
+# View logs
+docker-logs:
+	docker-compose logs -f
+
+# Individual service operations
+user-service-dev:
+	docker-compose up --build user-service dynamodb-local redis
+
+event-service-logs:
+	docker-compose logs -f event-service
+
+payment-service-shell:
+	docker-compose exec payment-service sh
+
+# Database operations
+db-migrate:
+	docker-compose exec user-service npm run db:migrate
+
+db-seed:
+	docker-compose exec user-service npm run db:seed
+
+# Monitoring
+monitoring:
+	docker-compose up -d prometheus grafana
+	@echo "📊 Monitoring available at:"
+	@echo "  Prometheus: http://localhost:9090"
+	@echo "  Grafana: http://localhost:3001 (admin/admin123)"
+```
+
+### 5. Documentation Standards
+
+**MANDATORY documentation:**
+
+- **API Documentation**: OpenAPI 3.0 specifications
+- **Architecture Decision Records (ADRs)**: All major decisions
+- **Runbooks**: Operational procedures
+- **Security Playbooks**: Incident response procedures
+- **Docker Setup Guide**: Complete containerization documentation
+
+---
+
+## ⚡ PERFORMANCE OPTIMIZATION RULES
+
+### 1. Database Optimization
+
+**DynamoDB best practices:**
+
+- Use appropriate partition keys for even distribution
+- Implement Global Secondary Indexes (GSI) for query patterns
+- Use DynamoDB Streams for event sourcing
+- Implement connection pooling and query optimization
+
+### 2. Caching Strategy
+
+**Multi-layer caching:**
+
+- **Level 1**: In-memory caching in Lambda
+- **Level 2**: ElastiCache Redis for shared cache
+- **Level 3**: CDN caching for static content
+
+### 3. API Optimization
+
+**MANDATORY optimizations:**
+
+- Request/response compression
+- Pagination for large datasets
+- Field selection/projection
+- Query batching where appropriate
+
+---
+
+## 🎯 QUALITY GATES & COMPLIANCE
+
+### 1. Code Quality Requirements
+
+**MANDATORY quality checks:**
+
+- TypeScript strict mode enabled
+- Zero ESLint errors/warnings
+- 100% type coverage
+- No console.log statements in production
+- All TODO comments linked to tickets
+
+### 2. Security Compliance
+
+**MANDATORY security checks:**
+
+- OWASP Top 10 vulnerability assessment
+- Dependency vulnerability scanning
+- Secrets detection in code
+- Infrastructure security scanning
+- Regular penetration testing
+
+### 3. Operational Readiness
+
+**MANDATORY operational requirements:**
+
+- Health check endpoints
+- Readiness probes
+- Graceful shutdown handling
+- Resource limits configured
+- Monitoring and alerting set up
+
+---
+
+## 📈 SCALABILITY & CAPACITY PLANNING
+
+### 1. Auto-scaling Configuration
+
+```typescript
+// MANDATORY: Lambda Concurrency Settings
+export const lambdaFunction = new Function(this, 'EventHandler', {
+  // Set reserved concurrency to prevent one function consuming all capacity
+  reservedConcurrencyLimit: 100,
+  // Set provisioned concurrency for predictable workloads
+  currentVersionOptions: {
+    provisionedConcurrencyConfig: {
+      provisionedConcurrentExecutions: 10
+    }
+  }
+});
+```
+
+### 2. Database Scaling Strategy
+
+- **DynamoDB On-Demand**: For unpredictable workloads
+- **Auto Scaling**: For predictable growth patterns
+- **Global Tables**: For multi-region deployment
+- **Read Replicas**: For read-heavy workloads
+
+---
+
+## ✅ CHECKLIST FOR CURSOR AI IMPLEMENTATION
+
+Before implementing any component, ensure:
+
+- [ ] Business requirements clearly defined
+- [ ] Security requirements identified
+- [ ] Performance requirements specified
+- [ ] Error handling strategy defined
+- [ ] Monitoring and logging implemented
+- [ ] Testing strategy planned
+- [ ] Documentation created
+- [ ] Code review completed
+- [ ] Security review passed
+- [ ] Performance testing done
+
+---
+
+*These rules must be followed for every microservice, API, and infrastructure component. No exceptions without explicit architectural approval.*,
+    name: 'Canadian Dollar',
+    decimalPlaces: 2,
+    exchangeRate: 1.0, // Base currency for Canadian operations
+    isActive: true,
+    regions: ['CA']
+  },
+  {
+    code: 'USD',
+    symbol: '
+
+### 1. Docker Standards & Best Practices
+
+**MANDATORY Docker implementation for all microservices:**
+
+- **Container-First Development**: Every microservice must run in Docker
+- **Multi-Stage Builds**: Optimize image size and security
+- **Non-Root User**: Never run containers as root user
+- **Health Checks**: All containers must implement health endpoints
+- **Resource Limits**: Set memory and CPU limits
+- **Environment Parity**: Identical behavior across dev/staging/prod
+
+### 2. Dockerfile Template Standards
+
+**MANDATORY Dockerfile structure for Node.js/TypeScript services:**
+
+```dockerfile
+# Multi-stage build for optimized production images
+FROM node:18-alpine AS base
+WORKDIR /app
+
+# Install dependencies stage
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
+COPY package.json package-lock.json ./
+RUN npm ci --only=production --frozen-lockfile
+
+# Build stage
+FROM base AS build
+COPY package.json package-lock.json ./
+RUN npm ci --frozen-lockfile
+COPY . .
+RUN npm run build
+RUN npm prune --production
+
+# Production stage
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Security: Create non-root user
+RUN addgroup --system --gid 1001 nodejs
+RUN adduser --system --uid 1001 nodejs
+
+# Copy built application
+COPY --from=build --chown=nodejs:nodejs /app/dist ./dist
+COPY --from=build --chown=nodejs:nodejs /app/node_modules ./node_modules
+COPY --from=build --chown=nodejs:nodejs /app/package.json ./package.json
+
+# Security and optimization
+USER nodejs
+EXPOSE 3000
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3000/health || exit 1
+
+CMD ["node", "dist/index.js"]
+```
+
+### 3. Service-Specific Docker Configuration
+
+**User Management Service Dockerfile:**
+```dockerfile
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Install curl for health checks
+RUN apk add --no-cache curl
+
+# ... (follow template above)
+
+# Service-specific environment
+ENV SERVICE_NAME=user-management
+ENV PORT=3001
+
+EXPOSE 3001
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3001/health || exit 1
+
+CMD ["node", "dist/user-service.js"]
+```
+
+**Event Management Service Dockerfile:**
+```dockerfile
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+RUN apk add --no-cache curl
+
+# ... (follow template above)
+
+ENV SERVICE_NAME=event-management
+ENV PORT=3002
+
+EXPOSE 3002
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:3002/health || exit 1
+
+CMD ["node", "dist/event-service.js"]
+```
+
+### 4. Docker Compose for Local Development
+
+**MANDATORY docker-compose.yml for full-stack development:**
+
+```yaml
+version: '3.8'
+
+services:
+  # User Management Service
+  user-service:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - JWT_SECRET=dev-secret-key
+      - AWS_REGION=ca-central-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Event Management Service
+  event-service:
+    build:
+      context: ./services/event-management
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-event-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - AWS_REGION=ca-central-1
+      - AWS_ACCESS_KEY_ID=local
+      - AWS_SECRET_ACCESS_KEY=local
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Booking Service
+  booking-service:
+    build:
+      context: ./services/booking
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-booking-service
+    ports:
+      - "3003:3003"
+    environment:
+      - NODE_ENV=development
+      - PORT=3003
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+      - STRIPE_SECRET_KEY=sk_test_...
+      - AWS_REGION=ca-central-1
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Payment Service
+  payment-service:
+    build:
+      context: ./services/payment
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-payment-service
+    ports:
+      - "3004:3004"
+    environment:
+      - NODE_ENV=development
+      - PORT=3004
+      - STRIPE_SECRET_KEY=sk_test_...
+      - STRIPE_WEBHOOK_SECRET=whsec_...
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+    depends_on:
+      - dynamodb-local
+      - redis
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Notification Service
+  notification-service:
+    build:
+      context: ./services/notification
+      dockerfile: Dockerfile
+      target: runner
+    container_name: event-platform-notification-service
+    ports:
+      - "3005:3005"
+    environment:
+      - NODE_ENV=development
+      - PORT=3005
+      - SMTP_HOST=mailhog
+      - SMTP_PORT=1025
+      - DB_HOST=dynamodb-local
+      - DB_PORT=8000
+    depends_on:
+      - dynamodb-local
+      - mailhog
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # API Gateway (Local Development Proxy)
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: event-platform-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - USER_SERVICE_URL=http://user-service:3001
+      - EVENT_SERVICE_URL=http://event-service:3002
+      - BOOKING_SERVICE_URL=http://booking-service:3003
+      - PAYMENT_SERVICE_URL=http://payment-service:3004
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+    depends_on:
+      - user-service
+      - event-service
+      - booking-service
+      - payment-service
+      - notification-service
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Local AWS Services
+  dynamodb-local:
+    image: amazon/dynamodb-local:latest
+    container_name: event-platform-dynamodb
+    command: ["-jar", "DynamoDBLocal.jar", "-sharedDb", "-dbPath", "./data"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - dynamodb-data:/home/dynamodblocal/data
+    working_dir: /home/dynamodblocal
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Redis for Caching
+  redis:
+    image: redis:7-alpine
+    container_name: event-platform-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
+  # S3 Local (MinIO)
+  minio:
+    image: minio/minio:latest
+    container_name: event-platform-s3
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio-data:/data
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin123
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+
+  # Local Email Testing
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: event-platform-mailhog
+    ports:
+      - "1025:1025"  # SMTP
+      - "8025:8025"  # Web UI
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  # Monitoring & Observability
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: event-platform-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: event-platform-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - event-platform-network
+    restart: unless-stopped
+
+networks:
+  event-platform-network:
+    driver: bridge
+
+volumes:
+  dynamodb-data:
+  redis-data:
+  minio-data:
+  prometheus-data:
+  grafana-data:
+```
+
+### 5. Environment-Specific Docker Configurations
+
+**Development docker-compose.override.yml:**
+```yaml
+version: '3.8'
+
+services:
+  user-service:
+    volumes:
+      - ./services/user-management:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+
+  event-service:
+    volumes:
+      - ./services/event-management:/app
+      - /app/node_modules
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+      - LOG_LEVEL=debug
+```
+
+**Production docker-compose.prod.yml:**
+```yaml
+version: '3.8'
+
+services:
+  user-service:
+    image: your-registry/event-platform-user-service:latest
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+    environment:
+      - NODE_ENV=production
+      - LOG_LEVEL=info
+```
+
+### 6. Docker Image Optimization Rules
+
+**MANDATORY optimization practices:**
+
+```dockerfile
+# Use specific versions, not 'latest'
+FROM node:18.17.0-alpine AS base
+
+# Minimize layers
+RUN apk add --no-cache \
+    curl \
+    ca-certificates \
+    && rm -rf /var/cache/apk/*
+
+# Use .dockerignore
+# Create .dockerignore file:
+node_modules
+npm-debug.log
+Dockerfile
+.dockerignore
+.git
+.gitignore
+README.md
+.nyc_output
+coverage
+.env
+dist
+build
+```
+
+### 7. Health Check Implementation
+
+**MANDATORY health check endpoint for all services:**
+
+```typescript
+// health-check.ts - Standard health check implementation
+import express from 'express';
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+import Redis from 'ioredis';
+
+interface HealthStatus {
+  status: 'healthy' | 'unhealthy';
+  timestamp: string;
+  service: string;
+  version: string;
+  dependencies: {
+    database: 'connected' | 'disconnected';
+    redis: 'connected' | 'disconnected';
+    [key: string]: 'connected' | 'disconnected';
+  };
+  uptime: number;
+}
+
+export const healthCheckHandler = async (req: express.Request, res: express.Response) => {
+  const startTime = Date.now();
+  
+  try {
+    // Check database connection
+    const dbStatus = await checkDatabaseHealth();
+    
+    // Check Redis connection
+    const redisStatus = await checkRedisHealth();
+    
+    const healthStatus: HealthStatus = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      service: process.env.SERVICE_NAME || 'unknown',
+      version: process.env.SERVICE_VERSION || '1.0.0',
+      dependencies: {
+        database: dbStatus ? 'connected' : 'disconnected',
+        redis: redisStatus ? 'connected' : 'disconnected'
+      },
+      uptime: process.uptime()
+    };
+
+    // If any critical dependency is down, mark as unhealthy
+    const isHealthy = dbStatus && redisStatus;
+    healthStatus.status = isHealthy ? 'healthy' : 'unhealthy';
+
+    res.status(isHealthy ? 200 : 503).json(healthStatus);
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+};
+
+const checkDatabaseHealth = async (): Promise<boolean> => {
+  try {
+    const client = new DynamoDBClient({ region: process.env.AWS_REGION });
+    await client.send(new ListTablesCommand({}));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const checkRedisHealth = async (): Promise<boolean> => {
+  try {
+    const redis = new Redis({
+      host: process.env.REDIS_HOST,
+      port: parseInt(process.env.REDIS_PORT || '6379')
+    });
+    await redis.ping();
+    redis.disconnect();
+    return true;
+  } catch {
+    return false;
+  }
+};
+```
+
+### 8. Docker Development Scripts
+
+**MANDATORY package.json scripts:**
+
+```json
+{
+  "scripts": {
+    "docker:build": "docker build -t event-platform-service .",
+    "docker:run": "docker run -p 3000:3000 event-platform-service",
+    "docker:dev": "docker-compose up --build",
+    "docker:prod": "docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d",
+    "docker:test": "docker-compose -f docker-compose.test.yml up --abort-on-container-exit",
+    "docker:clean": "docker-compose down -v && docker system prune -f",
+    "docker:logs": "docker-compose logs -f",
+    "docker:shell": "docker-compose exec user-service sh"
+  }
+}
+```
+
+### 9. Container Security Rules
+
+**MANDATORY security implementations:**
+
+```dockerfile
+# Security hardening
+FROM node:18-alpine AS base
+
+# Update packages and remove package manager
+RUN apk update && apk upgrade && \
+    apk add --no-cache dumb-init && \
+    rm -rf /var/cache/apk/*
+
+# Create non-root user
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
+
+# Set secure permissions
+COPY --chown=nodejs:nodejs . .
+RUN chmod -R 755 /app && \
+    chmod -R 644 /app/package*.json
+
+USER nodejs
+
+# Use dumb-init for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+CMD ["node", "dist/index.js"]
+```
+
+### 10. Docker Testing Strategy
+
+**Test docker-compose.test.yml:**
+
+```yaml
+version: '3.8'
+
+services:
+  user-service-test:
+    build:
+      context: ./services/user-management
+      dockerfile: Dockerfile.test
+    environment:
+      - NODE_ENV=test
+      - DB_HOST=dynamodb-test
+    depends_on:
+      - dynamodb-test
+    command: npm test
+    networks:
+      - test-network
+
+  dynamodb-test:
+    image: amazon/dynamodb-local:latest
+    ports:
+      - "8001:8000"
+    networks:
+      - test-network
+
+networks:
+  test-network:
+    driver: bridge
+```
+
+---
+
+## 📋 DEVELOPMENT WORKFLOW RULES
+
+### 1. Code Organization Standards
+
+```
+src/
+├── domains/           # Business domains
+│   ├── events/
+│   ├── bookings/
+│   ├── users/
+│   └── payments/
+├── infrastructure/    # CDK stacks
+├── shared/           # Common utilities
+│   ├── types/
+│   ├── validators/
+│   ├── errors/
+│   └── utils/
+└── tests/           # Test files
+```
+
+### 2. Testing Requirements
+
+**MANDATORY test coverage:**
+
+- **Unit Tests**: 80%+ coverage for business logic
+- **Integration Tests**: All API endpoints
+- **Contract Tests**: Inter-service communication
+- **End-to-End Tests**: Critical user journeys
+- **Performance Tests**: Load testing for scalability
+- **Security Tests**: Penetration testing, vulnerability scanning
+
+### 3. Docker Development Commands
+
+**MANDATORY Docker commands for daily development:**
+
+```bash
+# Quick start (first time)
+make docker-setup
+
+# Daily development
+make docker-dev        # Start all services in development mode
+make docker-logs       # View logs from all services
+make docker-test       # Run all tests in containers
+make docker-clean      # Clean up containers and volumes
+
+# Individual service commands
+make user-service-dev   # Start only user service for debugging
+make event-service-logs # View logs from event service only
+make payment-service-shell # Shell into payment service container
+
+# Production deployment
+make docker-prod       # Deploy production containers locally
+make docker-deploy     # Deploy to remote Docker registry
+```
+
+### 4. Makefile for Docker Operations
+
+**MANDATORY Makefile for consistent operations:**
+
+```makefile
+# Event Platform Docker Operations
+.PHONY: help docker-setup docker-dev docker-prod docker-test docker-clean
+
+# Default target
+help:
+	@echo "Event Platform Docker Commands:"
+	@echo "  docker-setup    - Initial setup with database creation"
+	@echo "  docker-dev      - Start development environment"
+	@echo "  docker-prod     - Start production environment"
+	@echo "  docker-test     - Run all tests"
+	@echo "  docker-clean    - Clean up containers and volumes"
+	@echo "  docker-logs     - Show logs from all services"
+
+# Initial setup
+docker-setup: docker-clean
+	@echo "🚀 Setting up Event Platform development environment..."
+	docker-compose up -d dynamodb-local redis minio
+	@echo "⏳ Waiting for services to be ready..."
+	sleep 10
+	@echo "🗄️  Creating DynamoDB tables..."
+	npm run create-tables:local
+	@echo "📦 Building all services..."
+	docker-compose build
+	@echo "✅ Setup complete! Run 'make docker-dev' to start development."
+
+# Development environment
+docker-dev:
+	@echo "🔧 Starting development environment..."
+	docker-compose up --build
+
+# Production environment
+docker-prod:
+	@echo "🚀 Starting production environment..."
+	docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+# Run tests
+docker-test:
+	@echo "🧪 Running all tests in containers..."
+	docker-compose -f docker-compose.test.yml up --abort-on-container-exit
+	docker-compose -f docker-compose.test.yml down
+
+# Clean up
+docker-clean:
+	@echo "🧹 Cleaning up Docker containers and volumes..."
+	docker-compose down -v
+	docker system prune -f --volumes
+
+# View logs
+docker-logs:
+	docker-compose logs -f
+
+# Individual service operations
+user-service-dev:
+	docker-compose up --build user-service dynamodb-local redis
+
+event-service-logs:
+	docker-compose logs -f event-service
+
+payment-service-shell:
+	docker-compose exec payment-service sh
+
+# Database operations
+db-migrate:
+	docker-compose exec user-service npm run db:migrate
+
+db-seed:
+	docker-compose exec user-service npm run db:seed
+
+# Monitoring
+monitoring:
+	docker-compose up -d prometheus grafana
+	@echo "📊 Monitoring available at:"
+	@echo "  Prometheus: http://localhost:9090"
+	@echo "  Grafana: http://localhost:3001 (admin/admin123)"
+```
+
+### 5. Documentation Standards
+
+**MANDATORY documentation:**
+
+- **API Documentation**: OpenAPI 3.0 specifications
+- **Architecture Decision Records (ADRs)**: All major decisions
+- **Runbooks**: Operational procedures
+- **Security Playbooks**: Incident response procedures
+- **Docker Setup Guide**: Complete containerization documentation
+
+---
+
+## ⚡ PERFORMANCE OPTIMIZATION RULES
+
+### 1. Database Optimization
+
+**DynamoDB best practices:**
+
+- Use appropriate partition keys for even distribution
+- Implement Global Secondary Indexes (GSI) for query patterns
+- Use DynamoDB Streams for event sourcing
+- Implement connection pooling and query optimization
+
+### 2. Caching Strategy
+
+**Multi-layer caching:**
+
+- **Level 1**: In-memory caching in Lambda
+- **Level 2**: ElastiCache Redis for shared cache
+- **Level 3**: CDN caching for static content
+
+### 3. API Optimization
+
+**MANDATORY optimizations:**
+
+- Request/response compression
+- Pagination for large datasets
+- Field selection/projection
+- Query batching where appropriate
+
+---
+
+## 🎯 QUALITY GATES & COMPLIANCE
+
+### 1. Code Quality Requirements
+
+**MANDATORY quality checks:**
+
+- TypeScript strict mode enabled
+- Zero ESLint errors/warnings
+- 100% type coverage
+- No console.log statements in production
+- All TODO comments linked to tickets
+
+### 2. Security Compliance
+
+**MANDATORY security checks:**
+
+- OWASP Top 10 vulnerability assessment
+- Dependency vulnerability scanning
+- Secrets detection in code
+- Infrastructure security scanning
+- Regular penetration testing
+
+### 3. Operational Readiness
+
+**MANDATORY operational requirements:**
+
+- Health check endpoints
+- Readiness probes
+- Graceful shutdown handling
+- Resource limits configured
+- Monitoring and alerting set up
+
+---
+
+## 📈 SCALABILITY & CAPACITY PLANNING
+
+### 1. Auto-scaling Configuration
+
+```typescript
+// MANDATORY: Lambda Concurrency Settings
+export const lambdaFunction = new Function(this, 'EventHandler', {
+  // Set reserved concurrency to prevent one function consuming all capacity
+  reservedConcurrencyLimit: 100,
+  // Set provisioned concurrency for predictable workloads
+  currentVersionOptions: {
+    provisionedConcurrencyConfig: {
+      provisionedConcurrentExecutions: 10
+    }
+  }
+});
+```
+
+### 2. Database Scaling Strategy
+
+- **DynamoDB On-Demand**: For unpredictable workloads
+- **Auto Scaling**: For predictable growth patterns
+- **Global Tables**: For multi-region deployment
+- **Read Replicas**: For read-heavy workloads
+
+---
+
+## ✅ CHECKLIST FOR CURSOR AI IMPLEMENTATION
+
+Before implementing any component, ensure:
+
+- [ ] Business requirements clearly defined
+- [ ] Security requirements identified
+- [ ] Performance requirements specified
+- [ ] Error handling strategy defined
+- [ ] Monitoring and logging implemented
+- [ ] Testing strategy planned
+- [ ] Documentation created
+- [ ] Code review completed
+- [ ] Security review passed
+- [ ] Performance testing done
+
+---
+
+*These rules must be followed for every microservice, API, and infrastructure component. No exceptions without explicit architectural approval.*,
+    name: 'US Dollar',
+    decimalPlaces: 2,
+    exchangeRate: 0.74, // Example rate
+    isActive: true,
+    regions: ['US', 'PR', 'VI']
+  },
+  {
+    code: 'EUR',
+    symbol: '€',
+    name: 'Euro',
+    decimalPlaces: 2,
+    exchangeRate: 1.47,
+    isActive: true,
+    regions: ['DE', 'FR', 'IT', 'ES', 'NL', 'BE', 'AT', 'IE', 'PT', 'FI', 'GR']
+  },
+  {
+    code: 'GBP',
+    symbol: '£',
+    name: 'British Pound',
+    decimalPlaces: 2,
+    exchangeRate: 1.68,
+    isActive: true,
+    regions: ['GB', 'UK']
+  },
+  {
+    code: 'JPY',
+    symbol: '¥',
+    name: 'Japanese Yen',
+    decimalPlaces: 0, // No decimal places for JPY
+    exchangeRate: 0.0067,
+    isActive: true,
+    regions: ['JP']
+  }
+];
+```
+
+### 3. Multi-Currency Database Schema
+
+**MANDATORY database design for currency support:**
+
+```typescript
+// DynamoDB Table: Events
+interface EventRecord {
+  eventId: string;
+  organizerId: string;
+  
+  // Multi-currency pricing
+  pricing: {
+    baseCurrency: string;           // Organizer's preferred currency
+    baseAmount: number;             // Amount in base currency
+    supportedCurrencies: string[];  // Currencies to accept
+    
+    // Pre-calculated prices in major currencies (for performance)
+    prices: {
+      [currencyCode: string]: {
+        amount: number;
+        lastUpdated: string;
+        exchangeRate: number;
+      };
+    };
+  };
+  
+  // Regional settings
+  targetMarkets: string[];     // ['CA', 'US', 'GB']
+  primaryLanguage: string;     // 'en', 'fr', 'es'
+  supportedLanguages: string[]; // ['en', 'fr']
+  
+  // Compliance requirements
+  taxSettings: {
+    [regionCode: string]: {
+      taxRate: number;
+      taxType: string; // 'GST', 'HST', 'VAT', 'Sales Tax'
+      taxNumber?: string;
+    };
+  };
+}
+
+// DynamoDB Table: Bookings
+interface BookingRecord {
+  bookingId: string;
+  eventId: string;
+  attendeeId: string;
+  
+  // Multi-currency transaction details
+  transaction: {
+    currency: string;           // Currency user paid in
+    amount: number;             // Amount in payment currency
+    baseCurrencyAmount: number; // Amount in event's base currency
+    exchangeRate: number;       // Rate used at time of purchase
+    exchangeProvider: string;   // 'stripe', 'bank', 'manual'
+    timestamp: string;
+  };
+  
+  // Regional information
+  attendeeCountry: string;    // ISO country code
+  attendeeRegion: string;     // State/province
+  ipCountry?: string;         // Country detected from IP
+  
+  // Tax and compliance
+  taxes: {
+    [taxType: string]: {
+      rate: number;
+      amount: number;
+      currency: string;
+    };
+  };
+}
+
+// DynamoDB Table: Organizations
+interface OrganizerRecord {
+  organizerId: string;
+  
+  // Multi-currency preferences
+  preferences: {
+    baseCurrency: string;         // Primary operating currency
+    acceptedCurrencies: string[]; // Currencies willing to accept
+    autoConversion: boolean;      // Auto-convert to base currency
+    exchangeRateProvider: string; // 'stripe', 'xe', 'bank'
+  };
+  
+  // Regional compliance
+  businessLocation: {
+    country: string;
+    region: string;
+    taxId?: string;
+    businessNumber?: string;
+  };
+  
+  // Payout preferences per region
+  payoutSettings: {
+    [currencyCode: string]: {
+      bankAccount: string;   // Encrypted bank details
+      minimumPayout: number; // Minimum payout amount
+      schedule: string;      // 'daily', 'weekly', 'monthly'
+    };
+  };
+}
+```
+
+### 4. Currency Conversion Service
+
+**MANDATORY currency service implementation:**
+
+```typescript
+// Currency Conversion Service
+export class CurrencyService {
+  private exchangeRates: Map<string, number> = new Map();
+  private lastUpdateTime: Date;
+  
+  constructor(
+    private exchangeRateProvider: ExchangeRateProvider,
+    private cacheService: CacheService
+  ) {}
+  
+  // MANDATORY: Convert amount between currencies
+  async convertCurrency(
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string,
+    timestamp?: Date
+  ): Promise<CurrencyConversion> {
+    if (fromCurrency === toCurrency) {
+      return {
+        originalAmount: amount,
+        originalCurrency: fromCurrency,
+        convertedAmount: amount,
+        convertedCurrency: toCurrency,
+        exchangeRate: 1.0,
+        provider: 'same-currency',
+        timestamp: new Date()
+      };
+    }
+    
+    const exchangeRate = await this.getExchangeRate(fromCurrency, toCurrency, timestamp);
+    const convertedAmount = this.calculateConversion(amount, exchangeRate, toCurrency);
+    
+    return {
+      originalAmount: amount,
+      originalCurrency: fromCurrency,
+      convertedAmount,
+      convertedCurrency: toCurrency,
+      exchangeRate,
+      provider: this.exchangeRateProvider.name,
+      timestamp: new Date()
+    };
+  }
+  
+  // MANDATORY: Get current exchange rate
+  async getExchangeRate(
+    fromCurrency: string,
+    toCurrency: string,
+    timestamp?: Date
+  ): Promise<number> {
+    const cacheKey = `exchange_rate_${fromCurrency}_${toCurrency}`;
+    
+    // Try cache first (5-minute TTL for real-time rates)
+    const cachedRate = await this.cacheService.get(cacheKey);
+    if (cachedRate && !timestamp) {
+      return parseFloat(cachedRate);
+    }
+    
+    // Fetch from provider
+    const rate = timestamp 
+      ? await this.exchangeRateProvider.getHistoricalRate(fromCurrency, toCurrency, timestamp)
+      : await this.exchangeRateProvider.getCurrentRate(fromCurrency, toCurrency);
+    
+    // Cache for future use
+    if (!timestamp) {
+      await this.cacheService.set(cacheKey, rate.toString(), 300); // 5 minutes
+    }
+    
+    return rate;
+  }
+  
+  // MANDATORY: Calculate conversion with proper precision
+  private calculateConversion(
+    amount: number,
+    exchangeRate: number,
+    targetCurrency: string
+  ): number {
+    const currencyConfig = SUPPORTED_CURRENCIES.find(c => c.code === targetCurrency);
+    const decimalPlaces = currencyConfig?.decimalPlaces || 2;
+    
+    const convertedAmount = amount * exchangeRate;
+    return Math.round(convertedAmount * Math.pow(10, decimalPlaces)) / Math.pow(10, decimalPlaces);
+  }
+  
+  // MANDATORY: Format currency for display
+  formatCurrency(amount: number, currencyCode: string, locale?: string): string {
+    const currency = SUPPORTED_CURRENCIES.find(c => c.code === currencyCode);
+    if (!currency) throw new Error(`Unsupported currency: ${currencyCode}`);
+    
+    return new Intl.NumberFormat(locale || 'en-US', {
+      style: 'currency',
+      currency: currencyCode,
+      minimumFractionDigits: currency.decimalPlaces,
+      maximumFractionDigits: currency.decimalPlaces
+    }).format(amount);
+  }
+}
+
+// Exchange Rate Provider Interface
+export interface ExchangeRateProvider {
+  name: string;
+  getCurrentRate(fromCurrency: string, toCurrency: string): Promise<number>;
+  getHistoricalRate(fromCurrency: string, toCurrency: string, date: Date): Promise<number>;
+  getSupportedCurrencies(): Promise<string[]>;
+}
+
+// Currency Conversion Result
+export interface CurrencyConversion {
+  originalAmount: number;
+  originalCurrency: string;
+  convertedAmount: number;
+  convertedCurrency: string;
+  exchangeRate: number;
+  provider: string;
+  timestamp: Date;
+}
+```
+
+### 5. Regional Compliance Framework
+
+**MANDATORY compliance handling by region:**
+
+```typescript
+// Regional Compliance Configuration
+export interface RegionalCompliance {
+  region: string;
+  country: string;
+  requirements: {
+    taxation: TaxRequirements;
+    privacy: PrivacyRequirements;
+    payment: PaymentRequirements;
+    business: BusinessRequirements;
+  };
+}
+
+export const REGIONAL_COMPLIANCE: RegionalCompliance[] = [
+  {
+    region: 'CA',
+    country: 'Canada',
+    requirements: {
+      taxation: {
+        gstRate: 0.05,        // 5% GST
+        hstProvinces: ['ON', 'NB', 'NS', 'PE', 'NL'],
+        pstProvinces: ['BC', 'SK', 'MB', 'QC'],
+        taxIdRequired: true,
+        businessNumberRequired: true
+      },
+      privacy: {
+        regulation: 'PIPEDA',
+        dataResidency: true,
+        consentRequired: true,
+        rightToForget: true
+      },
+      payment: {
+        requiredMethods: ['stripe', 'paypal'],
+        localBanking: true,
+        cadRequired: true
+      },
+      business: {
+        businessRegistration: true,
+        provincialLicenses: ['QC'], // Quebec business license
+        languageRequirements: ['en', 'fr'] // Bilingual for Quebec
+      }
+    }
+  },
+  {
+    region: 'EU',
+    country: 'European Union',
+    requirements: {
+      taxation: {
+        vatRate: 0.20,        // Standard 20% VAT
+        vatRegistrationRequired: true,
+        reverseCharge: true,   // B2B transactions
+        ossCompliance: true    // One Stop Shop
+      },
+      privacy: {
+        regulation: 'GDPR',
+        dataResidency: true,
+        consentRequired: true,
+        rightToForget: true,
+        dpoRequired: true      // Data Protection Officer
+      },
+      payment: {
+        requiredMethods: ['stripe', 'paypal', 'sepa'],
+        sca3dsRequired: true,  // Strong Customer Authentication
+        eurRequired: true
+      },
+      business: {
+        businessRegistration: true,
+        euVatNumber: true,
+        gdprCompliance: true
+      }
+    }
+  }
+];
+
+// Compliance Service
+export class ComplianceService {
+  async validateTransaction(
+    booking: BookingRecord,
+    event: EventRecord
+  ): Promise<ComplianceValidation> {
+    const attendeeCompliance = this.getRegionalCompliance(booking.attendeeCountry);
+    const organizerCompliance = this.getRegionalCompliance(event.organizerCountry);
+    
+    const validations: ValidationResult[] = [];
+    
+    // Tax validation
+    if (attendeeCompliance.requirements.taxation) {
+      validations.push(await this.validateTaxation(booking, attendeeCompliance));
+    }
+    
+    // Privacy validation
+    if (attendeeCompliance.requirements.privacy.consentRequired) {
+      validations.push(await this.validatePrivacyConsent(booking));
+    }
+    
+    // Payment method validation
+    validations.push(await this.validatePaymentMethod(booking, attendeeCompliance));
+    
+    return {
+      isCompliant: validations.every(v => v.isValid),
+      violations: validations.filter(v => !v.isValid),
+      recommendations: this.generateRecommendations(validations)
+    };
+  }
+}
+```
+
+### 6. Localization Service
+
+**MANDATORY internationalization implementation:**
+
+```typescript
+// Localization Service
+export class LocalizationService {
+  private translations: Map<string, Map<string, string>> = new Map();
+  
+  constructor(private translationProvider: TranslationProvider) {}
+  
+  // MANDATORY: Get localized text
+  async getText(
+    key: string,
+    locale: string,
+    interpolations?: Record<string, any>
+  ): Promise<string> {
+    const translation = await this.getTranslation(key, locale);
+    return this.interpolate(translation, interpolations);
+  }
+  
+  // MANDATORY: Format numbers for locale
+  formatNumber(value: number, locale: string, options?: Intl.NumberFormatOptions): string {
+    return new Intl.NumberFormat(locale, options).format(value);
+  }
+  
+  // MANDATORY: Format dates for locale
+  formatDate(date: Date, locale: string, options?: Intl.DateTimeFormatOptions): string {
+    return new Intl.DateTimeFormat(locale, options).format(date);
+  }
+  
+  // MANDATORY: Detect user locale
+  detectLocale(request: {
+    headers: Record<string, string>;
+    country?: string;
+    timezone?: string;
+  }): string {
+    // Priority: User preference > Country default > Accept-Language > Default
+    const acceptLanguage = request.headers['accept-language'];
+    const country = request.country;
+    
+    if (country === 'CA') {
+      return acceptLanguage?.includes('fr') ? 'fr-CA' : 'en-CA';
+    } else if (country === 'US') {
+      return 'en-US';
+    } else if (country === 'GB') {
+      return 'en-GB';
+    }
+    
+    return 'en-US'; // Default
+  }
+}
+
+// Translation keys structure
+export const TRANSLATION_KEYS = {
+  // Event management
+  'event.title.placeholder': {
+    'en-US': 'Enter event title',
+    'en-CA': 'Enter event title',
+    'fr-CA': 'Entrez le titre de l\'événement',
+    'es-US': 'Ingrese el título del evento'
+  },
+  
+  // Currency and pricing
+  'pricing.free': {
+    'en-US': 'Free',
+    'en-CA': 'Free',
+    'fr-CA': 'Gratuit',
+    'es-US': 'Gratis'
+  },
+  
+  // Payment processing
+  'payment.processing': {
+    'en-US': 'Processing payment...',
+    'en-CA': 'Processing payment...',
+    'fr-CA': 'Traitement du paiement...',
+    'es-US': 'Procesando pago...'
+  },
+  
+  // Error messages
+  'error.currency.unsupported': {
+    'en-US': 'Currency {{currency}} is not supported in {{country}}',
+    'en-CA': 'Currency {{currency}} is not supported in {{country}}',
+    'fr-CA': 'La devise {{currency}} n\'est pas supportée au {{country}}',
+    'es-US': 'La moneda {{currency}} no es compatible en {{country}}'
+  }
+};
+```
+
+### 7. Payment Provider Configuration
+
+**MANDATORY multi-currency payment setup:**
+
+```typescript
+// Payment Provider Configuration
+export interface PaymentProviderConfig {
+  provider: string;
+  supportedCurrencies: string[];
+  supportedCountries: string[];
+  fees: {
+    [currencyCode: string]: {
+      percentage: number;
+      fixed: number;
+    };
+  };
+  settlementCurrencies: string[];
+  apiKeys: {
+    [region: string]: {
+      publicKey: string;
+      secretKey: string;
+      webhookSecret: string;
+    };
+  };
+}
+
+export const PAYMENT_PROVIDERS: PaymentProviderConfig[] = [
+  {
+    provider: 'stripe',
+    supportedCurrencies: ['CAD', 'USD', 'EUR', 'GBP', 'AUD', 'JPY'],
+    supportedCountries: ['CA', 'US', 'GB', 'FR', 'DE', 'AU', 'JP'],
+    fees: {
+      'CAD': { percentage: 0.029, fixed: 0.30 },
+      'USD': { percentage: 0.029, fixed: 0.30 },
+      'EUR': { percentage: 0.029, fixed: 0.25 },
+      'GBP': { percentage: 0.029, fixed: 0.20 }
+    },
+    settlementCurrencies: ['CAD', 'USD', 'EUR', 'GBP'],
+    apiKeys: {
+      'CA': {
+        publicKey: process.env.STRIPE_PUBLIC_KEY_CA!,
+        secretKey: process.env.STRIPE_SECRET_KEY_CA!,
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET_CA!
+      },
+      'US': {
+        publicKey: process.env.STRIPE_PUBLIC_KEY_US!,
+        secretKey: process.env.STRIPE_SECRET_KEY_US!,
+        webhookSecret: process.env.STRIPE_WEBHOOK_SECRET_US!
+      }
+    }
+  }
+];
+
+// Multi-Currency Payment Service
+export class PaymentService {
+  async createPaymentIntent(
+    amount: number,
+    currency: string,
+    attendeeCountry: string,
+    organizerCountry: string
+  ): Promise<PaymentIntent> {
+    // Select appropriate provider and region
+    const provider = this.selectProvider(currency, attendeeCountry);
+    const regionKeys = provider.apiKeys[attendeeCountry] || provider.apiKeys['US'];
+    
+    // Calculate fees and taxes
+    const fees = this.calculateFees(amount, currency, provider);
+    const taxes = await this.calculateTaxes(amount, currency, attendeeCountry);
+    
+    return {
+      amount: amount + fees.total + taxes.total,
+      currency,
+      fees,
+      taxes,
+      provider: provider.provider,
+      region: attendeeCountry
+    };
+  }
+}
+```
+
+### 8. Environment Configuration
+
+**MANDATORY environment-specific settings:**
+
+```typescript
+// Environment Configuration
+export interface EnvironmentConfig {
+  region: string;
+  stage: 'dev' | 'staging' | 'prod';
+  
+  // Multi-currency settings
+  currency: {
+    baseCurrency: string;
+    supportedCurrencies: string[];
+    exchangeRateProvider: string;
+    exchangeRateApiKey: string;
+  };
+  
+  // Regional compliance
+  compliance: {
+    dataResidency: boolean;
+    encryptionRequired: boolean;
+    auditLogging: boolean;
+    gdprCompliance: boolean;
+    pipedasCompliance: boolean;
+  };
+  
+  // Payment processing
+  payments: {
+    providers: string[];
+    defaultProvider: string;
+    testMode: boolean;
+  };
+  
+  // Localization
+  localization: {
+    defaultLocale: string;
+    supportedLocales: string[];
+    translationProvider: string;
+  };
+}
+
+// Configuration by environment
+export const ENV_CONFIGS: Record<string, EnvironmentConfig> = {
+  'dev-ca': {
+    region: 'ca-central-1',
+    stage: 'dev',
+    currency: {
+      baseCurrency: 'CAD',
+      supportedCurrencies: ['CAD', 'USD'],
+      exchangeRateProvider: 'mock',
+      exchangeRateApiKey: 'dev-key'
+    },
+    compliance: {
+      dataResidency: true,
+      encryptionRequired: true,
+      auditLogging: true,
+      gdprCompliance: false,
+      pipedasCompliance: true
+    },
+    payments: {
+      providers: ['stripe'],
+      defaultProvider: 'stripe',
+      testMode: true
+    },
+    localization: {
+      defaultLocale: 'en-CA',
+      supportedLocales: ['en-CA', 'fr-CA'],
+      translationProvider: 'internal'
+    }
+  },
+  'prod-ca': {
+    region: 'ca-central-1',
+    stage: 'prod',
+    currency: {
+      baseCurrency: 'CAD',
+      supportedCurrencies: ['CAD', 'USD', 'EUR', 'GBP'],
+      exchangeRateProvider: 'xe',
+      exchangeRateApiKey: process.env.XE_API_KEY!
+    },
+    compliance: {
+      dataResidency: true,
+      encryptionRequired: true,
+      auditLogging: true,
+      gdprCompliance: true,
+      pipedasCompliance: true
+    },
+    payments: {
+      providers: ['stripe', 'paypal'],
+      defaultProvider: 'stripe',
+      testMode: false
+    },
+    localization: {
+      defaultLocale: 'en-CA',
+      supportedLocales: ['en-CA', 'fr-CA', 'en-US', 'fr-FR', 'es-US'],
+      translationProvider: 'aws-translate'
+    }
+  }
+};
+```
+
+### 9. API Response Internationalization
+
+**MANDATORY API response format for multi-currency:**
+
+```typescript
+// Internationalized API Response
+export interface InternationalApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    localizedMessage: string;
+    details?: any;
+  };
+  metadata: {
+    timestamp: string;
+    requestId: string;
+    version: string;
+    locale: string;
+    currency: string;
+    region: string;
+    exchangeRates?: {
+      [currencyCode: string]: {
+        rate: number;
+        lastUpdated: string;
+      };
+    };
+  };
+}
+
+// Event API Response with Multi-Currency Data
+export interface EventApiResponse {
+  eventId: string;
+  title: string;
+  description: string;
+  
+  // Localized content
+  localizedContent: {
+    [locale: string]: {
+      title: string;
+      description: string;
+    };
+  };
+  
+  // Multi-currency pricing
+  pricing: {
+    baseCurrency: string;
+    baseAmount: number;
+    
+    // Prices in user's preferred currency
+    displayCurrency: string;
+    displayAmount: number;
+    exchangeRate: number;
+    
+    // All available currencies
+    availableCurrencies: {
+      [currencyCode: string]: {
+        amount: number;
+        formatted: string; // "$25.00 CAD"
+      };
+    };
+  };
+  
+  // Regional information
+  targetMarkets: string[];
+  taxInformation: {
+    [region: string]: {
+      taxRate: number;
+      taxType: string;
+      taxAmount: number;
+      currency: string;
+    };
+  };
+}
+```
+
+### 10. Validation Rules
+
+**MANDATORY validation for international operations:**
+
+```typescript
+// International Validation Rules
+export class InternationalValidator {
+  
+  // Validate currency for region
+  validateCurrencyForRegion(currency: string, region: string): ValidationResult {
+    const compliance = REGIONAL_COMPLIANCE.find(c => c.region === region);
+    if (!compliance) {
+      return { isValid: false, error: 'Unsupported region' };
+    }
+    
+    const supportedCurrencies = this.getSupportedCurrencies(region);
+    if (!supportedCurrencies.includes(currency)) {
+      return {
+        isValid: false,
+        error: `Currency ${currency} not supported in ${region}`,
+        supportedOptions: supportedCurrencies
+      };
+    }
+    
+    return { isValid: true };
+  }
+  
+  // Validate business requirements
+  validateBusinessCompliance(organizerData: any, region: string): ValidationResult {
+    const compliance = REGIONAL_COMPLIANCE.find(c => c.region === region);
+    const requirements = compliance?.requirements.business;
+    
+    if (requirements?.businessRegistration && !organizerData.businessNumber) {
+      return {
+        isValid: false,
+        error: 'Business registration required for this region'
+      };
+    }
+    
+    if (requirements?.taxIdRequired && !organizerData.taxId) {
+      return {
+        isValid: false,
+        error: 'Tax ID required for this region'
+      };
+    }
+    
+    return { isValid: true };
+  }
+}
 ```
 
 ---

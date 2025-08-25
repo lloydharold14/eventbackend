@@ -18,6 +18,23 @@ import { formatSuccessResponse, formatErrorResponse, ValidationError } from '../
 import { logger } from '../../../shared/utils/logger';
 import { UserRole } from '../../../shared/types/common';
 import { UserRegistrationRequest, UserLoginRequest, UpdateUserRequest, UserSearchFilters, EmailVerificationConfirmRequest, PhoneVerificationConfirmRequest } from '../models/User';
+import { initializeTracing, traceLambdaExecution, extractCorrelationId } from '../../../shared/utils/tracing';
+import { MetricsManager, BusinessMetricName } from '../../../shared/utils/metrics';
+import { ResilienceManager } from '../../../shared/utils/resilience';
+
+// Initialize tracing, metrics, and resilience
+initializeTracing({
+  serviceName: 'UserManagementService',
+  enableTracing: process.env.ENABLE_TRACING === 'true',
+  captureHTTP: true,
+  captureAWS: true,
+  captureSQL: true,
+  capturePromise: true,
+  captureError: true
+});
+
+const metricsManager = MetricsManager.getInstance();
+const resilienceManager = new ResilienceManager();
 
 // Initialize services
 const userRepository = new UserRepository(
@@ -36,36 +53,68 @@ const userService = new UserService(userRepository, authService);
 
 // Authentication handlers
 export const registerUser = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    const body = JSON.parse(event.body || '{}');
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
     
-    // Validate input
-    const validation = validateSchemaTyped<UserRegistrationRequest>(userRegistrationSchema, body);
-    if (!validation.isValid) {
-      return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
-    }
-
-    const user = await authService.registerUser(validation.data);
-    
-    logger.info('User registration successful', { userId: user.id, email: user.email });
-    return formatSuccessResponse({
-      message: 'User registered successfully. Please check your email for verification.',
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        status: user.status,
-        emailVerified: user.emailVerified,
-        phoneVerified: user.phoneVerified,
-        createdAt: user.createdAt
+    try {
+      const body = JSON.parse(event.body || '{}');
+      
+      // Validate input
+      const validation = validateSchemaTyped<UserRegistrationRequest>(userRegistrationSchema, body);
+      if (!validation.isValid) {
+        metricsManager.recordError('VALIDATION_ERROR', 'UserManagementService', 'registerUser');
+        return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
       }
-    });
-  } catch (error: any) {
-    logger.error('User registration failed', { error: error.message, event });
-    return formatErrorResponse(error);
-  }
+
+      const user = await resilienceManager.executeWithResilience(
+        () => authService.registerUser(validation.data),
+        {
+          circuitBreakerKey: 'user-registration',
+          retryConfig: { maxRetries: 3, baseDelay: 1000 },
+          timeoutConfig: { timeoutMs: 10000 }
+        }
+      );
+      
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/users/register', 'POST', duration, 200);
+      metricsManager.recordBusinessMetric(BusinessMetricName.USERS_REGISTERED, 1, { userType: 'new' });
+      
+      logger.info('User registration successful', { 
+        userId: user.id, 
+        email: user.email, 
+        correlationId,
+        duration 
+      });
+      
+      return formatSuccessResponse({
+        message: 'User registered successfully. Please check your email for verification.',
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          status: user.status,
+          emailVerified: user.emailVerified,
+          phoneVerified: user.phoneVerified,
+          createdAt: user.createdAt
+        }
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/users/register', 'POST', duration, 500);
+      metricsManager.recordError('REGISTRATION_ERROR', 'UserManagementService', 'registerUser');
+      
+      logger.error('User registration failed', { 
+        error: error.message, 
+        event, 
+        correlationId,
+        duration 
+      });
+      return formatErrorResponse(error);
+    }
+  }, event)(event);
 };
 
 export const loginUser = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
