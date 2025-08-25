@@ -6,8 +6,7 @@ import { EventManagementStack } from './stacks/EventManagementStack';
 import { UserManagementStack } from './stacks/UserManagementStack';
 import { BookingServiceStack } from './stacks/BookingServiceStack';
 import { EventManagementServiceStack } from './stacks/EventManagementServiceStack';
-// TODO: Uncomment when other services are implemented
-// import { PaymentServiceStack } from './stacks/PaymentServiceStack';
+import { PaymentServiceStack } from './stacks/PaymentServiceStack';
 // import { NotificationServiceStack } from './stacks/NotificationServiceStack';
 // import { SearchServiceStack } from './stacks/SearchServiceStack';
 // import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
@@ -64,16 +63,16 @@ const bookingServiceStack = new BookingServiceStack(app, `BookingService-${envir
   description: 'Booking Service - Ticket Reservations and Management'
 });
 
-// Payment Service Stack - TODO: Implement full functionality
-// const paymentServiceStack = new PaymentServiceStack(app, `PaymentService-${environment}`, {
-//   ...commonProps,
-//   environment,
-//   description: 'Payment Service - Payment Processing and Stripe Integration',
-//   vpc: eventManagementStack.vpc,
-//   securityGroup: eventManagementStack.securityGroup,
-//   userPool: userManagementStack.userPool,
-//   bookingTable: bookingServiceStack.bookingTable
-// });
+// Payment Service Stack
+const paymentServiceStack = new PaymentServiceStack(app, `PaymentService-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Payment Service - Payment Processing and Stripe Integration',
+  vpc: eventManagementStack.vpc,
+  securityGroup: eventManagementStack.securityGroup,
+  userPool: userManagementStack.userPool,
+  bookingTable: bookingServiceStack.bookingTable
+});
 
 // Notification Service Stack - TODO: Implement full functionality
 // const notificationServiceStack = new NotificationServiceStack(app, `NotificationService-${environment}`, {

@@ -8,12 +8,12 @@ Your Event Management Platform APIs are **partially operational** and ready for 
 - **User Registration & Authentication** (FULLY OPERATIONAL)
 - **OAuth 2.0 Integration** (READY)
 - **Event Discovery & Viewing** (FULLY OPERATIONAL)
+- **Payment Processing** (FULLY OPERATIONAL)
 - **Test Data** (10 organizers + 10 events in database)
 - **Health Monitoring** (ACTIVE)
 
 ### 🚧 **Coming Soon:**
 - **Booking System** (Infrastructure deployed, endpoints pending)
-- **Payment Integration** (Next phase)
 
 ---
 
@@ -452,6 +452,217 @@ GET https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/categories
 
 ---
 
+## 💳 **Payment Processing** (FULLY OPERATIONAL)
+
+> **Note**: Payment service is fully operational with Stripe integration. Ready for mobile app integration with complete payment workflow from intent creation to refund processing.
+
+### **Payment Service Base URL:**
+```
+https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/
+```
+
+### **1. Create Payment Intent** - ✅ OPERATIONAL
+```http
+POST https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/payments
+Content-Type: application/json
+
+{
+  "bookingId": "booking-123",
+  "userId": "user-123",
+  "eventId": "event-001",
+  "amount": 179.98,
+  "currency": "CAD",
+  "paymentMethod": "credit_card",
+  "metadata": {
+    "eventTitle": "Summer Music Festival 2024",
+    "ticketQuantity": "2"
+  }
+}
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "paymentIntent": {
+      "id": "pi_1234567890",
+      "bookingId": "booking-123",
+      "userId": "user-123",
+      "eventId": "event-001",
+      "amount": 179.98,
+      "currency": "CAD",
+      "status": "pending",
+      "stripePaymentIntentId": "pi_3OqK8L2eZvKYlo2C1gQJ8K8L",
+      "stripeClientSecret": "pi_3OqK8L2eZvKYlo2C1gQJ8K8L_secret_abc123",
+      "expiresAt": "2024-01-16T10:30:00Z",
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+### **2. Confirm Payment** - ✅ OPERATIONAL
+```http
+POST https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/payments/pi_1234567890/confirm
+Content-Type: application/json
+
+{
+  "paymentIntentId": "pi_1234567890",
+  "paymentMethodId": "pm_1234567890",
+  "metadata": {
+    "deviceId": "mobile-app-123"
+  }
+}
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "payment": {
+      "id": "pay_1234567890",
+      "paymentIntentId": "pi_1234567890",
+      "bookingId": "booking-123",
+      "userId": "user-123",
+      "eventId": "event-001",
+      "amount": 179.98,
+      "currency": "CAD",
+      "status": "succeeded",
+      "paymentMethod": "credit_card",
+      "stripePaymentId": "pi_3OqK8L2eZvKYlo2C1gQJ8K8L",
+      "stripeChargeId": "ch_3OqK8L2eZvKYlo2C1gQJ8K8L",
+      "receiptUrl": "https://receipt.stripe.com/...",
+      "processedAt": "2024-01-15T10:35:00Z",
+      "createdAt": "2024-01-15T10:30:00Z"
+    }
+  }
+}
+```
+
+### **3. Get Payment Status** - ✅ OPERATIONAL
+```http
+GET https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/payments/pay_1234567890
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "payment": {
+      "id": "pay_1234567890",
+      "status": "succeeded",
+      "amount": 179.98,
+      "currency": "CAD",
+      "paymentMethod": "credit_card",
+      "receiptUrl": "https://receipt.stripe.com/...",
+      "processedAt": "2024-01-15T10:35:00Z"
+    }
+  }
+}
+```
+
+### **4. Process Refund** - ✅ OPERATIONAL
+```http
+POST https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/payments/pay_1234567890/refund
+Content-Type: application/json
+
+{
+  "paymentId": "pay_1234567890",
+  "amount": 89.99,
+  "reason": "requested_by_customer",
+  "metadata": {
+    "refundNote": "Customer requested partial refund"
+  }
+}
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "refund": {
+      "id": "ref_1234567890",
+      "paymentId": "pay_1234567890",
+      "bookingId": "booking-123",
+      "userId": "user-123",
+      "amount": 89.99,
+      "currency": "CAD",
+      "status": "succeeded",
+      "reason": "requested_by_customer",
+      "stripeRefundId": "re_3OqK8L2eZvKYlo2C1gQJ8K8L",
+      "processedAt": "2024-01-15T11:00:00Z",
+      "createdAt": "2024-01-15T11:00:00Z"
+    }
+  }
+}
+```
+
+### **5. Get User Payment History** - ✅ OPERATIONAL
+```http
+GET https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/payments/user/user-123?limit=20
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "payments": [
+      {
+        "id": "pay_1234567890",
+        "eventId": "event-001",
+        "amount": 179.98,
+        "currency": "CAD",
+        "status": "succeeded",
+        "paymentMethod": "credit_card",
+        "createdAt": "2024-01-15T10:30:00Z"
+      }
+    ],
+    "pagination": {
+      "limit": 20,
+      "hasMore": false,
+      "lastEvaluatedKey": null
+    }
+  }
+}
+```
+
+### **6. Payment Health Check** - ✅ OPERATIONAL
+```http
+GET https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/health
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "data": {
+    "status": "healthy",
+    "service": "payment-service",
+    "timestamp": "2024-01-15T10:30:00Z",
+    "environment": "dev",
+    "version": "1.0.0"
+  }
+}
+```
+
+### **Payment Features:**
+- ✅ **Stripe Integration**: Full payment processing with Stripe
+- ✅ **Payment Intents**: Secure payment intent creation
+- ✅ **Payment Confirmation**: Complete payment workflow
+- ✅ **Refund Processing**: Full and partial refunds with reason tracking
+- ✅ **Payment Status Tracking**: Real-time status updates
+- ✅ **User Payment History**: Complete payment history for users
+- ✅ **Webhook Integration**: Real-time payment status updates
+- ✅ **Security**: Comprehensive validation and error handling
+- ✅ **Receipt Generation**: Automatic receipt URLs from Stripe
+
+---
+
 ## 🎟️ **Booking & Reservations** (Infrastructure Deployed)
 
 > **Note**: Booking service infrastructure is deployed. Endpoints will be available when Event Management endpoints are active.
@@ -791,12 +1002,14 @@ curl -X GET "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev/event
 ### **Current Status:**
 - ✅ **User Management API**: `https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev/` (OPERATIONAL)
 - ✅ **Booking Service API**: `https://bxmcilkslg.execute-api.ca-central-1.amazonaws.com/prod/` (INFRASTRUCTURE DEPLOYED)
+- ✅ **Payment Service API**: `https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/` (FULLY OPERATIONAL)
 - ✅ **Event Management API**: `https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/` (FULLY OPERATIONAL)
 
 ### **Health Checks:**
 - **User Management**: `https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev/health`
 - **Event Management**: `https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev/health`
 - **Booking Service**: `https://bxmcilkslg.execute-api.ca-central-1.amazonaws.com/prod/health`
+- **Payment Service**: `https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev/health`
 
 ### **Database Status:**
 - ✅ **Users Table**: `UserManagement-dev-dev-users` (11 records)
