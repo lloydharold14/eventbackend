@@ -1,37 +1,92 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
 import { BookingService } from '../services/BookingService';
-import { validateSchemaTyped } from '../../../shared/validators/schemas';
-import { 
-  createBookingSchema, 
-  updateBookingSchema, 
-  bookingFiltersSchema 
-} from '../../../shared/validators/schemas';
 import { CreateBookingRequest, UpdateBookingRequest, BookingFilters } from '../models/Booking';
+import { validateSchemaTyped } from '../../../shared/validators/schemas';
+import { createBookingSchema, updateBookingSchema, bookingFiltersSchema } from '../../../shared/validators/schemas';
 import { formatSuccessResponse, formatErrorResponse } from '../../../shared/utils/responseUtils';
+import { ValidationError, NotFoundError, UnauthorizedError, ForbiddenError } from '../../../shared/errors/DomainError';
+import { logger } from '../../../shared/utils/logger';
 import { getUserIdFromToken } from '../../../shared/utils/authUtils';
+import { initializeTracing, traceLambdaExecution, extractCorrelationId } from '../../../shared/utils/tracing';
+import { MetricsManager, BusinessMetricName } from '../../../shared/utils/metrics';
+import { ResilienceManager } from '../../../shared/utils/resilience';
 
+// Initialize tracing, metrics, and resilience
+initializeTracing({
+  serviceName: 'BookingService',
+  enableTracing: process.env.ENABLE_TRACING === 'true',
+  captureHTTP: true,
+  captureAWS: true,
+  captureSQL: true,
+  capturePromise: true,
+  captureError: true
+});
+
+const metricsManager = MetricsManager.getInstance();
+const resilienceManager = new ResilienceManager();
+
+// Initialize services
 const bookingService = new BookingService();
 
 export const createBooking = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    const userId = getUserIdFromToken(event);
-    if (!userId) {
-      return formatErrorResponse('Unauthorized', 401);
-    }
-
-    const body = JSON.parse(event.body || '{}');
-    const validation = validateSchemaTyped<CreateBookingRequest>(createBookingSchema, body);
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
     
-    if (!validation.isValid) {
-      return formatErrorResponse('Validation failed', 400, validation.errors);
-    }
+    try {
+      const userId = getUserIdFromToken(event);
+      if (!userId) {
+        metricsManager.recordError('AUTHENTICATION_ERROR', 'BookingService', 'createBooking');
+        return formatErrorResponse('Unauthorized', 401);
+      }
 
-    const booking = await bookingService.createBooking(userId, validation.data);
-    return formatSuccessResponse(booking, 201);
-  } catch (error: any) {
-    console.error('Error creating booking:', error);
-    return formatErrorResponse(error.message, error.statusCode || 500);
-  }
+      const body = JSON.parse(event.body || '{}');
+      const validation = validateSchemaTyped<CreateBookingRequest>(createBookingSchema, body);
+      
+      if (!validation.isValid) {
+        metricsManager.recordError('VALIDATION_ERROR', 'BookingService', 'createBooking');
+        return formatErrorResponse('Validation failed', 400, validation.errors);
+      }
+
+      const booking = await resilienceManager.executeWithResilience(
+        () => bookingService.createBooking(userId, validation.data),
+        {
+          circuitBreakerKey: 'booking-creation',
+          retryConfig: { maxRetries: 3, baseDelay: 1000 },
+          timeoutConfig: { timeoutMs: 20000 }
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/bookings', 'POST', duration, 201);
+      metricsManager.recordBusinessMetric(BusinessMetricName.BOOKINGS_CREATED, 1, { 
+        eventId: validation.data.eventId,
+        ticketCount: validation.data.items.reduce((sum, item) => sum + item.quantity, 0).toString()
+      });
+      
+      logger.info('Booking created successfully', { 
+        bookingId: booking.id, 
+        eventId: booking.eventId, 
+        userId,
+        correlationId,
+        duration 
+      });
+
+      return formatSuccessResponse(booking, 201);
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/bookings', 'POST', duration, 500);
+      metricsManager.recordError('BOOKING_CREATION_ERROR', 'BookingService', 'createBooking');
+      
+      logger.error('Failed to create booking', { 
+        error: error.message, 
+        event, 
+        correlationId,
+        duration 
+      });
+      return formatErrorResponse(error.message, error.statusCode || 500);
+    }
+  }, event)(event);
 };
 
 export const getBookingById = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {

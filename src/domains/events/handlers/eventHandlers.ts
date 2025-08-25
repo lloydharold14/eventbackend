@@ -16,6 +16,23 @@ import {
   EventCategoryRequest,
   EventMediaRequest
 } from '../models/Event';
+import { initializeTracing, traceLambdaExecution, extractCorrelationId } from '../../../shared/utils/tracing';
+import { MetricsManager, BusinessMetricName } from '../../../shared/utils/metrics';
+import { ResilienceManager } from '../../../shared/utils/resilience';
+
+// Initialize tracing, metrics, and resilience
+initializeTracing({
+  serviceName: 'EventManagementService',
+  enableTracing: process.env.ENABLE_TRACING === 'true',
+  captureHTTP: true,
+  captureAWS: true,
+  captureSQL: true,
+  capturePromise: true,
+  captureError: true
+});
+
+const metricsManager = MetricsManager.getInstance();
+const resilienceManager = new ResilienceManager();
 
 // Initialize services
 const userRepository = new UserRepository(
@@ -49,63 +66,118 @@ const getUserFromToken = async (event: APIGatewayProxyEvent) => {
 // Event CRUD Handlers
 
 export const createEvent = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    const user = await getUserFromToken(event);
-    const body = JSON.parse(event.body || '{}');
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
     
-    const validation = validateSchemaTyped<CreateEventRequest>(eventCreationSchema, body);
-    if (!validation.isValid) {
-      return formatErrorResponse(new ValidationError('Invalid event data', validation.errors));
+    try {
+      const user = await getUserFromToken(event);
+      const body = JSON.parse(event.body || '{}');
+      
+      const validation = validateSchemaTyped<CreateEventRequest>(eventCreationSchema, body);
+      if (!validation.isValid) {
+        metricsManager.recordError('VALIDATION_ERROR', 'EventManagementService', 'createEvent');
+        return formatErrorResponse(new ValidationError('Invalid event data', validation.errors));
+      }
+
+      const createdEvent = await resilienceManager.executeWithResilience(
+        () => eventService.createEvent(user.userId, user.name || 'Unknown Organizer', user.email, validation.data),
+        {
+          circuitBreakerKey: 'event-creation',
+          retryConfig: { maxRetries: 3, baseDelay: 1000 },
+          timeoutConfig: { timeoutMs: 15000 }
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/events', 'POST', duration, 201);
+      metricsManager.recordBusinessMetric(BusinessMetricName.EVENTS_CREATED, 1, { 
+        organizerId: user.userId,
+        eventType: validation.data.type 
+      });
+
+      logger.info('Event created successfully', {
+        eventId: createdEvent.id,
+        organizerId: user.userId,
+        title: createdEvent.title,
+        correlationId,
+        duration
+      });
+
+      return formatSuccessResponse({
+        message: 'Event created successfully',
+        event: createdEvent
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/events', 'POST', duration, 500);
+      metricsManager.recordError('EVENT_CREATION_ERROR', 'EventManagementService', 'createEvent');
+      
+      logger.error('Failed to create event', { 
+        error: error.message, 
+        event, 
+        correlationId,
+        duration 
+      });
+      return formatErrorResponse(error);
     }
-
-    const createdEvent = await eventService.createEvent(
-      user.userId,
-      user.name || 'Unknown Organizer',
-      user.email,
-      validation.data
-    );
-
-    logger.info('Event created successfully', {
-      eventId: createdEvent.id,
-      organizerId: user.userId,
-      title: createdEvent.title
-    });
-
-    return formatSuccessResponse({
-      message: 'Event created successfully',
-      event: createdEvent
-    });
-  } catch (error: any) {
-    logger.error('Failed to create event', { error: error.message, event });
-    return formatErrorResponse(error);
-  }
+  }, event)(event);
 };
 
 export const getEventById = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    const eventId = event.pathParameters?.eventId;
-    if (!eventId) {
-      return formatErrorResponse(new ValidationError('Event ID is required'));
-    }
-
-    // Check if user is authenticated (for private events)
-    let includePrivate = false;
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
+    
     try {
-      const user = await getUserFromToken(event);
-      includePrivate = true; // Authenticated users can see private events
-    } catch {
-      // User not authenticated, only show public events
+      const eventId = event.pathParameters?.eventId;
+      if (!eventId) {
+        metricsManager.recordError('VALIDATION_ERROR', 'EventManagementService', 'getEventById');
+        return formatErrorResponse(new ValidationError('Event ID is required'));
+      }
+
+      // Check if user is authenticated (for private events)
+      let includePrivate = false;
+      try {
+        const user = await getUserFromToken(event);
+        includePrivate = true; // Authenticated users can see private events
+      } catch {
+        // User not authenticated, only show public events
+      }
+
+      const eventData = await resilienceManager.executeWithResilience(
+        () => eventService.getEventById(eventId, includePrivate),
+        {
+          circuitBreakerKey: 'event-retrieval',
+          retryConfig: { maxRetries: 2, baseDelay: 500 },
+          timeoutConfig: { timeoutMs: 10000 }
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/events/{eventId}', 'GET', duration, 200);
+      metricsManager.recordBusinessMetric(BusinessMetricName.EVENTS_VIEWED, 1, { 
+        eventId,
+        includePrivate: includePrivate.toString()
+      });
+
+      return formatSuccessResponse({
+        event: eventData
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/events/{eventId}', 'GET', duration, 500);
+      metricsManager.recordError('EVENT_RETRIEVAL_ERROR', 'EventManagementService', 'getEventById');
+      
+      logger.error('Failed to get event by ID', { 
+        error: error.message, 
+        eventId: event.pathParameters?.eventId,
+        correlationId,
+        duration 
+      });
+      return formatErrorResponse(error);
     }
-
-    const eventData = await eventService.getEventById(eventId, includePrivate);
-
-    return formatSuccessResponse({
-      event: eventData
-    });
-  } catch (error: any) {
-    logger.error('Failed to get event by ID', { error: error.message, eventId: event.pathParameters?.eventId });
-    return formatErrorResponse(error);
-  }
+  }, event)(event);
 };
 
 export const getEventBySlug = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
@@ -311,39 +383,67 @@ export const duplicateEvent = async (event: APIGatewayProxyEvent): Promise<APIGa
 // Event Search and Listing Handlers
 
 export const searchEvents = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    const queryParams = event.queryStringParameters || {};
-    const page = parseInt(queryParams.page || '1');
-    const limit = parseInt(queryParams.limit || '20');
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
+    
+    try {
+      const queryParams = event.queryStringParameters || {};
+      const page = parseInt(queryParams.page || '1');
+      const limit = parseInt(queryParams.limit || '20');
 
-    // Build search filters from query parameters
-    const filters: EventSearchFilters = {
-      organizerId: queryParams.organizerId,
-      categoryId: queryParams.categoryId,
-      type: queryParams.type as any,
-      status: queryParams.status as any,
-      visibility: queryParams.visibility as any || undefined, // Only set if explicitly provided
-      startDate: queryParams.startDate,
-      endDate: queryParams.endDate,
-      hasAvailableSpots: queryParams.hasAvailableSpots === 'true',
-      isFree: queryParams.isFree === 'true',
-      isVirtual: queryParams.isVirtual === 'true',
-      isHybrid: queryParams.isHybrid === 'true',
-      tags: queryParams.tags ? queryParams.tags.split(',') : undefined,
-      keywords: queryParams.keywords ? queryParams.keywords.split(',') : undefined
-    };
+      // Build search filters from query parameters
+      const filters: EventSearchFilters = {
+        organizerId: queryParams.organizerId,
+        categoryId: queryParams.categoryId,
+        type: queryParams.type as any,
+        status: queryParams.status as any,
+        visibility: queryParams.visibility as any || undefined, // Only set if explicitly provided
+        startDate: queryParams.startDate,
+        endDate: queryParams.endDate,
+        hasAvailableSpots: queryParams.hasAvailableSpots === 'true',
+        isFree: queryParams.isFree === 'true',
+        isVirtual: queryParams.isVirtual === 'true',
+        isHybrid: queryParams.isHybrid === 'true',
+        tags: queryParams.tags ? queryParams.tags.split(',') : undefined,
+        keywords: queryParams.keywords ? queryParams.keywords.split(',') : undefined
+      };
 
-    const result = await eventService.searchEvents(filters, page, limit);
+      const result = await resilienceManager.executeWithResilience(
+        () => eventService.searchEvents(filters, page, limit),
+        {
+          circuitBreakerKey: 'event-search',
+          retryConfig: { maxRetries: 2, baseDelay: 500 },
+          timeoutConfig: { timeoutMs: 12000 }
+        }
+      );
 
-    return formatSuccessResponse({
-      events: result.events,
-      pagination: result.pagination,
-      filters: result.filters
-    });
-  } catch (error: any) {
-    logger.error('Failed to search events', { error: error.message, queryParams: event.queryStringParameters });
-    return formatErrorResponse(error);
-  }
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/events/search', 'GET', duration, 200);
+      metricsManager.recordBusinessMetric(BusinessMetricName.SEARCHES_PERFORMED, 1, { 
+        resultCount: result.events.length.toString(),
+        hasFilters: (Object.keys(filters).length > 0).toString()
+      });
+
+      return formatSuccessResponse({
+        events: result.events,
+        pagination: result.pagination,
+        filters: result.filters
+      });
+    } catch (error: any) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/events/search', 'GET', duration, 500);
+      metricsManager.recordError('EVENT_SEARCH_ERROR', 'EventManagementService', 'searchEvents');
+      
+      logger.error('Failed to search events', { 
+        error: error.message, 
+        queryParams: event.queryStringParameters,
+        correlationId,
+        duration 
+      });
+      return formatErrorResponse(error);
+    }
+  }, event)(event);
 };
 
 export const getEventsByOrganizer = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {

@@ -1,21 +1,30 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from 'aws-lambda';
-import { Logger } from '@aws-lambda-powertools/logger';
 import { PaymentService } from '../services/PaymentService';
-import {
-  CreatePaymentIntentRequest,
-  ConfirmPaymentRequest,
-  ProcessRefundRequest,
-  PaymentSearchFilters,
-  PaymentValidationError,
-  PaymentNotFoundError,
-  PaymentProcessingError,
-  PaymentGatewayError,
-} from '../models/Payment';
+import { CreatePaymentIntentRequest, ConfirmPaymentRequest, ProcessRefundRequest, PaymentSearchFilters, PaymentGatewayError } from '../models/Payment';
+import { validateSchemaTyped } from '../../../shared/validators/schemas';
+import { paymentCreationSchema, paymentUpdateSchema } from '../../../shared/validators/schemas';
+import { ValidationError, NotFoundError, UnauthorizedError, ForbiddenError } from '../../../shared/errors/DomainError';
+import { logger } from '../../../shared/utils/logger';
+import { initializeTracing, traceLambdaExecution, extractCorrelationId } from '../../../shared/utils/tracing';
+import { MetricsManager, BusinessMetricName } from '../../../shared/utils/metrics';
+import { ResilienceManager } from '../../../shared/utils/resilience';
 
-const logger = new Logger({ serviceName: 'payment-handlers' });
+// Initialize tracing, metrics, and resilience
+initializeTracing({
+  serviceName: 'PaymentService',
+  enableTracing: process.env.ENABLE_TRACING === 'true',
+  captureHTTP: true,
+  captureAWS: true,
+  captureSQL: true,
+  capturePromise: true,
+  captureError: true
+});
 
-// Initialize payment service
-const paymentService = new PaymentService(process.env.PAYMENT_TABLE_NAME!);
+const metricsManager = MetricsManager.getInstance();
+const resilienceManager = new ResilienceManager();
+
+// Initialize services
+const paymentService = new PaymentService(process.env.PAYMENT_TABLE_NAME || 'Payments');
 
 // Response helper functions
 const formatSuccessResponse = (data: any, statusCode: number = 200): APIGatewayProxyResult => ({
@@ -79,34 +88,75 @@ export const healthCheck = async (event: APIGatewayProxyEvent): Promise<APIGatew
 
 // Create Payment Intent Handler
 export const createPaymentIntent = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  try {
-    logger.info('Creating payment intent', { event });
+  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
+    const correlationId = extractCorrelationId(event);
+    const startTime = Date.now();
+    
+    try {
+      logger.info('Creating payment intent', { event });
 
-    if (!event.body) {
-      throw new PaymentValidationError('Request body is required');
+      if (!event.body) {
+        metricsManager.recordError('VALIDATION_ERROR', 'PaymentService', 'createPaymentIntent');
+        throw new ValidationError('Request body is required');
+      }
+
+      const request: CreatePaymentIntentRequest = JSON.parse(event.body);
+
+      // Validate required fields
+      if (!request.bookingId || !request.userId || !request.eventId || !request.amount || !request.currency) {
+        metricsManager.recordError('VALIDATION_ERROR', 'PaymentService', 'createPaymentIntent');
+        throw new ValidationError('Missing required fields: bookingId, userId, eventId, amount, currency');
+      }
+
+      const paymentIntent = await resilienceManager.executeWithResilience(
+        () => paymentService.createPaymentIntent(request),
+        {
+          circuitBreakerKey: 'payment-intent-creation',
+          retryConfig: { maxRetries: 3, baseDelay: 1000 },
+          timeoutConfig: { timeoutMs: 15000 }
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/payments/intent', 'POST', duration, 201);
+      metricsManager.recordBusinessMetric(BusinessMetricName.PAYMENTS_PROCESSED, 1, { 
+        amount: request.amount.toString(),
+        currency: request.currency,
+        gateway: paymentIntent.paymentGateway
+      });
+      
+      logger.info('Payment intent created successfully', { 
+        paymentIntentId: paymentIntent.id,
+        bookingId: request.bookingId,
+        userId: request.userId,
+        amount: request.amount,
+        currency: request.currency,
+        correlationId,
+        duration 
+      });
+
+      return formatSuccessResponse({ paymentIntent }, 201);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      metricsManager.recordApiPerformance('/payments/intent', 'POST', duration, 500);
+      metricsManager.recordError('PAYMENT_INTENT_CREATION_ERROR', 'PaymentService', 'createPaymentIntent');
+      
+      logger.error('Failed to create payment intent', { 
+        error: error instanceof Error ? error.message : 'Unknown error', 
+        event, 
+        correlationId,
+        duration 
+      });
+      
+      if (error instanceof ValidationError) {
+        return formatErrorResponse(error, 400);
+      }
+      if (error instanceof PaymentGatewayError) {
+        return formatErrorResponse(error, 400);
+      }
+      return formatErrorResponse(error as Error);
     }
-
-    const request: CreatePaymentIntentRequest = JSON.parse(event.body);
-
-    // Validate required fields
-    if (!request.bookingId || !request.userId || !request.eventId || !request.amount || !request.currency) {
-      throw new PaymentValidationError('Missing required fields: bookingId, userId, eventId, amount, currency');
-    }
-
-    const paymentIntent = await paymentService.createPaymentIntent(request);
-
-    logger.info('Payment intent created successfully', { paymentIntentId: paymentIntent.id });
-
-    return formatSuccessResponse({ paymentIntent }, 201);
-  } catch (error) {
-    if (error instanceof PaymentValidationError) {
-      return formatErrorResponse(error, 400);
-    }
-    if (error instanceof PaymentGatewayError) {
-      return formatErrorResponse(error, 400);
-    }
-    return formatErrorResponse(error as Error);
-  }
+  }, event)(event);
 };
 
 // Get Payment Intent Handler
@@ -114,7 +164,7 @@ export const getPaymentIntent = async (event: APIGatewayProxyEvent): Promise<API
   try {
     const paymentIntentId = event.pathParameters?.paymentIntentId;
     if (!paymentIntentId) {
-      throw new PaymentValidationError('Payment intent ID is required');
+      throw new ValidationError('Payment intent ID is required');
     }
 
     logger.info('Getting payment intent', { paymentIntentId });
@@ -123,10 +173,10 @@ export const getPaymentIntent = async (event: APIGatewayProxyEvent): Promise<API
 
     return formatSuccessResponse({ paymentIntent });
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
-    if (error instanceof PaymentNotFoundError) {
+    if (error instanceof NotFoundError) {
       return formatErrorResponse(error, 404);
     }
     return formatErrorResponse(error as Error);
@@ -139,14 +189,14 @@ export const confirmPayment = async (event: APIGatewayProxyEvent): Promise<APIGa
     logger.info('Confirming payment', { event });
 
     if (!event.body) {
-      throw new PaymentValidationError('Request body is required');
+      throw new ValidationError('Request body is required');
     }
 
     const request: ConfirmPaymentRequest = JSON.parse(event.body);
 
     // Validate required fields
     if (!request.paymentIntentId || !request.paymentMethodId) {
-      throw new PaymentValidationError('Missing required fields: paymentIntentId, paymentMethodId');
+      throw new ValidationError('Missing required fields: paymentIntentId, paymentMethodId');
     }
 
     const payment = await paymentService.confirmPayment(request);
@@ -155,10 +205,10 @@ export const confirmPayment = async (event: APIGatewayProxyEvent): Promise<APIGa
 
     return formatSuccessResponse({ payment }, 201);
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
-    if (error instanceof PaymentNotFoundError) {
+    if (error instanceof NotFoundError) {
       return formatErrorResponse(error, 404);
     }
     if (error instanceof PaymentGatewayError) {
@@ -173,7 +223,7 @@ export const getPaymentStatus = async (event: APIGatewayProxyEvent): Promise<API
   try {
     const paymentId = event.pathParameters?.paymentId;
     if (!paymentId) {
-      throw new PaymentValidationError('Payment ID is required');
+      throw new ValidationError('Payment ID is required');
     }
 
     logger.info('Getting payment status', { paymentId });
@@ -182,10 +232,10 @@ export const getPaymentStatus = async (event: APIGatewayProxyEvent): Promise<API
 
     return formatSuccessResponse({ payment });
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
-    if (error instanceof PaymentNotFoundError) {
+    if (error instanceof NotFoundError) {
       return formatErrorResponse(error, 404);
     }
     return formatErrorResponse(error as Error);
@@ -198,14 +248,14 @@ export const processRefund = async (event: APIGatewayProxyEvent): Promise<APIGat
     logger.info('Processing refund', { event });
 
     if (!event.body) {
-      throw new PaymentValidationError('Request body is required');
+      throw new ValidationError('Request body is required');
     }
 
     const request: ProcessRefundRequest = JSON.parse(event.body);
 
     // Validate required fields
     if (!request.paymentId || !request.reason) {
-      throw new PaymentValidationError('Missing required fields: paymentId, reason');
+      throw new ValidationError('Missing required fields: paymentId, reason');
     }
 
     const refund = await paymentService.processRefund(request);
@@ -214,10 +264,10 @@ export const processRefund = async (event: APIGatewayProxyEvent): Promise<APIGat
 
     return formatSuccessResponse({ refund }, 201);
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
-    if (error instanceof PaymentNotFoundError) {
+    if (error instanceof NotFoundError) {
       return formatErrorResponse(error, 404);
     }
     if (error instanceof PaymentGatewayError) {
@@ -232,7 +282,7 @@ export const getUserPayments = async (event: APIGatewayProxyEvent): Promise<APIG
   try {
     const userId = event.pathParameters?.userId;
     if (!userId) {
-      throw new PaymentValidationError('User ID is required');
+      throw new ValidationError('User ID is required');
     }
 
     const limit = parseInt(event.queryStringParameters?.limit || '20');
@@ -251,7 +301,7 @@ export const getUserPayments = async (event: APIGatewayProxyEvent): Promise<APIG
       },
     });
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
     return formatErrorResponse(error as Error);
@@ -264,7 +314,7 @@ export const handleStripeWebhook = async (event: APIGatewayProxyEvent): Promise<
     logger.info('Handling Stripe webhook', { event });
 
     if (!event.body) {
-      throw new PaymentValidationError('Webhook body is required');
+      throw new ValidationError('Webhook body is required');
     }
 
     const stripeEvent = JSON.parse(event.body);
@@ -322,7 +372,7 @@ export const searchPayments = async (event: APIGatewayProxyEvent): Promise<APIGa
 
     return formatSuccessResponse(result);
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
     return formatErrorResponse(error as Error);
@@ -334,7 +384,7 @@ export const getBookingPayments = async (event: APIGatewayProxyEvent): Promise<A
   try {
     const bookingId = event.pathParameters?.bookingId;
     if (!bookingId) {
-      throw new PaymentValidationError('Booking ID is required');
+      throw new ValidationError('Booking ID is required');
     }
 
     logger.info('Getting booking payments', { bookingId });
@@ -343,7 +393,7 @@ export const getBookingPayments = async (event: APIGatewayProxyEvent): Promise<A
 
     return formatSuccessResponse({ payments });
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
     return formatErrorResponse(error as Error);
@@ -355,7 +405,7 @@ export const getRefund = async (event: APIGatewayProxyEvent): Promise<APIGateway
   try {
     const refundId = event.pathParameters?.refundId;
     if (!refundId) {
-      throw new PaymentValidationError('Refund ID is required');
+      throw new ValidationError('Refund ID is required');
     }
 
     logger.info('Getting refund', { refundId });
@@ -364,10 +414,10 @@ export const getRefund = async (event: APIGatewayProxyEvent): Promise<APIGateway
 
     return formatSuccessResponse({ refund });
   } catch (error) {
-    if (error instanceof PaymentValidationError) {
+    if (error instanceof ValidationError) {
       return formatErrorResponse(error, 400);
     }
-    if (error instanceof PaymentNotFoundError) {
+    if (error instanceof NotFoundError) {
       return formatErrorResponse(error, 404);
     }
     return formatErrorResponse(error as Error);
