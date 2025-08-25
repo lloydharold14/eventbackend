@@ -85,7 +85,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"attendee@example.com\",\n  \"username\": \"attendee123\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+1234567890\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": false\n}"
+              "raw": "{\n  \"email\": \"attendee@example.com\",\n  \"username\": \"attendee123\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phoneNumber\": \"+1234567890\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": false\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -129,7 +129,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"tvigninou1@gmail.com\",\n  \"username\": \"haroldvigninou\",\n  \"password\": \"Campus2020$\",\n  \"firstName\": \"harold\",\n  \"lastName\": \"Vigninou\",\n  \"phone\": \"+4388871040\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": true,\n  \"role\": \"organizer\"\n}"
+              "raw": "{\n  \"email\": \"tvigninou1@gmail.com\",\n  \"username\": \"haroldvigninou\",\n  \"password\": \"Campus2020$\",\n  \"firstName\": \"harold\",\n  \"lastName\": \"Vigninou\",\n  \"phoneNumber\": \"+4388871040\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": true,\n  \"role\": \"organizer\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/auth/register",
@@ -265,6 +265,164 @@
               "path": ["users", "profile"]
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "🔐 Verification",
+      "item": [
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Email verified successfully!');",
+                  "        console.log('📧 User ID:', response.data.user.id);",
+                  "        console.log('✅ Email Verified:', response.data.user.emailVerified);",
+                  "        console.log('📊 Status:', response.data.user.status);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Email verification failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend Email Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-email-verification/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "resend-email-verification", "{{userId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Email verification resent successfully!');",
+                  "        console.log('🆔 Verification ID:', response.data.verificationId);",
+                  "        console.log('📧 Check your email for the new code');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Resend email verification failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send SMS Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-sms-verification/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-sms-verification", "{{userId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ SMS verification sent successfully!');",
+                  "        console.log('🆔 Verification ID:', response.data.verificationId);",
+                  "        console.log('📱 Check your phone for the SMS code');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Send SMS verification failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify SMS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-sms",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-sms"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ SMS verified successfully!');",
+                  "        console.log('📱 User ID:', response.data.user.id);",
+                  "        console.log('✅ Phone Verified:', response.data.user.phoneVerified);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ SMS verification failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
@@ -669,6 +827,73 @@
           }
         }
       ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userRole",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "organizerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "organizerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attendeeId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attendeeToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventTitle",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventSlug",
+      "value": "",
+      "type": "string"
     }
   ]
 }
