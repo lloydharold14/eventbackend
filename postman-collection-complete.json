@@ -1,0 +1,2625 @@
+{
+  "info": {
+    "name": "Event Management Platform - Complete API Collection",
+    "description": "Complete API test suite organized by user roles: Attendees, Organizers, and Admins",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string"
+    },
+    {
+      "key": "userPoolId",
+      "value": "ca-central-1_NgK0SDL4T",
+      "type": "string"
+    },
+    {
+      "key": "userPoolClientId",
+      "value": "2bbu335cjoe2afm71kjedbn86l",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "paymentId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "categoryId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "organizerId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "notificationId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "qrCode",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "attendeeEmail",
+      "value": "attendee@example.com",
+      "type": "string"
+    },
+    {
+      "key": "attendeePassword",
+      "value": "TestPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "organizerEmail",
+      "value": "organizer@example.com",
+      "type": "string"
+    },
+    {
+      "key": "organizerPassword",
+      "value": "TestPassword123!",
+      "type": "string"
+    },
+    {
+      "key": "adminEmail",
+      "value": "admin@example.com",
+      "type": "string"
+    },
+    {
+      "key": "adminPassword",
+      "value": "TestPassword123!",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Set User-Agent for mobile testing",
+          "if (pm.request.headers.has('User-Agent')) {",
+          "    pm.request.headers.get('User-Agent').value = 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15';",
+          "} else {",
+          "    pm.request.headers.add({",
+          "        key: 'User-Agent',",
+          "        value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 14_7_1 like Mac OS X) AppleWebKit/605.1.15'",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "🔧 Setup & Authentication",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Attendee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{attendeeEmail}}\",\n  \"username\": \"attendee123\",\n  \"password\": \"{{attendeePassword}}\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phoneNumber\": \"+1234567890\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has user data', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data.user).to.have.property('id');",
+                  "    pm.collectionVariables.set('userId', response.data.user.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Register Organizer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{organizerEmail}}\",\n  \"username\": \"organizer123\",\n  \"password\": \"{{organizerPassword}}\",\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Smith\",\n  \"phoneNumber\": \"+1234567891\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": true,\n  \"role\": \"organizer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has organizer data', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data.user.role).to.equal('organizer');",
+                  "    pm.collectionVariables.set('organizerId', response.data.user.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Attendee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{attendeeEmail}}\",\n  \"password\": \"{{attendeePassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has tokens', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data).to.have.property('accessToken');",
+                  "    pm.expect(response.data).to.have.property('refreshToken');",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    pm.collectionVariables.set('userId', response.data.user.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login Organizer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{organizerEmail}}\",\n  \"password\": \"{{organizerPassword}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has organizer tokens', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data.user.role).to.equal('organizer');",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "    pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "    pm.collectionVariables.set('organizerId', response.data.user.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "refresh"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Response has new access token', function () {",
+                  "    const response = pm.response.json();",
+                  "    pm.expect(response.success).to.be.true;",
+                  "    pm.expect(response.data).to.have.property('accessToken');",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👥 Attendee APIs",
+      "item": [
+        {
+          "name": "🔍 Event Discovery",
+          "item": [
+            {
+              "name": "Browse Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events?page=1&limit=20&status=published",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "published"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has events array', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.events).to.be.an('array');",
+                      "    if (response.data.events.length > 0) {",
+                      "        pm.collectionVariables.set('eventId', response.data.events[0].id);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Search Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/search?keywords=tech&category=technology&location=San Francisco&startDate=2024-06-01&isFree=false",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "search"],
+                  "query": [
+                    {
+                      "key": "keywords",
+                      "value": "tech"
+                    },
+                    {
+                      "key": "category",
+                      "value": "technology"
+                    },
+                    {
+                      "key": "location",
+                      "value": "San Francisco"
+                    },
+                    {
+                      "key": "startDate",
+                      "value": "2024-06-01"
+                    },
+                    {
+                      "key": "isFree",
+                      "value": "false"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has search results', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.events).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Event Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has event details', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event).to.have.property('id');",
+                      "    pm.expect(response.data.event.id).to.equal(pm.collectionVariables.get('eventId'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Event by Slug",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/slug/tech-conference-2024",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "slug", "tech-conference-2024"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has event by slug', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event).to.have.property('slug');",
+                      "    pm.expect(response.data.event.slug).to.equal('tech-conference-2024');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Browse Categories",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/categories",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["categories"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has categories', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.categories).to.be.an('array');",
+                      "    if (response.data.categories.length > 0) {",
+                      "        pm.collectionVariables.set('categoryId', response.data.categories[0].id);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "📅 Booking Management",
+          "item": [
+            {
+              "name": "Create Booking",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"ticketQuantity\": 2,\n  \"attendeeInfo\": {\n    \"firstName\": \"John\",\n    \"lastName\": \"Doe\",\n    \"email\": \"{{attendeeEmail}}\",\n    \"phoneNumber\": \"+1234567890\"\n  },\n  \"specialRequests\": \"Vegetarian meal preference\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/bookings",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["bookings"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "pm.test('Response has booking data', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.booking).to.have.property('id');",
+                      "    pm.collectionVariables.set('bookingId', response.data.booking.id);",
+                      "    if (response.data.paymentIntent) {",
+                      "        pm.collectionVariables.set('paymentId', response.data.paymentIntent.id);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User Bookings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/bookings?page=1&limit=10&status=confirmed",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["bookings"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "status",
+                      "value": "confirmed"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has user bookings', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.bookings).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Booking Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/bookings/{{bookingId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["bookings", "{{bookingId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has booking details', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.booking.id).to.equal(pm.collectionVariables.get('bookingId'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Cancel Booking",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/bookings/{{bookingId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["bookings", "{{bookingId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms cancellation', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.message).to.include('cancelled');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "💳 Payment Processing",
+          "item": [
+            {
+              "name": "Create Payment Intent",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"bookingId\": \"{{bookingId}}\",\n  \"amount\": 19998,\n  \"currency\": \"usd\",\n  \"paymentMethod\": \"card\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/payments/create-intent",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["payments", "create-intent"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has payment intent', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.paymentIntent).to.have.property('id');",
+                      "    pm.collectionVariables.set('paymentId', response.data.paymentIntent.id);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Payment History",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/history?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["payments", "history"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has payment history', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.payments).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "📱 QR Code & Validation",
+          "item": [
+            {
+              "name": "Get Booking QR Code",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/qr-codes/booking/{{bookingId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["qr-codes", "booking", "{{bookingId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has booking QR code', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.qrCode).to.have.property('code');",
+                      "    pm.expect(response.data.qrCode.bookingId).to.equal(pm.collectionVariables.get('bookingId'));",
+                      "    pm.collectionVariables.set('qrCode', response.data.qrCode.code);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Validate QR Code",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"qrCode\": \"{{qrCode}}\",\n  \"eventId\": \"{{eventId}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/qr-codes/validate",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["qr-codes", "validate"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response validates QR code', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.validation.isValid).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "🔔 Notifications",
+          "item": [
+            {
+              "name": "Get User Notifications",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/notifications?page=1&limit=10&unreadOnly=false",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["notifications"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "unreadOnly",
+                      "value": "false"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has notifications', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.notifications).to.be.an('array');",
+                      "    if (response.data.notifications.length > 0) {",
+                      "        pm.collectionVariables.set('notificationId', response.data.notifications[0].id);",
+                      "    }",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Notification Preferences",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"emailNotifications\": true,\n  \"smsNotifications\": false,\n  \"pushNotifications\": true,\n  \"eventReminders\": true,\n  \"bookingConfirmations\": true,\n  \"paymentReceipts\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/notifications/preferences",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["notifications", "preferences"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms preferences update', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.preferences.emailNotifications).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "🔍 Search & Discovery",
+          "item": [
+            {
+              "name": "Search Events with Filters",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/search/events?query=tech&category=technology&location=San Francisco&startDate=2024-06-01&endDate=2024-12-31&priceMin=0&priceMax=200&isVirtual=false&hasAvailableSpots=true",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["search", "events"],
+                  "query": [
+                    {
+                      "key": "query",
+                      "value": "tech"
+                    },
+                    {
+                      "key": "category",
+                      "value": "technology"
+                    },
+                    {
+                      "key": "location",
+                      "value": "San Francisco"
+                    },
+                    {
+                      "key": "startDate",
+                      "value": "2024-06-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2024-12-31"
+                    },
+                    {
+                      "key": "priceMin",
+                      "value": "0"
+                    },
+                    {
+                      "key": "priceMax",
+                      "value": "200"
+                    },
+                    {
+                      "key": "isVirtual",
+                      "value": "false"
+                    },
+                    {
+                      "key": "hasAvailableSpots",
+                      "value": "true"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has search results', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.events).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Trending Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/search/trending?limit=10&period=week",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["search", "trending"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "period",
+                      "value": "week"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has trending events', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.events).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Nearby Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/search/nearby?latitude=37.7749&longitude=-122.4194&radius=50&limit=20",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["search", "nearby"],
+                  "query": [
+                    {
+                      "key": "latitude",
+                      "value": "37.7749"
+                    },
+                    {
+                      "key": "longitude",
+                      "value": "-122.4194"
+                    },
+                    {
+                      "key": "radius",
+                      "value": "50"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has nearby events', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.events).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+                        ]
+        }
+      ]
+    },
+    {
+      "name": "🎪 Organizer APIs",
+      "item": [
+        {
+          "name": "📝 Event Management",
+          "item": [
+            {
+              "name": "Create Event",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Tech Conference 2024\",\n  \"description\": \"Join us for the biggest tech conference of the year\",\n  \"startDate\": \"2024-06-15T09:00:00Z\",\n  \"endDate\": \"2024-06-15T18:00:00Z\",\n  \"location\": {\n    \"address\": \"123 Tech Street\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"country\": \"US\",\n    \"zipCode\": \"94105\",\n    \"latitude\": 37.7749,\n    \"longitude\": -122.4194\n  },\n  \"categoryId\": \"{{categoryId}}\",\n  \"maxAttendees\": 500,\n  \"ticketPrice\": 99.99,\n  \"currency\": \"USD\",\n  \"isVirtual\": false,\n  \"tags\": [\"technology\", \"conference\", \"networking\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "pm.test('Response has event data', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event).to.have.property('id');",
+                      "    pm.collectionVariables.set('eventId', response.data.event.id);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Organizer Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/organizer?page=1&limit=10&status=all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "organizer"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "status",
+                      "value": "all"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has organizer events', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.events).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Event",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Tech Conference 2024\",\n  \"description\": \"Updated description for the tech conference\",\n  \"maxAttendees\": 600,\n  \"ticketPrice\": 129.99,\n  \"tags\": [\"technology\", \"conference\", \"networking\", \"updated\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has updated event', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event.title).to.equal('Updated Tech Conference 2024');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Publish Event",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}/publish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}", "publish"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms publication', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event.status).to.equal('published');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Cancel Event",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}/cancel",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}", "cancel"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms cancellation', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event.status).to.equal('cancelled');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "📊 Analytics & Reports",
+          "item": [
+            {
+              "name": "Get Event Analytics",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/analytics/events/{{eventId}}?period=month",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["analytics", "events", "{{eventId}}"],
+                  "query": [
+                    {
+                      "key": "period",
+                      "value": "month"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has event analytics', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.analytics).to.have.property('totalBookings');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Attendee List",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}/attendees?page=1&limit=50",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}", "attendees"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has attendee list', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.attendees).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Revenue Report",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/analytics/revenue?startDate=2024-01-01&endDate=2024-12-31",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["analytics", "revenue"],
+                  "query": [
+                    {
+                      "key": "startDate",
+                      "value": "2024-01-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2024-12-31"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has revenue data', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.revenue).to.have.property('totalRevenue');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "💰 Financial Management",
+          "item": [
+            {
+              "name": "Get Payout History",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/payouts?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["payments", "payouts"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has payout history', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.payouts).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Request Payout",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 1000.00,\n  \"currency\": \"USD\",\n  \"bankAccount\": \"1234567890\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/payments/payouts/request",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["payments", "payouts", "request"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms payout request', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.payout).to.have.property('id');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "📱 QR Code Management",
+          "item": [
+            {
+              "name": "Generate Event QR Codes",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"quantity\": 100,\n  \"type\": \"entry\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/qr-codes/generate",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["qr-codes", "generate"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has generated QR codes', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.qrCodes).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Event QR Code Stats",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/qr-codes/event/{{eventId}}/stats",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["qr-codes", "event", "{{eventId}}", "stats"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has QR code stats', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.stats).to.have.property('totalGenerated');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin APIs",
+      "item": [
+        {
+          "name": "👥 User Management",
+          "item": [
+            {
+              "name": "Get All Users",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users?page=1&limit=20&role=all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "role",
+                      "value": "all"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has users list', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.users).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/{{userId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users", "{{userId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has user details', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.user.id).to.equal(pm.collectionVariables.get('userId'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update User Role",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"organizer\",\n  \"reason\": \"User requested organizer privileges\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/{{userId}}/role",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users", "{{userId}}", "role"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms role update', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.user.role).to.equal('organizer');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Suspend User",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Violation of terms of service\",\n  \"duration\": \"30 days\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/{{userId}}/suspend",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users", "{{userId}}", "suspend"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms suspension', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.user.status).to.equal('suspended');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete User",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/{{userId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users", "{{userId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms deletion', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.message).to.include('deleted');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "📊 Platform Analytics",
+          "item": [
+            {
+              "name": "Get Platform Overview",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/analytics/overview?period=month",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "analytics", "overview"],
+                  "query": [
+                    {
+                      "key": "period",
+                      "value": "month"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has platform overview', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.overview).to.have.property('totalUsers');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get System Performance",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/analytics/performance?period=week",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "analytics", "performance"],
+                  "query": [
+                    {
+                      "key": "period",
+                      "value": "week"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has performance data', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.performance).to.have.property('averageResponseTime');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Revenue Analytics",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/analytics/revenue?startDate=2024-01-01&endDate=2024-12-31",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "analytics", "revenue"],
+                  "query": [
+                    {
+                      "key": "startDate",
+                      "value": "2024-01-01"
+                    },
+                    {
+                      "key": "endDate",
+                      "value": "2024-12-31"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has revenue analytics', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.revenue).to.have.property('totalRevenue');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "⚙️ System Configuration",
+          "item": [
+            {
+              "name": "Get System Settings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "settings"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has system settings', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.settings).to.be.an('object');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update System Settings",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"maxFileSize\": 10485760,\n  \"allowedFileTypes\": [\"jpg\", \"png\", \"pdf\"],\n  \"maintenanceMode\": false,\n  \"registrationEnabled\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "settings"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms settings update', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.settings.maxFileSize).to.equal(10485760);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get System Logs",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/logs?level=error&limit=50",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "logs"],
+                  "query": [
+                    {
+                      "key": "level",
+                      "value": "error"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has system logs', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.logs).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Toggle Maintenance Mode",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"enabled\": true,\n  \"message\": \"System maintenance in progress\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/maintenance",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "maintenance"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms maintenance mode', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.maintenance.enabled).to.be.true;",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+},
+    {
+      "name": "🎪 Organizer APIs",
+      "item": [
+        {
+          "name": "📝 Event Management",
+          "item": [
+            {
+              "name": "Create Event",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Tech Conference 2024\",\n  \"description\": \"Join us for the biggest tech conference of the year\",\n  \"startDate\": \"2024-06-15T09:00:00Z\",\n  \"endDate\": \"2024-06-15T18:00:00Z\",\n  \"location\": {\n    \"address\": \"123 Tech Street\",\n    \"city\": \"San Francisco\",\n    \"state\": \"CA\",\n    \"country\": \"US\",\n    \"zipCode\": \"94105\",\n    \"latitude\": 37.7749,\n    \"longitude\": -122.4194\n  },\n  \"categoryId\": \"{{categoryId}}\",\n  \"maxAttendees\": 500,\n  \"ticketPrice\": 99.99,\n  \"currency\": \"USD\",\n  \"isVirtual\": false,\n  \"tags\": [\"technology\", \"conference\", \"networking\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "pm.test('Response has event data', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event).to.have.property('id');",
+                      "    pm.collectionVariables.set('eventId', response.data.event.id);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Organizer Events",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/organizer?page=1&limit=10&status=all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "organizer"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "status",
+                      "value": "all"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has organizer events', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.events).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update Event",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Updated Tech Conference 2024\",\n  \"description\": \"Updated description for the tech conference\",\n  \"maxAttendees\": 600,\n  \"ticketPrice\": 129.99,\n  \"tags\": [\"technology\", \"conference\", \"networking\", \"updated\"]\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has updated event', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event.title).to.equal('Updated Tech Conference 2024');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Publish Event",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}/publish",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}", "publish"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms publication', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.event.status).to.equal('published');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "📊 Analytics & Reports",
+          "item": [
+            {
+              "name": "Get Event Analytics",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/analytics/events/{{eventId}}?period=month",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["analytics", "events", "{{eventId}}"],
+                  "query": [
+                    {
+                      "key": "period",
+                      "value": "month"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has event analytics', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.analytics).to.have.property('totalBookings');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Attendee List",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/events/{{eventId}}/attendees?page=1&limit=50",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["events", "{{eventId}}", "attendees"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has attendee list', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.attendees).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "💰 Financial Management",
+          "item": [
+            {
+              "name": "Get Payout History",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/payments/payouts?page=1&limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["payments", "payouts"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has payout history', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.payouts).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👨‍💼 Admin APIs",
+      "item": [
+        {
+          "name": "👥 User Management",
+          "item": [
+            {
+              "name": "Get All Users",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users?page=1&limit=20&role=all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "role",
+                      "value": "all"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has users list', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.users).to.be.an('array');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get User Details",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/{{userId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users", "{{userId}}"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has user details', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.response.to.have.status(200);",
+                      "    pm.expect(response.data.user.id).to.equal(pm.collectionVariables.get('userId'));",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update User Role",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"role\": \"organizer\",\n  \"reason\": \"User requested organizer privileges\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/users/{{userId}}/role",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "users", "{{userId}}", "role"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms role update', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.user.role).to.equal('organizer');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "📊 Platform Analytics",
+          "item": [
+            {
+              "name": "Get Platform Overview",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/analytics/overview?period=month",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "analytics", "overview"],
+                  "query": [
+                    {
+                      "key": "period",
+                      "value": "month"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has platform overview', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.overview).to.have.property('totalUsers');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get System Performance",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/analytics/performance?period=week",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "analytics", "performance"],
+                  "query": [
+                    {
+                      "key": "period",
+                      "value": "week"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has performance data', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.performance).to.have.property('averageResponseTime');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "⚙️ System Configuration",
+          "item": [
+            {
+              "name": "Get System Settings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "settings"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has system settings', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.settings).to.be.an('object');",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Update System Settings",
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"maxFileSize\": 10485760,\n  \"allowedFileTypes\": [\"jpg\", \"png\", \"pdf\"],\n  \"maintenanceMode\": false,\n  \"registrationEnabled\": true\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/admin/settings",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["admin", "settings"]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response confirms settings update', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response.success).to.be.true;",
+                      "    pm.expect(response.data.settings.maxFileSize).to.equal(10485760);",
+                      "});"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
