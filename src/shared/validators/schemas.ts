@@ -155,6 +155,118 @@ export const phoneVerificationSchema = Joi.object({
   })
 });
 
+// QR Code Generation Schemas
+export const generateQRCodeSchema = Joi.object({
+  bookingId: Joi.string().uuid().required().messages({
+    'string.guid': 'Please provide a valid booking ID',
+    'any.required': 'Booking ID is required'
+  }),
+  format: Joi.string().valid('url', 'json', 'text', 'hybrid').optional().messages({
+    'any.only': 'Format must be one of: url, json, text, hybrid'
+  }),
+  singleUse: Joi.boolean().optional().messages({
+    'boolean.base': 'Single use must be a boolean'
+  }),
+  maxValidations: Joi.number().integer().min(1).max(100).optional().messages({
+    'number.base': 'Max validations must be a number',
+    'number.integer': 'Max validations must be an integer',
+    'number.min': 'Max validations must be at least 1',
+    'number.max': 'Max validations cannot exceed 100'
+  }),
+  expiryHours: Joi.number().integer().min(1).max(720).optional().messages({
+    'number.base': 'Expiry hours must be a number',
+    'number.integer': 'Expiry hours must be an integer',
+    'number.min': 'Expiry hours must be at least 1',
+    'number.max': 'Expiry hours cannot exceed 720 (30 days)'
+  })
+});
+
+export const regenerateQRCodeSchema = Joi.object({
+  bookingId: Joi.string().uuid().required().messages({
+    'string.guid': 'Please provide a valid booking ID',
+    'any.required': 'Booking ID is required'
+  }),
+  reason: Joi.string().max(500).optional().messages({
+    'string.max': 'Reason cannot exceed 500 characters'
+  })
+});
+
+// QR Code Validation Schemas
+export const validateQRCodeSchema = Joi.object({
+  qrCodeId: Joi.string().uuid().required().messages({
+    'string.guid': 'Please provide a valid QR code ID',
+    'any.required': 'QR code ID is required'
+  }),
+  validatorId: Joi.string().required().messages({
+    'any.required': 'Validator ID is required'
+  }),
+  scenario: Joi.string().valid('entry', 're_entry', 'exit', 'transfer', 'replacement').optional().messages({
+    'any.only': 'Scenario must be one of: entry, re_entry, exit, transfer, replacement'
+  }),
+  location: Joi.string().max(200).optional().messages({
+    'string.max': 'Location cannot exceed 200 characters'
+  }),
+  deviceInfo: Joi.string().max(500).optional().messages({
+    'string.max': 'Device info cannot exceed 500 characters'
+  }),
+  notes: Joi.string().max(1000).optional().messages({
+    'string.max': 'Notes cannot exceed 1000 characters'
+  })
+});
+
+export const batchValidationSchema = Joi.object({
+  qrCodeIds: Joi.array().items(Joi.string().uuid()).min(1).max(50).required().messages({
+    'array.base': 'QR code IDs must be an array',
+    'array.min': 'At least one QR code ID is required',
+    'array.max': 'Cannot validate more than 50 QR codes at once',
+    'any.required': 'QR code IDs are required'
+  }),
+  validatorId: Joi.string().required().messages({
+    'any.required': 'Validator ID is required'
+  }),
+  scenario: Joi.string().valid('entry', 're_entry', 'exit', 'transfer', 'replacement').optional().messages({
+    'any.only': 'Scenario must be one of: entry, re_entry, exit, transfer, replacement'
+  }),
+  location: Joi.string().max(200).optional().messages({
+    'string.max': 'Location cannot exceed 200 characters'
+  }),
+  deviceInfo: Joi.string().max(500).optional().messages({
+    'string.max': 'Device info cannot exceed 500 characters'
+  })
+});
+
+export const checkInSchema = Joi.object({
+  qrCodeId: Joi.string().uuid().required().messages({
+    'string.guid': 'Please provide a valid QR code ID',
+    'any.required': 'QR code ID is required'
+  }),
+  validatorId: Joi.string().required().messages({
+    'any.required': 'Validator ID is required'
+  }),
+  location: Joi.string().max(200).optional().messages({
+    'string.max': 'Location cannot exceed 200 characters'
+  })
+});
+
+export const checkOutSchema = Joi.object({
+  qrCodeId: Joi.string().uuid().required().messages({
+    'string.guid': 'Please provide a valid QR code ID',
+    'any.required': 'QR code ID is required'
+  }),
+  validatorId: Joi.string().required().messages({
+    'any.required': 'Validator ID is required'
+  }),
+  location: Joi.string().max(200).optional().messages({
+    'string.max': 'Location cannot exceed 200 characters'
+  })
+});
+
+export const offlineValidationSchema = Joi.object({
+  qrCodeData: Joi.string().required().messages({
+    'any.required': 'QR code data is required'
+  })
+});
+
 export const passwordChangeSchema = Joi.object({
   currentPassword: Joi.string().required().messages({
     'any.required': 'Current password is required'

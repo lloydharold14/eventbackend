@@ -53,6 +53,18 @@ export enum BusinessMetricName {
   EMAILS_VERIFIED = 'EmailsVerified',
   PHONES_VERIFIED = 'PhonesVerified',
   
+  // QR Code Metrics
+  QR_CODES_GENERATED = 'QRCodesGenerated',
+  QR_CODES_EXPIRED = 'QRCodesExpired',
+  QR_CODES_REVOKED = 'QRCodesRevoked',
+  
+  // Validation Metrics
+  VALIDATIONS_SUCCESSFUL = 'ValidationsSuccessful',
+  VALIDATIONS_FAILED = 'ValidationsFailed',
+  VALIDATIONS_TOTAL = 'ValidationsTotal',
+  OFFLINE_VALIDATIONS = 'OfflineValidations',
+  CONCURRENT_VALIDATIONS = 'ConcurrentValidations',
+  
   // Booking Metrics
   BOOKINGS_CREATED = 'BookingsCreated',
   BOOKINGS_CONFIRMED = 'BookingsConfirmed',
