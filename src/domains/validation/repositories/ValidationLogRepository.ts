@@ -1,6 +1,6 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, PutCommand, QueryCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
-import { ValidationLog } from '../models/ValidationResult';
+import { ValidationLog, ValidationStatistics } from '../models/ValidationResult';
 import { logger } from '../../../shared/utils/logger';
 import { MetricsManager, BusinessMetricName } from '../../../shared/utils/metrics';
 
@@ -160,7 +160,9 @@ export class ValidationLogRepository {
     try {
       const logs = await this.getEventValidationLogs(eventId, startDate, endDate);
       
-      const statistics = {
+      const statistics: ValidationStatistics = {
+        eventId,
+        totalBookings: 0, // Would need to get from bookings table
         totalValidations: logs.length,
         successfulValidations: logs.filter(log => log.validationResult === 'SUCCESS').length,
         failedValidations: logs.filter(log => log.validationResult !== 'SUCCESS').length,
@@ -168,8 +170,8 @@ export class ValidationLogRepository {
         checkOuts: logs.filter(log => log.scenario === 'exit').length,
         averageValidationTime: 0, // Would need to calculate from actual validation times
         validationRate: 0,
-        lastValidationTime: null,
-        peakValidationTime: null
+        lastValidationTime: undefined,
+        peakValidationTime: undefined
       };
 
       if (statistics.totalValidations > 0) {
@@ -192,7 +194,7 @@ export class ValidationLogRepository {
           (timeCounts[Number(a[0])] || 0) > (timeCounts[Number(b[0])] || 0) ? a : b
         )[0];
         
-        statistics.peakValidationTime = `${peakHour}:00`;
+        statistics.peakValidationTime = peakHour ? `${peakHour}:00` : undefined;
       }
 
       return statistics;

@@ -1,77 +1,75 @@
-#!/usr/bin/env node
-
 const { execSync } = require('child_process');
 const fs = require('fs');
-const path = require('path');
+
+console.log('🚀 Creating Simple Lambda Bundles...\n');
+
+// Create directories
+const distDir = 'dist/simple';
+if (!fs.existsSync(distDir)) {
+  fs.mkdirSync(distDir, { recursive: true });
+}
 
 // Lambda functions to bundle
 const lambdaFunctions = [
   {
     entry: 'src/domains/users/handlers/userHandlers.ts',
-    outfile: 'dist/bundled/userHandlers.js',
+    outfile: 'dist/simple/userHandlers.js',
     name: 'User Handlers'
   },
   {
     entry: 'src/domains/users/handlers/oauthHandlers.ts',
-    outfile: 'dist/bundled/oauthHandlers.js',
+    outfile: 'dist/simple/oauthHandlers.js',
     name: 'OAuth Handlers'
   },
   {
     entry: 'src/domains/events/handlers/eventHandlers.ts',
-    outfile: 'dist/bundled/eventHandlers.js',
+    outfile: 'dist/simple/eventHandlers.js',
     name: 'Event Handlers'
   },
   {
     entry: 'src/domains/bookings/handlers/bookingHandlers.ts',
-    outfile: 'dist/bundled/bookingHandlers.js',
+    outfile: 'dist/simple/bookingHandlers.js',
     name: 'Booking Handlers'
   },
   {
     entry: 'src/domains/payments/handlers/paymentHandlers.ts',
-    outfile: 'dist/bundled/paymentHandlers.js',
+    outfile: 'dist/simple/paymentHandlers.js',
     name: 'Payment Handlers'
   },
   {
     entry: 'src/domains/notifications/handlers/notificationHandlers.ts',
-    outfile: 'dist/bundled/notificationHandlers.js',
+    outfile: 'dist/simple/notificationHandlers.js',
     name: 'Notification Handlers'
   },
   {
     entry: 'src/domains/analytics/handlers/analyticsHandlers.ts',
-    outfile: 'dist/bundled/analyticsHandlers.js',
+    outfile: 'dist/simple/analyticsHandlers.js',
     name: 'Analytics Handlers'
   },
   {
     entry: 'src/domains/search/handlers/searchHandlers.ts',
-    outfile: 'dist/bundled/searchHandlers.js',
+    outfile: 'dist/simple/searchHandlers.js',
     name: 'Search Handlers'
   },
   {
     entry: 'src/domains/qr-codes/handlers/qrCodeHandlers.ts',
-    outfile: 'dist/bundled/qrCodeHandlers.js',
+    outfile: 'dist/simple/qrCodeHandlers.js',
     name: 'QR Code Handlers'
   },
   {
     entry: 'src/domains/validation/handlers/validationHandlers.ts',
-    outfile: 'dist/bundled/validationHandlers.js',
+    outfile: 'dist/simple/validationHandlers.js',
     name: 'Validation Handlers'
   }
 ];
 
-// Create bundled directory
-const bundledDir = 'dist/bundled';
-if (!fs.existsSync(bundledDir)) {
-  fs.mkdirSync(bundledDir, { recursive: true });
-}
-
-console.log('🚀 Bundling Lambda functions with dependencies...\n');
-
-// Bundle each Lambda function
+// Bundle each Lambda function with all dependencies
 lambdaFunctions.forEach(({ entry, outfile, name }) => {
   try {
     console.log(`📦 Bundling ${name}...`);
     
-    const command = `npx esbuild ${entry} --bundle --platform=node --target=node18 --outfile=${outfile} --external:aws-sdk --minify`;
+    // Bundle with all dependencies except AWS SDK
+    const command = `npx esbuild ${entry} --bundle --platform=node --target=node18 --outfile=${outfile} --external:aws-sdk --external:@aws-sdk/* --minify`;
     
     execSync(command, { stdio: 'inherit' });
     
@@ -81,13 +79,11 @@ lambdaFunctions.forEach(({ entry, outfile, name }) => {
   }
 });
 
-console.log('🎉 Lambda bundling complete!');
-console.log('\n📁 Bundled files:');
-fs.readdirSync(bundledDir).forEach(file => {
-  console.log(`   - ${file}`);
-});
+console.log('🎉 Simple Lambda Bundles creation complete!');
+console.log('\n📁 Created files:');
+console.log('   - dist/simple/ (All handler files with dependencies bundled)');
 
 console.log('\n💡 Next steps:');
-console.log('1. Update CDK stack to use bundled files');
+console.log('1. Update CDK stack to use simple bundled files');
 console.log('2. Deploy updated Lambda functions');
 console.log('3. Test the API endpoints');

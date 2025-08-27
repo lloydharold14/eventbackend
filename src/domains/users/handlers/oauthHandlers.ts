@@ -3,6 +3,7 @@ import { OAuthService } from '../services/OAuthService';
 import { UserRepository } from '../repositories/UserRepository';
 import { AuthService } from '../services/AuthService';
 import { formatSuccessResponse, formatErrorResponse, ValidationError } from '../../../shared/errors/DomainError';
+import { createMobileLoginResponse } from '../../../shared/utils/responseUtils';
 import { logger } from '../../../shared/utils/logger';
 
 // Initialize services
@@ -41,6 +42,48 @@ export const oauthLogin = async (event: APIGatewayProxyEvent): Promise<APIGatewa
       userId: result.user.id,
       isNewUser: result.isNewUser
     });
+
+    // Enhanced mobile detection logic
+    const userAgent = event.headers['User-Agent'] || '';
+    const userAgentLower = userAgent.toLowerCase();
+    
+    // More comprehensive mobile detection
+    const isMobileRequest = userAgentLower.includes('mobile') || 
+                           userAgentLower.includes('android') || 
+                           userAgentLower.includes('ios') ||
+                           userAgentLower.includes('iphone') ||
+                           userAgentLower.includes('ipad') ||
+                           userAgentLower.includes('reactnative') ||
+                           userAgentLower.includes('eventsmobile') ||
+                           userAgentLower.includes('eventsmobileapp') ||
+                           userAgentLower.includes('postman') && userAgentLower.includes('mobile') ||
+                           // Check for common mobile app patterns
+                           userAgentLower.includes('app/') ||
+                           userAgentLower.includes('mobileapp') ||
+                           userAgentLower.includes('native') ||
+                           // Check for mobile-specific headers
+                           event.headers['X-Platform'] === 'mobile' ||
+                           event.headers['X-Client-Type'] === 'mobile';
+    
+    logger.info('OAuth login request details', { 
+      userAgent, 
+      userAgentLower,
+      isMobileRequest, 
+      userId: result.user.id,
+      provider,
+      xPlatform: event.headers['X-Platform'],
+      xClientType: event.headers['X-Client-Type']
+    });
+    
+    if (isMobileRequest) {
+      logger.info('Returning mobile-optimized OAuth response', { userId: result.user.id });
+      return createMobileLoginResponse(
+        result.user,
+        result.accessToken,
+        result.refreshToken,
+        result.expiresIn
+      );
+    }
 
     return formatSuccessResponse({
       message: result.isNewUser ? 'Account created and logged in successfully' : 'Login successful',

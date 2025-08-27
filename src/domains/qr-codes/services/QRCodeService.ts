@@ -38,7 +38,7 @@ export class QRCodeService {
       // Validate booking exists and is confirmed
       const booking = await this.getBookingDetails(request.bookingId);
       if (!booking) {
-        throw new NotFoundError('Booking not found');
+        throw new NotFoundError('Booking', request.bookingId);
       }
 
       if (booking.status !== 'CONFIRMED') {
@@ -109,7 +109,7 @@ export class QRCodeService {
   async generateValidationURL(qrCodeId: string): Promise<string> {
     const qrCode = await this.qrCodeRepository.getQRCode(qrCodeId);
     if (!qrCode) {
-      throw new NotFoundError('QR code not found');
+      throw new NotFoundError('QR Code', qrCodeId);
     }
 
     return `${process.env.API_BASE_URL || 'https://api.eventplatform.com'}/validation/validate/${qrCodeId}`;
@@ -163,7 +163,7 @@ export class QRCodeService {
     try {
       const qrCode = await this.qrCodeRepository.getQRCode(qrCodeId);
       if (!qrCode) {
-        throw new NotFoundError('QR code not found');
+        throw new NotFoundError('QR Code', qrCodeId);
       }
 
       await this.qrCodeRepository.revokeQRCode(qrCodeId);
@@ -187,7 +187,7 @@ export class QRCodeService {
     try {
       const qrCode = await this.qrCodeRepository.getQRCode(qrCodeId);
       if (!qrCode) {
-        throw new NotFoundError('QR code not found');
+        throw new NotFoundError('QR Code', qrCodeId);
       }
 
       return qrCode.status;
@@ -296,7 +296,6 @@ export class QRCodeService {
       const qrCodeImage = await QRCode.toDataURL(qrCodeContent, {
         errorCorrectionLevel: this.qrCodeErrorCorrectionLevel as any,
         type: 'image/png',
-        quality: 0.92,
         margin: 1,
         width: this.qrCodeImageSize,
         color: {

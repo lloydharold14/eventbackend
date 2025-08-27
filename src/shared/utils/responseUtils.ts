@@ -83,3 +83,69 @@ function getErrorCode(statusCode: number): string {
       return 'UNKNOWN_ERROR';
   }
 }
+
+/**
+ * Creates a mobile-optimized user response by removing internal fields
+ */
+export const createMobileUserResponse = (user: any): any => {
+  // Create a clean copy without DynamoDB and internal fields
+  const mobileUser = {
+    id: user.id,
+    email: user.email,
+    username: user.username,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    profilePictureUrl: user.profilePictureUrl,
+    role: user.role,
+    status: user.status,
+    emailVerified: user.emailVerified,
+    phoneVerified: user.phoneVerified,
+    preferences: user.preferences ? {
+      emailNotifications: user.preferences.emailNotifications,
+      smsNotifications: user.preferences.smsNotifications,
+      pushNotifications: user.preferences.pushNotifications,
+      timezone: user.preferences.timezone,
+      language: user.preferences.language,
+      currency: user.preferences.currency,
+      marketingEmails: user.preferences.marketingEmails
+    } : {}
+  };
+
+  return mobileUser;
+};
+
+/**
+ * Creates a mobile-optimized login response
+ */
+export const createMobileLoginResponse = (user: any, accessToken: string, refreshToken: string, expiresIn: number): APIGatewayProxyResult => {
+  const mobileUser = createMobileUserResponse(user);
+  
+  return formatSuccessResponse({
+    message: 'Login successful',
+    user: mobileUser,
+    accessToken,
+    refreshToken,
+    expiresIn
+  });
+};
+
+/**
+ * Test function to demonstrate mobile optimization
+ */
+export const testMobileOptimization = (user: any): any => {
+  const originalSize = JSON.stringify(user).length;
+  const mobileUser = createMobileUserResponse(user);
+  const mobileSize = JSON.stringify(mobileUser).length;
+  
+  return {
+    original: {
+      user,
+      size: originalSize
+    },
+    mobile: {
+      user: mobileUser,
+      size: mobileSize,
+      reduction: `${Math.round(((originalSize - mobileSize) / originalSize) * 100)}%`
+    }
+  };
+};

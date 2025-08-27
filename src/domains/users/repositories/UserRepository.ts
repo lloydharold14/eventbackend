@@ -381,32 +381,7 @@ export class UserRepository {
     }
   }
 
-  async verifyPhone(userId: string): Promise<void> {
-    try {
-      const command = new UpdateCommand({
-        TableName: this.tableName,
-        Key: {
-          PK: `USER#${userId}`,
-          SK: `USER#${userId}`,
-        },
-        UpdateExpression: 'SET #phoneVerified = :phoneVerified, #updatedAt = :updatedAt',
-        ExpressionAttributeNames: {
-          '#phoneVerified': 'phoneVerified',
-          '#updatedAt': 'updatedAt',
-        },
-        ExpressionAttributeValues: {
-          ':phoneVerified': true,
-          ':updatedAt': new Date().toISOString(),
-        },
-      });
 
-      await this.client.send(command);
-      logger.info('User phone verified', { userId });
-    } catch (error: any) {
-      logger.error('Failed to verify user phone', { error: error.message, userId });
-      throw error;
-    }
-  }
 
   // OAuth-related methods
   async getUserByOAuthProvider(provider: string, providerUserId: string): Promise<User | null> {

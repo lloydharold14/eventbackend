@@ -1,0 +1,507 @@
+{
+  "info": {
+    "name": "Event Management Platform API",
+    "description": "Complete API collection for the Event Management Platform including User Management, Event Management, QR Code Generation, and Attendee Validation",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "qrCodeId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"username\": \"testuser\",\n  \"password\": \"Password123!\",\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"phone\": \"+1234567890\",\n  \"dateOfBirth\": \"1990-01-01\",\n  \"acceptTerms\": true,\n  \"preferences\": {\n    \"language\": \"en\",\n    \"timezone\": \"America/New_York\",\n    \"notifications\": {\n      \"email\": true,\n      \"sms\": true,\n      \"push\": true\n    }\n  },\n  \"role\": \"organizer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"password\": \"Password123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('userId', response.data.user.id);",
+                  "    pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send Email Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-email-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-email-verification"]
+            }
+          }
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
+            }
+          }
+        },
+        {
+          "name": "Send SMS Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/send-sms-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "send-sms-verification"]
+            }
+          }
+        },
+        {
+          "name": "Verify SMS",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"code\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-sms",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-sms"]
+            }
+          }
+        },
+        {
+          "name": "Resend Email Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-email-verification",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "resend-email-verification"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "QR Code Management",
+      "item": [
+        {
+          "name": "Generate QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"attendeeId\": \"attendee-123\",\n  \"ticketType\": \"VIP\",\n  \"expiresAt\": \"2024-12-31T23:59:59Z\",\n  \"maxUses\": 1,\n  \"metadata\": {\n    \"seatNumber\": \"A1\",\n    \"section\": \"VIP\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/qr-codes/generate",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr-codes", "generate"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('qrCodeId', response.data.qrCode.id);",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Regenerate QR Code",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCodeId\": \"{{qrCodeId}}\",\n  \"reason\": \"Lost ticket\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/qr-codes/regenerate",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr-codes", "regenerate"]
+            }
+          }
+        },
+        {
+          "name": "Get QR Code Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/qr-codes/{{qrCodeId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr-codes", "{{qrCodeId}}"]
+            }
+          }
+        },
+        {
+          "name": "List QR Codes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/qr-codes?eventId={{eventId}}&limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr-codes"],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "{{eventId}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Revoke QR Code",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCodeId\": \"{{qrCodeId}}\",\n  \"reason\": \"Ticket cancelled\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/qr-codes/revoke",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr-codes", "revoke"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Attendee Validation",
+      "item": [
+        {
+          "name": "Validate QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCodeData\": \"encrypted-qr-code-data\",\n  \"validationLocation\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"accuracy\": 10\n  },\n  \"deviceInfo\": {\n    \"deviceId\": \"scanner-001\",\n    \"appVersion\": \"1.0.0\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "validate"]
+            }
+          }
+        },
+        {
+          "name": "Batch Validation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"validations\": [\n    {\n      \"qrCodeData\": \"encrypted-qr-code-data-1\",\n      \"validationLocation\": {\n        \"latitude\": 40.7128,\n        \"longitude\": -74.0060,\n        \"accuracy\": 10\n      }\n    },\n    {\n      \"qrCodeData\": \"encrypted-qr-code-data-2\",\n      \"validationLocation\": {\n        \"latitude\": 40.7128,\n        \"longitude\": -74.0060,\n        \"accuracy\": 10\n      }\n    }\n  ],\n  \"deviceInfo\": {\n    \"deviceId\": \"scanner-001\",\n    \"appVersion\": \"1.0.0\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/batch",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "batch"]
+            }
+          }
+        },
+        {
+          "name": "Check In Attendee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCodeId\": \"{{qrCodeId}}\",\n  \"checkInLocation\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"accuracy\": 10\n  },\n  \"checkInTime\": \"2024-01-15T10:00:00Z\",\n  \"notes\": \"VIP guest arrived early\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/check-in",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "check-in"]
+            }
+          }
+        },
+        {
+          "name": "Check Out Attendee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCodeId\": \"{{qrCodeId}}\",\n  \"checkOutLocation\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060,\n    \"accuracy\": 10\n  },\n  \"checkOutTime\": \"2024-01-15T18:00:00Z\",\n  \"notes\": \"Event ended\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/check-out",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "check-out"]
+            }
+          }
+        },
+        {
+          "name": "Offline Validation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"qrCodeData\": \"encrypted-qr-code-data\",\n  \"validationTime\": \"2024-01-15T10:00:00Z\",\n  \"deviceInfo\": {\n    \"deviceId\": \"offline-scanner-001\",\n    \"appVersion\": \"1.0.0\"\n  },\n  \"syncWhenOnline\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/validation/offline",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "offline"]
+            }
+          }
+        },
+        {
+          "name": "Get Validation Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/validation/statistics?eventId={{eventId}}&startDate=2024-01-01&endDate=2024-01-31",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "statistics"],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "{{eventId}}"
+                },
+                {
+                  "key": "startDate",
+                  "value": "2024-01-01"
+                },
+                {
+                  "key": "endDate",
+                  "value": "2024-01-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Validation Logs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/validation/logs?eventId={{eventId}}&limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["validation", "logs"],
+              "query": [
+                {
+                  "key": "eventId",
+                  "value": "{{eventId}}"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

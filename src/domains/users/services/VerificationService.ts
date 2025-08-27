@@ -156,7 +156,7 @@ export class VerificationService {
         .find(vc => vc.userId === userId && vc.type === type);
 
       if (!verificationCode) {
-        throw new NotFoundError('Verification code not found');
+        throw new NotFoundError('Verification code', 'not found');
       }
 
       // Check if code is expired

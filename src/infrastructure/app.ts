@@ -10,6 +10,7 @@ import { PaymentServiceStack } from './stacks/PaymentServiceStack';
 import { NotificationServiceStack } from './stacks/NotificationServiceStack';
 import { SearchServiceStack } from './stacks/SearchServiceStack';
 import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
+import { QRCodeValidationStack } from './stacks/QRCodeValidationStack';
 import { getEnvironmentConfig, validateEnvironmentConfig } from './config/environments';
 
 const app = new cdk.App();
@@ -134,12 +135,21 @@ const analyticsServiceStack = new AnalyticsServiceStack(app, `AnalyticsService-$
   config: envConfig
 });
 
+// QR Code and Validation Service Stack
+const qrCodeValidationStack = new QRCodeValidationStack(app, `QRCodeValidation-${environment}`, {
+  ...commonProps,
+  description: 'QR Code and Validation Service - QR Code Generation and Attendee Validation'
+});
+
 // Stack dependencies
 analyticsServiceStack.addDependency(userManagementStack);
 analyticsServiceStack.addDependency(eventManagementServiceStack);
 analyticsServiceStack.addDependency(bookingServiceStack);
 analyticsServiceStack.addDependency(paymentServiceStack);
 analyticsServiceStack.addDependency(notificationServiceStack);
+
+qrCodeValidationStack.addDependency(userManagementStack);
+qrCodeValidationStack.addDependency(bookingServiceStack);
 
 // Output the API Gateway URL
 new cdk.CfnOutput(eventManagementStack, 'ApiGatewayUrl', {

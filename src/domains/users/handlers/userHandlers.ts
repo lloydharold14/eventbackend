@@ -15,6 +15,7 @@ import {
 } from '../../../shared/validators/schemas';
 import { validateSchemaTyped } from '../../../shared/validators/schemas';
 import { formatSuccessResponse, formatErrorResponse, ValidationError } from '../../../shared/errors/DomainError';
+import { createMobileLoginResponse } from '../../../shared/utils/responseUtils';
 import { logger } from '../../../shared/utils/logger';
 import { UserRole } from '../../../shared/types/common';
 import { UserRegistrationRequest, UserLoginRequest, UpdateUserRequest, UserSearchFilters, EmailVerificationConfirmRequest, PhoneVerificationConfirmRequest } from '../models/User';
@@ -130,6 +131,48 @@ export const loginUser = async (event: APIGatewayProxyEvent): Promise<APIGateway
     const loginResponse = await authService.loginUser(validation.data!);
     
     logger.info('User login successful', { userId: loginResponse.user.id, email: loginResponse.user.email });
+    
+    // Enhanced mobile detection logic
+    const userAgent = event.headers['User-Agent'] || '';
+    const userAgentLower = userAgent.toLowerCase();
+    
+    // More comprehensive mobile detection
+    const isMobileRequest = userAgentLower.includes('mobile') || 
+                           userAgentLower.includes('android') || 
+                           userAgentLower.includes('ios') ||
+                           userAgentLower.includes('iphone') ||
+                           userAgentLower.includes('ipad') ||
+                           userAgentLower.includes('reactnative') ||
+                           userAgentLower.includes('eventsmobile') ||
+                           userAgentLower.includes('eventsmobileapp') ||
+                           userAgentLower.includes('postman') && userAgentLower.includes('mobile') ||
+                           // Check for common mobile app patterns
+                           userAgentLower.includes('app/') ||
+                           userAgentLower.includes('mobileapp') ||
+                           userAgentLower.includes('native') ||
+                           // Check for mobile-specific headers
+                           event.headers['X-Platform'] === 'mobile' ||
+                           event.headers['X-Client-Type'] === 'mobile';
+    
+    logger.info('Login request details', { 
+      userAgent, 
+      userAgentLower,
+      isMobileRequest, 
+      userId: loginResponse.user.id,
+      xPlatform: event.headers['X-Platform'],
+      xClientType: event.headers['X-Client-Type']
+    });
+    
+    if (isMobileRequest) {
+      logger.info('Returning mobile-optimized response', { userId: loginResponse.user.id });
+      return createMobileLoginResponse(
+        loginResponse.user,
+        loginResponse.accessToken,
+        loginResponse.refreshToken,
+        loginResponse.expiresIn
+      );
+    }
+    
     return formatSuccessResponse({
       message: 'Login successful',
       ...loginResponse
@@ -458,217 +501,211 @@ export const getUserStats = async (event: APIGatewayProxyEvent): Promise<APIGate
 
 // Verification handlers
 export const verifyEmail = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const correlationId = extractCorrelationId(event);
-    const startTime = Date.now();
+  const correlationId = extractCorrelationId(event);
+  const startTime = Date.now();
+  
+  try {
+    const body = JSON.parse(event.body || '{}');
     
-    try {
-      const body = JSON.parse(event.body || '{}');
-      
-      // Validate input
-      const validation = validateSchemaTyped<EmailVerificationConfirmRequest>(emailVerificationSchema, body);
-      if (!validation.isValid) {
-        metricsManager.recordError('VALIDATION_ERROR', 'UserManagementService', 'verifyEmail');
-        return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []), correlationId);
-      }
-
-      const user = await resilienceManager.executeWithResilience(
-        () => authService.verifyEmail(validation.data.userId, validation.data.code),
-        {
-          circuitBreakerKey: 'email-verification',
-          retryConfig: { maxRetries: 3, baseDelay: 1000 },
-          timeoutConfig: { timeoutMs: 10000 }
-        }
-      );
-      
-      const duration = Date.now() - startTime;
-      metricsManager.recordApiPerformance('/auth/verify-email', 'POST', duration, 200);
-      metricsManager.recordBusinessMetric(BusinessMetricName.EMAILS_VERIFIED, 1);
-      
-      logger.info('Email verification successful', { 
-        userId: user.id, 
-        email: user.email, 
-        correlationId,
-        duration 
-      });
-      
-      return formatSuccessResponse({
-        message: 'Email verified successfully. Your account is now active.',
-        user: {
-          id: user.id,
-          email: user.email,
-          emailVerified: user.emailVerified,
-          status: user.status
-        }
-      });
-    } catch (error: any) {
-      const duration = Date.now() - startTime;
-      metricsManager.recordError('EMAIL_VERIFICATION_ERROR', 'UserManagementService', 'verifyEmail');
-      
-      logger.error('Email verification failed', { 
-        error: error.message, 
-        correlationId,
-        duration 
-      });
-      
-      return formatErrorResponse(error, correlationId);
+    // Validate input
+    const validation = validateSchemaTyped<EmailVerificationConfirmRequest>(emailVerificationSchema, body);
+    if (!validation.isValid) {
+      metricsManager.recordError('VALIDATION_ERROR', 'UserManagementService', 'verifyEmail');
+      return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []), correlationId);
     }
-  })(event);
+
+    const user = await resilienceManager.executeWithResilience(
+      () => authService.verifyEmail(validation.data.userId, validation.data.code),
+      {
+        circuitBreakerKey: 'email-verification',
+        retryConfig: { maxRetries: 3, baseDelay: 1000 },
+        timeoutConfig: { timeoutMs: 10000 }
+      }
+    );
+    
+    const duration = Date.now() - startTime;
+    metricsManager.recordApiPerformance('/auth/verify-email', 'POST', duration, 200);
+    metricsManager.recordBusinessMetric(BusinessMetricName.EMAILS_VERIFIED, 1);
+    
+    logger.info('Email verification successful', { 
+      userId: user.id, 
+      email: user.email, 
+      correlationId,
+      duration 
+    });
+    
+    return formatSuccessResponse({
+      message: 'Email verified successfully. Your account is now active.',
+      user: {
+        id: user.id,
+        email: user.email,
+        emailVerified: user.emailVerified,
+        status: user.status
+      }
+    });
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    metricsManager.recordError('EMAIL_VERIFICATION_ERROR', 'UserManagementService', 'verifyEmail');
+    
+    logger.error('Email verification failed', { 
+      error: error.message, 
+      correlationId,
+      duration 
+    });
+    
+    return formatErrorResponse(error, correlationId);
+  }
 };
 
 export const resendEmailVerification = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const correlationId = extractCorrelationId(event);
-    const startTime = Date.now();
-    
-    try {
-      const userId = event.pathParameters?.userId;
-      if (!userId) {
-        return formatErrorResponse(new ValidationError('User ID is required'), correlationId);
-      }
-
-      const verificationId = await resilienceManager.executeWithResilience(
-        () => authService.resendEmailVerification(userId),
-        {
-          circuitBreakerKey: 'resend-email-verification',
-          retryConfig: { maxRetries: 2, baseDelay: 2000 },
-          timeoutConfig: { timeoutMs: 10000 }
-        }
-      );
-      
-      const duration = Date.now() - startTime;
-      metricsManager.recordApiPerformance('/auth/resend-email-verification/{userId}', 'POST', duration, 200);
-      
-      logger.info('Email verification resent successfully', { 
-        userId, 
-        verificationId,
-        correlationId,
-        duration 
-      });
-      
-      return formatSuccessResponse({
-        message: 'Email verification code sent successfully. Please check your email.',
-        verificationId
-      });
-    } catch (error: any) {
-      const duration = Date.now() - startTime;
-      metricsManager.recordError('RESEND_EMAIL_VERIFICATION_ERROR', 'UserManagementService', 'resendEmailVerification');
-      
-      logger.error('Resend email verification failed', { 
-        error: error.message, 
-        userId: event.pathParameters?.userId,
-        correlationId,
-        duration 
-      });
-      
-      return formatErrorResponse(error, correlationId);
+  const correlationId = extractCorrelationId(event);
+  const startTime = Date.now();
+  
+  try {
+    const userId = event.pathParameters?.userId;
+    if (!userId) {
+      return formatErrorResponse(new ValidationError('User ID is required'), correlationId);
     }
-  })(event);
+
+    const verificationId = await resilienceManager.executeWithResilience(
+      () => authService.resendEmailVerification(userId),
+      {
+        circuitBreakerKey: 'resend-email-verification',
+        retryConfig: { maxRetries: 2, baseDelay: 2000 },
+        timeoutConfig: { timeoutMs: 10000 }
+      }
+    );
+    
+    const duration = Date.now() - startTime;
+    metricsManager.recordApiPerformance('/auth/resend-email-verification/{userId}', 'POST', duration, 200);
+    
+    logger.info('Email verification resent successfully', { 
+      userId, 
+      verificationId,
+      correlationId,
+      duration 
+    });
+    
+    return formatSuccessResponse({
+      message: 'Email verification code sent successfully. Please check your email.',
+      verificationId
+    });
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    metricsManager.recordError('RESEND_EMAIL_VERIFICATION_ERROR', 'UserManagementService', 'resendEmailVerification');
+    
+    logger.error('Resend email verification failed', { 
+      error: error.message, 
+      userId: event.pathParameters?.userId,
+      correlationId,
+      duration 
+    });
+    
+    return formatErrorResponse(error, correlationId);
+  }
 };
 
 export const sendSMSVerification = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const correlationId = extractCorrelationId(event);
-    const startTime = Date.now();
-    
-    try {
-      const userId = event.pathParameters?.userId;
-      if (!userId) {
-        return formatErrorResponse(new ValidationError('User ID is required'));
-      }
-
-      const verificationId = await resilienceManager.executeWithResilience(
-        () => authService.sendSMSVerification(userId),
-        {
-          circuitBreakerKey: 'sms-verification',
-          retryConfig: { maxRetries: 2, baseDelay: 2000 },
-          timeoutConfig: { timeoutMs: 10000 }
-        }
-      );
-      
-      const duration = Date.now() - startTime;
-      metricsManager.recordApiPerformance('/auth/send-sms-verification/{userId}', 'POST', duration, 200);
-      
-      logger.info('SMS verification sent successfully', { 
-        userId, 
-        verificationId,
-        correlationId,
-        duration 
-      });
-      
-      return formatSuccessResponse({
-        message: 'SMS verification code sent successfully. Please check your phone.',
-        verificationId
-      });
-    } catch (error: any) {
-      const duration = Date.now() - startTime;
-      metricsManager.recordError('SMS_VERIFICATION_ERROR', 'UserManagementService', 'sendSMSVerification');
-      
-      logger.error('SMS verification failed', { 
-        error: error.message, 
-        userId: event.pathParameters?.userId,
-        correlationId,
-        duration 
-      });
-      
-      return formatErrorResponse(error);
+  const correlationId = extractCorrelationId(event);
+  const startTime = Date.now();
+  
+  try {
+    const userId = event.pathParameters?.userId;
+    if (!userId) {
+      return formatErrorResponse(new ValidationError('User ID is required'), correlationId);
     }
-  })(event);
+
+    const verificationId = await resilienceManager.executeWithResilience(
+      () => authService.sendSMSVerification(userId),
+      {
+        circuitBreakerKey: 'sms-verification',
+        retryConfig: { maxRetries: 2, baseDelay: 2000 },
+        timeoutConfig: { timeoutMs: 10000 }
+      }
+    );
+    
+    const duration = Date.now() - startTime;
+    metricsManager.recordApiPerformance('/auth/send-sms-verification/{userId}', 'POST', duration, 200);
+    
+    logger.info('SMS verification sent successfully', { 
+      userId, 
+      verificationId,
+      correlationId,
+      duration 
+    });
+    
+    return formatSuccessResponse({
+      message: 'SMS verification code sent successfully. Please check your phone.',
+      verificationId
+    });
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    metricsManager.recordError('SMS_VERIFICATION_ERROR', 'UserManagementService', 'sendSMSVerification');
+    
+    logger.error('SMS verification failed', { 
+      error: error.message, 
+      userId: event.pathParameters?.userId,
+      correlationId,
+      duration 
+    });
+    
+    return formatErrorResponse(error, correlationId);
+  }
 };
 
 export const verifySMS = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-  return traceLambdaExecution(async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
-    const correlationId = extractCorrelationId(event);
-    const startTime = Date.now();
+  const correlationId = extractCorrelationId(event);
+  const startTime = Date.now();
+  
+  try {
+    const body = JSON.parse(event.body || '{}');
     
-    try {
-      const body = JSON.parse(event.body || '{}');
-      
-      // Validate input
-      const validation = validateSchemaTyped<PhoneVerificationConfirmRequest>(phoneVerificationSchema, body);
-      if (!validation.isValid) {
-        metricsManager.recordError('VALIDATION_ERROR', 'UserManagementService', 'verifySMS');
-        return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
-      }
-
-      const user = await resilienceManager.executeWithResilience(
-        () => authService.verifySMS(validation.data.userId, validation.data.code),
-        {
-          circuitBreakerKey: 'sms-verification',
-          retryConfig: { maxRetries: 3, baseDelay: 1000 },
-          timeoutConfig: { timeoutMs: 10000 }
-        }
-      );
-      
-      const duration = Date.now() - startTime;
-      metricsManager.recordApiPerformance('/auth/verify-sms', 'POST', duration, 200);
-      metricsManager.recordBusinessMetric(BusinessMetricName.PHONES_VERIFIED, 1);
-      
-      logger.info('SMS verification successful', { 
-        userId: user.id, 
-        phoneNumber: user.phoneNumber, 
-        correlationId,
-        duration 
-      });
-      
-      return formatSuccessResponse({
-        message: 'SMS verified successfully.',
-        user: {
-          id: user.id,
-          phoneVerified: user.phoneVerified
-        }
-      });
-    } catch (error: any) {
-      const duration = Date.now() - startTime;
-      metricsManager.recordError('SMS_VERIFICATION_ERROR', 'UserManagementService', 'verifySMS');
-      
-      logger.error('SMS verification failed', { 
-        error: error.message, 
-        correlationId,
-        duration 
-      });
-      
-      return formatErrorResponse(error);
+    // Validate input
+    const validation = validateSchemaTyped<PhoneVerificationConfirmRequest>(phoneVerificationSchema, body);
+    if (!validation.isValid) {
+      metricsManager.recordError('VALIDATION_ERROR', 'UserManagementService', 'verifySMS');
+      return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []), correlationId);
     }
-  })(event);
+
+    const user = await resilienceManager.executeWithResilience(
+      () => authService.verifySMS(validation.data.userId, validation.data.code),
+      {
+        circuitBreakerKey: 'sms-verification',
+        retryConfig: { maxRetries: 3, baseDelay: 1000 },
+        timeoutConfig: { timeoutMs: 10000 }
+      }
+    );
+    
+    const duration = Date.now() - startTime;
+    metricsManager.recordApiPerformance('/auth/verify-sms', 'POST', duration, 200);
+    metricsManager.recordBusinessMetric(BusinessMetricName.PHONES_VERIFIED, 1);
+    
+    logger.info('SMS verification successful', { 
+      userId: user.id, 
+      phoneNumber: user.phoneNumber, 
+      correlationId,
+      duration 
+    });
+    
+    return formatSuccessResponse({
+      message: 'SMS verified successfully.',
+      user: {
+        id: user.id,
+        phoneVerified: user.phoneVerified
+      }
+    });
+  } catch (error: any) {
+    const duration = Date.now() - startTime;
+    metricsManager.recordError('SMS_VERIFICATION_ERROR', 'UserManagementService', 'verifySMS');
+    
+    logger.error('SMS verification failed', { 
+      error: error.message, 
+      correlationId,
+      duration 
+    });
+    
+    return formatErrorResponse(error, correlationId);
+  }
 };
+
+

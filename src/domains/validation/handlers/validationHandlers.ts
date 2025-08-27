@@ -11,11 +11,9 @@ import {
   offlineValidationSchema 
 } from '../../../shared/validators/schemas';
 import { validateRequest } from '../../../shared/utils/validators';
-import { formatSuccessResponse, formatErrorResponse } from '../../../shared/errors/DomainError';
+import { formatSuccessResponse, formatErrorResponse, ValidationError } from '../../../shared/errors/DomainError';
 import { logger } from '../../../shared/utils/logger';
 import { MetricsManager, BusinessMetricName } from '../../../shared/utils/metrics';
-import { ResilienceManager } from '../../../shared/utils/resilience';
-import { TracingManager } from '../../../shared/utils/tracing';
 
 const qrCodeRepository = new QRCodeRepository();
 const validationLogRepository = new ValidationLogRepository();
@@ -27,15 +25,12 @@ const attendeeValidationService = new AttendeeValidationService(
 );
 
 const metricsManager = MetricsManager.getInstance();
-const resilienceManager = ResilienceManager.getInstance();
-const tracingManager = TracingManager.getInstance();
 
 /**
  * Validate QR code
  */
 export const validateQRCode = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('validateQRCode', correlationId);
 
   try {
     // Parse and validate request
@@ -43,14 +38,11 @@ export const validateQRCode = async (event: APIGatewayProxyEvent): Promise<APIGa
     const { error, value } = validateRequest(requestBody, validateQRCodeSchema);
     
     if (error) {
-      return formatErrorResponse('VALIDATION_ERROR', error.message, correlationId);
+      return formatErrorResponse(new ValidationError(error.message));
     }
 
     // Validate QR code
-    const result = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.validateQRCode(value),
-      'validateQRCode'
-    );
+    const result = await attendeeValidationService.validateQRCode(value);
 
     // Record metrics
     if (result.valid) {
@@ -80,25 +72,20 @@ export const validateQRCode = async (event: APIGatewayProxyEvent): Promise<APIGa
       qrCodeId: result.qrCodeId,
       valid: result.valid,
       reason: result.reason,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to validate QR code', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to validate QR code',
-      correlationId
+      error.message || 'Failed to validate QR code'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };
 
@@ -107,7 +94,6 @@ export const validateQRCode = async (event: APIGatewayProxyEvent): Promise<APIGa
  */
 export const checkInAttendee = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('checkInAttendee', correlationId);
 
   try {
     // Parse and validate request
@@ -115,14 +101,11 @@ export const checkInAttendee = async (event: APIGatewayProxyEvent): Promise<APIG
     const { error, value } = validateRequest(requestBody, checkInSchema);
     
     if (error) {
-      return formatErrorResponse('VALIDATION_ERROR', error.message, correlationId);
+      return formatErrorResponse(new ValidationError(error.message));
     }
 
     // Check-in attendee
-    const result = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.checkInAttendee(value.qrCodeId, value.validatorId, value.location),
-      'checkInAttendee'
-    );
+    const result = await attendeeValidationService.checkInAttendee(value.qrCodeId, value.validatorId, value.location);
 
     const response = {
       success: true,
@@ -146,25 +129,20 @@ export const checkInAttendee = async (event: APIGatewayProxyEvent): Promise<APIG
       qrCodeId: result.qrCodeId,
       attendeeName: result.attendeeName,
       valid: result.valid,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to check-in attendee', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to check-in attendee',
-      correlationId
+      error.message || 'Failed to check-in attendee'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };
 
@@ -173,7 +151,6 @@ export const checkInAttendee = async (event: APIGatewayProxyEvent): Promise<APIG
  */
 export const checkOutAttendee = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('checkOutAttendee', correlationId);
 
   try {
     // Parse and validate request
@@ -181,14 +158,11 @@ export const checkOutAttendee = async (event: APIGatewayProxyEvent): Promise<API
     const { error, value } = validateRequest(requestBody, checkOutSchema);
     
     if (error) {
-      return formatErrorResponse('VALIDATION_ERROR', error.message, correlationId);
+      return formatErrorResponse(new ValidationError(error.message));
     }
 
     // Check-out attendee
-    const result = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.checkOutAttendee(value.qrCodeId, value.validatorId, value.location),
-      'checkOutAttendee'
-    );
+    const result = await attendeeValidationService.checkOutAttendee(value.qrCodeId, value.validatorId, value.location);
 
     const response = {
       success: true,
@@ -214,25 +188,20 @@ export const checkOutAttendee = async (event: APIGatewayProxyEvent): Promise<API
       attendeeName: result.attendeeName,
       valid: result.valid,
       duration: result.duration,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to check-out attendee', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to check-out attendee',
-      correlationId
+      error.message || 'Failed to check-out attendee'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };
 
@@ -241,25 +210,21 @@ export const checkOutAttendee = async (event: APIGatewayProxyEvent): Promise<API
  */
 export const getValidationHistory = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('getValidationHistory', correlationId);
 
   try {
     const qrCodeId = event.pathParameters?.qrCodeId;
     
     if (!qrCodeId) {
-      return formatErrorResponse('VALIDATION_ERROR', 'QR code ID is required', correlationId);
+      return formatErrorResponse(new ValidationError('QR code ID is required'));
     }
 
-    const history = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.getValidationHistory(qrCodeId),
-      'getValidationHistory'
-    );
+    const history = await attendeeValidationService.getValidationHistory(qrCodeId);
 
     const response = {
       success: true,
       data: {
         qrCodeId,
-        history: history.map(log => ({
+        history: history.map((log: any) => ({
           validationId: log.validationId,
           validationResult: log.validationResult,
           validationTime: log.validationTime,
@@ -276,25 +241,20 @@ export const getValidationHistory = async (event: APIGatewayProxyEvent): Promise
     logger.info('Validation history retrieved successfully', {
       qrCodeId,
       count: history.length,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to get validation history', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to get validation history',
-      correlationId
+      error.message || 'Failed to get validation history'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };
 
@@ -303,7 +263,6 @@ export const getValidationHistory = async (event: APIGatewayProxyEvent): Promise
  */
 export const batchValidate = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('batchValidate', correlationId);
 
   try {
     // Parse and validate request
@@ -311,17 +270,14 @@ export const batchValidate = async (event: APIGatewayProxyEvent): Promise<APIGat
     const { error, value } = validateRequest(requestBody, batchValidationSchema);
     
     if (error) {
-      return formatErrorResponse('VALIDATION_ERROR', error.message, correlationId);
+      return formatErrorResponse(new ValidationError(error.message));
     }
 
     // Batch validate QR codes
-    const results = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.validateMultiple(value),
-      'batchValidate'
-    );
+    const results = await attendeeValidationService.validateMultiple(value);
 
-    const successful = results.filter(r => r.valid).length;
-    const failed = results.filter(r => !r.valid).length;
+    const successful = results.filter((r: any) => r.valid).length;
+    const failed = results.filter((r: any) => !r.valid).length;
 
     // Record metrics
     metricsManager.recordBusinessMetric(BusinessMetricName.VALIDATIONS_SUCCESSFUL, successful);
@@ -330,7 +286,7 @@ export const batchValidate = async (event: APIGatewayProxyEvent): Promise<APIGat
     const response = {
       success: true,
       data: {
-        results: results.map(result => ({
+        results: results.map((result: any) => ({
           qrCodeId: result.qrCodeId,
           valid: result.valid,
           attendeeName: result.attendeeName,
@@ -353,25 +309,20 @@ export const batchValidate = async (event: APIGatewayProxyEvent): Promise<APIGat
       successful,
       failed,
       validatorId: value.validatorId,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to batch validate', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to batch validate',
-      correlationId
+      error.message || 'Failed to batch validate'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };
 
@@ -380,22 +331,18 @@ export const batchValidate = async (event: APIGatewayProxyEvent): Promise<APIGat
  */
 export const getEventValidationStatistics = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('getEventValidationStatistics', correlationId);
 
   try {
     const eventId = event.pathParameters?.eventId;
     
     if (!eventId) {
-      return formatErrorResponse('VALIDATION_ERROR', 'Event ID is required', correlationId);
+      return formatErrorResponse(new ValidationError('Event ID is required'));
     }
 
     const startDate = event.queryStringParameters?.startDate;
     const endDate = event.queryStringParameters?.endDate;
 
-    const statistics = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.getEventValidationStatistics(eventId, startDate, endDate),
-      'getEventValidationStatistics'
-    );
+    const statistics = await attendeeValidationService.getEventValidationStatistics(eventId, startDate, endDate);
 
     const response = {
       success: true,
@@ -420,25 +367,20 @@ export const getEventValidationStatistics = async (event: APIGatewayProxyEvent):
       eventId,
       totalValidations: statistics.totalValidations,
       validationRate: statistics.validationRate,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to get event validation statistics', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to get event validation statistics',
-      correlationId
+      error.message || 'Failed to get event validation statistics'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };
 
@@ -447,7 +389,6 @@ export const getEventValidationStatistics = async (event: APIGatewayProxyEvent):
  */
 export const offlineValidate = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('offlineValidate', correlationId);
 
   try {
     // Parse and validate request
@@ -455,14 +396,11 @@ export const offlineValidate = async (event: APIGatewayProxyEvent): Promise<APIG
     const { error, value } = validateRequest(requestBody, offlineValidationSchema);
     
     if (error) {
-      return formatErrorResponse('VALIDATION_ERROR', error.message, correlationId);
+      return formatErrorResponse(new ValidationError(error.message));
     }
 
     // Perform offline validation
-    const result = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.validateOffline(value.qrCodeData),
-      'offlineValidate'
-    );
+    const result = await attendeeValidationService.validateOffline(value.qrCodeData);
 
     // Record offline validation metric
     metricsManager.recordBusinessMetric(BusinessMetricName.OFFLINE_VALIDATIONS, 1);
@@ -488,25 +426,20 @@ export const offlineValidate = async (event: APIGatewayProxyEvent): Promise<APIG
       qrCodeId: result.qrCodeId,
       valid: result.valid,
       status: result.status,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to perform offline validation', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to perform offline validation',
-      correlationId
+      error.message || 'Failed to perform offline validation'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };
 
@@ -515,13 +448,9 @@ export const offlineValidate = async (event: APIGatewayProxyEvent): Promise<APIG
  */
 export const getValidationMetrics = async (event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> => {
   const correlationId = event.headers['x-correlation-id'] || 'unknown';
-  const traceId = tracingManager.startTrace('getValidationMetrics', correlationId);
 
   try {
-    const metrics = await resilienceManager.executeWithRetry(
-      () => attendeeValidationService.getValidationMetrics(),
-      'getValidationMetrics'
-    );
+    const metrics = await attendeeValidationService.getValidationMetrics();
 
     const response = {
       success: true,
@@ -541,24 +470,19 @@ export const getValidationMetrics = async (event: APIGatewayProxyEvent): Promise
 
     logger.info('Validation metrics retrieved successfully', {
       totalValidations: metrics.totalValidations,
-      correlationId,
-      traceId
+      correlationId
     });
 
-    return formatSuccessResponse(response, correlationId);
+    return formatSuccessResponse(response);
   } catch (error: any) {
     logger.error('Failed to get validation metrics', {
       error: error.message,
-      correlationId,
-      traceId
+      correlationId
     });
 
     return formatErrorResponse(
       error.code || 'INTERNAL_SERVER_ERROR',
-      error.message || 'Failed to get validation metrics',
-      correlationId
+      error.message || 'Failed to get validation metrics'
     );
-  } finally {
-    tracingManager.endTrace(traceId);
   }
 };

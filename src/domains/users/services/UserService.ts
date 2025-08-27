@@ -372,26 +372,7 @@ export class UserService {
     }
   }
 
-  async verifyPhone(userId: string, verificationData: PhoneVerificationConfirmRequest): Promise<void> {
-    try {
-      // TODO: Validate verification code
-      // This would typically involve checking a code against a verification table
-      // For now, we'll just mark the phone as verified
-      
-      await this.userRepository.verifyPhone(userId);
-      
-      // Update user status to active if this was the first verification
-      const user = await this.userRepository.getUserById(userId);
-      if (user.status === UserStatus.PENDING_VERIFICATION) {
-        await this.userRepository.updateUser(userId, { status: UserStatus.ACTIVE });
-      }
-      
-      logger.info('User phone verified successfully', { userId });
-    } catch (error: any) {
-      logger.error('Failed to verify user phone', { error: error.message, userId });
-      throw error;
-    }
-  }
+
 
   async changeUserRole(userId: string, newRole: UserRole, requestingUserId: string, requestingUserRole: UserRole): Promise<User> {
     try {

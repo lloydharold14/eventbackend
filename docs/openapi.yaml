@@ -176,7 +176,14 @@ paths:
   /auth/login:
     post:
       summary: User login
-      description: Authenticate user with email and password
+      description: |
+        Authenticate user with email and password.
+        
+        **Response Format:**
+        - **Web/Desktop**: Full response with all fields including DynamoDB internal fields
+        - **Mobile**: Optimized response with internal fields removed (~40% smaller)
+        
+        **Mobile Detection:** Based on User-Agent header containing 'mobile', 'android', or 'ios'
       tags: [Authentication]
       requestBody:
         required: true
@@ -199,7 +206,86 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/LoginResponse'
+                  - $ref: '#/components/schemas/MobileLoginResponse'
+              examples:
+                web_response:
+                  summary: Web/Desktop Response
+                  description: Full response with all fields
+                  value:
+                    success: true
+                    data:
+                      message: "Login successful"
+                      user:
+                        id: "123e4567-e89b-12d3-a456-426614174000"
+                        email: "user@example.com"
+                        username: "johndoe"
+                        firstName: "John"
+                        lastName: "Doe"
+                        role: "attendee"
+                        status: "active"
+                        emailVerified: true
+                        phoneVerified: false
+                        lastLoginAt: "2025-08-26T16:20:18.414Z"
+                        createdAt: "2025-08-25T22:41:53.390Z"
+                        updatedAt: "2025-08-25T22:41:53.390Z"
+                        PK: "USER#123e4567-e89b-12d3-a456-426614174000"
+                        SK: "USER#123e4567-e89b-12d3-a456-426614174000"
+                        GSI1PK: "EMAIL#user@example.com"
+                        GSI1SK: "USER#123e4567-e89b-12d3-a456-426614174000"
+                        GSI2PK: "USERNAME#johndoe"
+                        GSI2SK: "USER#123e4567-e89b-12d3-a456-426614174000"
+                        GSI3PK: "ROLE#attendee"
+                        GSI3SK: "USER#123e4567-e89b-12d3-a456-426614174000"
+                        preferences:
+                          emailNotifications: true
+                          smsNotifications: false
+                          pushNotifications: true
+                          timezone: "UTC"
+                          language: "en"
+                          currency: "USD"
+                          marketingEmails: true
+                          privacySettings:
+                            allowDirectMessages: true
+                            profileVisibility: "public"
+                            showEmail: false
+                            showPhone: false
+                            showDateOfBirth: false
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      expiresIn: 3600
+                    timestamp: "2025-08-26T16:20:27.835Z"
+                mobile_response:
+                  summary: Mobile Response
+                  description: Optimized response with internal fields removed
+                  value:
+                    success: true
+                    data:
+                      message: "Login successful"
+                      user:
+                        id: "123e4567-e89b-12d3-a456-426614174000"
+                        email: "user@example.com"
+                        username: "johndoe"
+                        firstName: "John"
+                        lastName: "Doe"
+                        role: "attendee"
+                        status: "active"
+                        emailVerified: true
+                        phoneVerified: false
+                        lastLoginAt: "2025-08-26T16:20:18.414Z"
+                        preferences:
+                          emailNotifications: true
+                          smsNotifications: false
+                          pushNotifications: true
+                          timezone: "UTC"
+                          language: "en"
+                          currency: "USD"
+                          marketingEmails: true
+                      accessToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      refreshToken: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                      expiresIn: 3600
+                    timestamp: "2025-08-26T16:20:27.835Z"
         '401':
           description: Invalid credentials
           content:
@@ -241,7 +327,14 @@ paths:
   /auth/oauth/login:
     post:
       summary: OAuth login
-      description: Authenticate user with OAuth provider
+      description: |
+        Authenticate user with OAuth provider.
+        
+        **Response Format:**
+        - **Web/Desktop**: Full response with all fields including DynamoDB internal fields
+        - **Mobile**: Optimized response with internal fields removed (~40% smaller)
+        
+        **Mobile Detection:** Based on User-Agent header containing 'mobile', 'android', or 'ios'
       tags: [OAuth]
       requestBody:
         required: true
@@ -249,22 +342,27 @@ paths:
           application/json:
             schema:
               type: object
-              required: [provider, code]
+              required: [provider, authorizationCode, redirectUri]
               properties:
                 provider:
                   type: string
                   enum: [google, facebook, apple, microsoft, github]
                   example: "google"
-                code:
+                authorizationCode:
                   type: string
                   example: "4/0AfJohXn..."
+                redirectUri:
+                  type: string
+                  example: "https://myapp.com/oauth/callback"
       responses:
         '200':
           description: OAuth login successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/LoginResponse'
+                oneOf:
+                  - $ref: '#/components/schemas/LoginResponse'
+                  - $ref: '#/components/schemas/MobileLoginResponse'
         '400':
           description: Invalid OAuth code
           content:
@@ -711,10 +809,47 @@ components:
         data:
           type: object
           properties:
+            message:
+              type: string
+              example: "Login successful"
             user:
               $ref: '#/components/schemas/User'
-            tokens:
-              $ref: '#/components/schemas/TokenPair'
+            accessToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            refreshToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            expiresIn:
+              type: integer
+              example: 3600
+        timestamp:
+          type: string
+          format: date-time
+
+    MobileLoginResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: object
+          properties:
+            message:
+              type: string
+              example: "Login successful"
+            user:
+              $ref: '#/components/schemas/MobileUser'
+            accessToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            refreshToken:
+              type: string
+              example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+            expiresIn:
+              type: integer
+              example: 3600
         timestamp:
           type: string
           format: date-time
@@ -776,12 +911,156 @@ components:
         phoneVerified:
           type: boolean
           example: false
+        lastLoginAt:
+          type: string
+          format: date-time
+          example: "2025-08-26T16:20:18.414Z"
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
+        # DynamoDB internal fields (for debugging/admin)
+        PK:
+          type: string
+          example: "USER#123e4567-e89b-12d3-a456-426614174000"
+        SK:
+          type: string
+          example: "USER#123e4567-e89b-12d3-a456-426614174000"
+        GSI1PK:
+          type: string
+          example: "EMAIL#user@example.com"
+        GSI1SK:
+          type: string
+          example: "USER#123e4567-e89b-12d3-a456-426614174000"
+        GSI2PK:
+          type: string
+          example: "USERNAME#johndoe"
+        GSI2SK:
+          type: string
+          example: "USER#123e4567-e89b-12d3-a456-426614174000"
+        GSI3PK:
+          type: string
+          example: "ROLE#attendee"
+        GSI3SK:
+          type: string
+          example: "USER#123e4567-e89b-12d3-a456-426614174000"
+        preferences:
+          $ref: '#/components/schemas/UserPreferences'
+
+    MobileUser:
+      type: object
+      description: "Mobile-optimized user object with internal fields removed"
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        username:
+          type: string
+          example: "johndoe"
+        firstName:
+          type: string
+          example: "John"
+        lastName:
+          type: string
+          example: "Doe"
+        role:
+          type: string
+          enum: [attendee, organizer, admin]
+          example: "attendee"
+        status:
+          type: string
+          enum: [pending_verification, active, suspended, deleted]
+          example: "active"
+        emailVerified:
+          type: boolean
+          example: true
+        phoneVerified:
+          type: boolean
+          example: false
+        lastLoginAt:
+          type: string
+          format: date-time
+          example: "2025-08-26T16:20:18.414Z"
+        preferences:
+          $ref: '#/components/schemas/MobileUserPreferences'
+
+    UserPreferences:
+      type: object
+      description: "Full user preferences including privacy settings"
+      properties:
+        emailNotifications:
+          type: boolean
+          example: true
+        smsNotifications:
+          type: boolean
+          example: false
+        pushNotifications:
+          type: boolean
+          example: true
+        timezone:
+          type: string
+          example: "UTC"
+        language:
+          type: string
+          example: "en"
+        currency:
+          type: string
+          example: "USD"
+        marketingEmails:
+          type: boolean
+          example: true
+        privacySettings:
+          type: object
+          properties:
+            allowDirectMessages:
+              type: boolean
+              example: true
+            profileVisibility:
+              type: string
+              enum: [public, private, friends]
+              example: "public"
+            showEmail:
+              type: boolean
+              example: false
+            showPhone:
+              type: boolean
+              example: false
+            showDateOfBirth:
+              type: boolean
+              example: false
+
+    MobileUserPreferences:
+      type: object
+      description: "Mobile-optimized user preferences (privacy settings removed)"
+      properties:
+        emailNotifications:
+          type: boolean
+          example: true
+        smsNotifications:
+          type: boolean
+          example: false
+        pushNotifications:
+          type: boolean
+          example: true
+        timezone:
+          type: string
+          example: "UTC"
+        language:
+          type: string
+          example: "en"
+        currency:
+          type: string
+          example: "USD"
+        marketingEmails:
+          type: boolean
+          example: true
 
     UserProfile:
       type: object
@@ -799,18 +1078,6 @@ components:
             bio:
               type: string
               example: "Event enthusiast and organizer"
-            preferences:
-              type: object
-              properties:
-                emailNotifications:
-                  type: boolean
-                  example: true
-                smsNotifications:
-                  type: boolean
-                  example: false
-                newsletter:
-                  type: boolean
-                  example: true
 
     UpdateUserProfileRequest:
       type: object

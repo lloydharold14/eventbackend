@@ -318,6 +318,16 @@ The platform includes automated CI/CD:
 API documentation is available at:
 - **Swagger UI**: `https://your-api-gateway-url/docs`
 - **OpenAPI Spec**: `https://your-api-gateway-url/openapi.json`
+- **Mobile API Optimization**: [docs/mobile-api-optimization.md](docs/mobile-api-optimization.md) - Mobile response optimization guide
+
+### 📱 Mobile Optimization
+
+The API automatically provides **mobile-optimized responses** that reduce payload size by ~40% for mobile devices:
+
+- **Automatic Detection**: Based on User-Agent headers
+- **Field Filtering**: Removes internal database fields
+- **Performance**: Faster parsing and reduced bandwidth usage
+- **Backward Compatible**: Web/desktop apps continue to work normally
 
 ## 🤝 Contributing
 

@@ -147,8 +147,8 @@ export class QRCodeRepository {
 
   async updateQRCodeStatus(qrCodeId: string, status: QRCodeStatus, validationCount?: number): Promise<void> {
     try {
-      const updateExpression = 'SET #status = :status';
-      const expressionAttributeNames = { '#status': 'status' };
+      let updateExpression = 'SET #status = :status';
+      const expressionAttributeNames: any = { '#status': 'status' };
       const expressionAttributeValues: any = { ':status': status };
 
       if (validationCount !== undefined) {

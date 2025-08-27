@@ -211,178 +211,169 @@ export class UserManagementStack extends cdk.Stack {
     };
 
     // Authentication Lambda functions
+    // Using simple bundled files instead of Lambda Layers
+
     this.userLambdaFunctions.registerUser = new lambda.Function(this, 'RegisterUserFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-register-user`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.registerUser',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.registerUser'
     });
 
     this.userLambdaFunctions.loginUser = new lambda.Function(this, 'LoginUserFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-login-user`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.loginUser',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.loginUser'
     });
 
     this.userLambdaFunctions.refreshToken = new lambda.Function(this, 'RefreshTokenFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-refresh-token`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.refreshToken',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.refreshToken'
     });
 
     this.userLambdaFunctions.changePassword = new lambda.Function(this, 'ChangePasswordFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-change-password`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.changePassword',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.changePassword'
     });
 
     this.userLambdaFunctions.resetPassword = new lambda.Function(this, 'ResetPasswordFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-reset-password`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.resetPassword',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.resetPassword'
     });
 
     this.userLambdaFunctions.confirmPasswordReset = new lambda.Function(this, 'ConfirmPasswordResetFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-confirm-password-reset`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.confirmPasswordReset',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.confirmPasswordReset'
     });
 
     // User profile Lambda functions
     this.userLambdaFunctions.getUserProfile = new lambda.Function(this, 'GetUserProfileFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-user-profile`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.getUserProfile',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.getUserProfile'
     });
 
     this.userLambdaFunctions.updateUserProfile = new lambda.Function(this, 'UpdateUserProfileFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-update-user-profile`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.updateUserProfile',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.updateUserProfile'
     });
 
     this.userLambdaFunctions.getUserById = new lambda.Function(this, 'GetUserByIdFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-user-by-id`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.getUserById',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.getUserById'
     });
 
-    // Verification Lambda functions
-    this.userLambdaFunctions.verifyEmail = new lambda.Function(this, 'VerifyEmailFunction', {
-      ...lambdaConfig,
-      functionName: `${resourcePrefix}-verify-email`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.verifyEmail',
-    });
 
-    this.userLambdaFunctions.verifyPhone = new lambda.Function(this, 'VerifyPhoneFunction', {
-      ...lambdaConfig,
-      functionName: `${resourcePrefix}-verify-phone`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.verifyPhone',
-    });
 
     // Admin Lambda functions
     this.userLambdaFunctions.listUsers = new lambda.Function(this, 'ListUsersFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-list-users`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.listUsers',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.listUsers'
     });
 
     this.userLambdaFunctions.deleteUser = new lambda.Function(this, 'DeleteUserFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-delete-user`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.deleteUser',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.deleteUser'
     });
 
     this.userLambdaFunctions.changeUserRole = new lambda.Function(this, 'ChangeUserRoleFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-change-user-role`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.changeUserRole',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.changeUserRole'
     });
 
     this.userLambdaFunctions.getUserStats = new lambda.Function(this, 'GetUserStatsFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-user-stats`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.getUserStats',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.getUserStats'
     });
 
     // OAuth Lambda functions
     this.userLambdaFunctions.oauthLogin = new lambda.Function(this, 'OAuthLoginFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-oauth-login`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'oauthHandlers.oauthLogin',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'oauthHandlers.oauthLogin'
     });
 
     this.userLambdaFunctions.linkOAuthAccount = new lambda.Function(this, 'LinkOAuthAccountFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-link-oauth-account`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'oauthHandlers.linkOAuthAccount',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'oauthHandlers.linkOAuthAccount'
     });
 
     this.userLambdaFunctions.unlinkOAuthAccount = new lambda.Function(this, 'UnlinkOAuthAccountFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-unlink-oauth-account`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'oauthHandlers.unlinkOAuthAccount',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'oauthHandlers.unlinkOAuthAccount'
     });
 
     this.userLambdaFunctions.getLinkedOAuthAccounts = new lambda.Function(this, 'GetLinkedOAuthAccountsFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-linked-oauth-accounts`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'oauthHandlers.getLinkedOAuthAccounts',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'oauthHandlers.getLinkedOAuthAccounts'
     });
 
     this.userLambdaFunctions.getOAuthAuthorizationUrl = new lambda.Function(this, 'GetOAuthAuthorizationUrlFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-get-oauth-authorization-url`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'oauthHandlers.getOAuthAuthorizationUrl',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'oauthHandlers.getOAuthAuthorizationUrl'
     });
 
     // Verification Lambda functions
     this.userLambdaFunctions.verifyEmail = new lambda.Function(this, 'VerifyEmailFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-verify-email`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.verifyEmail',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.verifyEmail'
     });
 
     this.userLambdaFunctions.verifySMS = new lambda.Function(this, 'VerifySMSFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-verify-sms`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.verifySMS',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.verifySMS'
     });
 
     this.userLambdaFunctions.resendEmailVerification = new lambda.Function(this, 'ResendEmailVerificationFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-resend-email-verification`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.resendEmailVerification',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.resendEmailVerification'
     });
 
     this.userLambdaFunctions.sendSMSVerification = new lambda.Function(this, 'SendSMSVerificationFunction', {
       ...lambdaConfig,
       functionName: `${resourcePrefix}-send-sms-verification`,
-      code: lambda.Code.fromAsset('dist/bundled'),
-      handler: 'userHandlers.sendSMSVerification',
+      code: lambda.Code.fromAsset('dist/simple'),
+      handler: 'userHandlers.sendSMSVerification'
     });
+
+
 
     // Create API Gateway resources and methods
     const usersResource = apiGateway.root.addResource('users');
