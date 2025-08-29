@@ -244,9 +244,16 @@ export const resetPassword = async (event: APIGatewayProxyEvent): Promise<APIGat
       return formatErrorResponse(new ValidationError('Validation failed', validation.errors?.details || []));
     }
 
-    await authService.resetPassword(validation.data!.email);
+    // Extract locale from Accept-Language header
+    const acceptLanguage = event.headers['accept-language'] || event.headers['Accept-Language'] || 'en-US';
+    const locale = acceptLanguage.split(',')[0].trim();
     
-    logger.info('Password reset initiated', { email: validation.data!.email });
+    // Extract base URL from request or use default
+    const baseUrl = process.env.FRONTEND_URL || 'https://eventmanagementplatform.com';
+
+    await authService.resetPassword(validation.data!.email, baseUrl, locale);
+    
+    logger.info('Password reset initiated', { email: validation.data!.email, locale });
     return formatSuccessResponse({
       message: 'If an account with this email exists, a password reset link has been sent.'
     });

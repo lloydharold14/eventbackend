@@ -49,7 +49,8 @@ export function initializeTracing(config: Partial<TracingConfig> = {}): void {
   try {
     // Configure X-Ray SDK
     AWSXRay.captureHTTPsGlobal(require('https'));
-    AWSXRay.captureAWS(require('aws-sdk'));
+    // Note: AWS SDK v3 is not captured by X-Ray automatically
+    // Individual clients need to be captured manually if needed
     AWSXRay.capturePromise();
     
     // Set service name

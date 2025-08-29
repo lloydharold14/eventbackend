@@ -7,6 +7,7 @@ import { UserRole, UserStatus } from '../../../shared/types/common';
 import { logger } from '../../../shared/utils/logger';
 import { ValidationError, UnauthorizedError } from '../../../shared/errors/DomainError';
 import { VerificationService } from './VerificationService';
+import { getEmailService } from '../../notifications/services/EmailService';
 
 export interface JwtPayload {
   userId: string;
@@ -257,7 +258,7 @@ export class AuthService {
     }
   }
 
-  async resetPassword(email: string): Promise<void> {
+  async resetPassword(email: string, baseUrl?: string, locale?: string): Promise<void> {
     try {
       const user = await this.userRepository.getUserByEmail(email);
       if (!user) {
@@ -273,12 +274,35 @@ export class AuthService {
         { expiresIn: '1h' }
       );
 
-      // TODO: Send password reset email with token
-      // This would integrate with the notification service
-      logger.info('Password reset token generated', { userId: user.id, email });
-      
-      // For now, just log the token (in production, this would be sent via email)
-      console.log(`Password reset token for ${email}: ${resetToken}`);
+      // Send password reset email
+      const emailService = getEmailService();
+      const userName = `${user.firstName} ${user.lastName}`;
+      const userLocale = locale || user.preferences?.language || 'en-US';
+      const resetBaseUrl = baseUrl || process.env.FRONTEND_URL || 'https://eventmanagementplatform.com';
+
+      const emailResult = await emailService.sendPasswordResetEmail(
+        user.email,
+        userName,
+        resetToken,
+        resetBaseUrl,
+        userLocale
+      );
+
+      if (emailResult.success) {
+        logger.info('Password reset email sent successfully', { 
+          userId: user.id, 
+          email,
+          messageId: emailResult.messageId
+        });
+      } else {
+        logger.error('Failed to send password reset email', { 
+          userId: user.id, 
+          email,
+          error: emailResult.error
+        });
+        // Still log the token for development/debugging
+        console.log(`Password reset token for ${email}: ${resetToken}`);
+      }
     } catch (error: any) {
       logger.error('Failed to initiate password reset', { error: error.message, email });
       throw error;

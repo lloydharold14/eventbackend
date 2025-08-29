@@ -1,5 +1,6 @@
 import { logger } from '../../../shared/utils/logger';
 import { v4 as uuidv4 } from 'uuid';
+import { getEmailService } from './EmailService';
 
 export enum NotificationType {
   BOOKING_CONFIRMATION = 'booking_confirmation',
@@ -8,7 +9,9 @@ export enum NotificationType {
   PAYMENT_FAILED = 'payment_failed',
   EVENT_REMINDER = 'event_reminder',
   EVENT_UPDATE = 'event_update',
-  EVENT_CANCELLATION = 'event_cancellation'
+  EVENT_CANCELLATION = 'event_cancellation',
+  PASSWORD_RESET = 'password_reset',
+  EMAIL_VERIFICATION = 'email_verification'
 }
 
 export enum NotificationChannel {
@@ -460,5 +463,129 @@ export class NotificationService {
       
       <p>If you continue to experience issues, please contact our support team.</p>
     `;
+  }
+
+  /**
+   * Send password reset notification
+   */
+  async sendPasswordResetNotification(
+    userId: string,
+    userEmail: string,
+    userName: string,
+    resetToken: string,
+    baseUrl: string = 'https://eventmanagementplatform.com',
+    locale: string = 'en-US'
+  ): Promise<NotificationResult> {
+    try {
+      const emailService = getEmailService();
+      
+      const emailResult = await emailService.sendPasswordResetEmail(
+        userEmail,
+        userName,
+        resetToken,
+        baseUrl,
+        locale
+      );
+
+      if (emailResult.success) {
+        logger.info('Password reset notification sent successfully', {
+          userId,
+          userEmail,
+          messageId: emailResult.messageId
+        });
+
+        return {
+          success: true,
+          notificationId: uuidv4(),
+          message: 'Password reset email sent successfully'
+        };
+      } else {
+        logger.error('Failed to send password reset notification', {
+          userId,
+          userEmail,
+          error: emailResult.error
+        });
+
+        return {
+          success: false,
+          notificationId: uuidv4(),
+          error: emailResult.error
+        };
+      }
+    } catch (error: any) {
+      logger.error('Error sending password reset notification', {
+        userId,
+        userEmail,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        notificationId: uuidv4(),
+        error: error.message
+      };
+    }
+  }
+
+  /**
+   * Send email verification notification
+   */
+  async sendEmailVerificationNotification(
+    userId: string,
+    userEmail: string,
+    userName: string,
+    verificationToken: string,
+    baseUrl: string = 'https://eventmanagementplatform.com',
+    locale: string = 'en-US'
+  ): Promise<NotificationResult> {
+    try {
+      const emailService = getEmailService();
+      
+      const emailResult = await emailService.sendEmailVerificationEmail(
+        userEmail,
+        userName,
+        verificationToken,
+        baseUrl,
+        locale
+      );
+
+      if (emailResult.success) {
+        logger.info('Email verification notification sent successfully', {
+          userId,
+          userEmail,
+          messageId: emailResult.messageId
+        });
+
+        return {
+          success: true,
+          notificationId: uuidv4(),
+          message: 'Email verification sent successfully'
+        };
+      } else {
+        logger.error('Failed to send email verification notification', {
+          userId,
+          userEmail,
+          error: emailResult.error
+        });
+
+        return {
+          success: false,
+          notificationId: uuidv4(),
+          error: emailResult.error
+        };
+      }
+    } catch (error: any) {
+      logger.error('Error sending email verification notification', {
+        userId,
+        userEmail,
+        error: error.message
+      });
+
+      return {
+        success: false,
+        notificationId: uuidv4(),
+        error: error.message
+      };
+    }
   }
 }

@@ -71,7 +71,7 @@ lambdaFunctions.forEach(({ entry, outfile, name }) => {
   try {
     console.log(`📦 Bundling ${name}...`);
     
-    const command = `npx esbuild ${entry} --bundle --platform=node --target=node18 --outfile=${outfile} --external:aws-sdk --minify`;
+    const command = `npx esbuild ${entry} --bundle --platform=node --target=node18 --outfile=${outfile} --external:aws-sdk --external:@aws-sdk/* --external:aws-lambda --external:aws-lambda/* --minify`;
     
     execSync(command, { stdio: 'inherit' });
     
