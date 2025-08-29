@@ -11,6 +11,7 @@ import { NotificationServiceStack } from './stacks/NotificationServiceStack';
 import { SearchServiceStack } from './stacks/SearchServiceStack';
 import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
 import { QRCodeValidationStack } from './stacks/QRCodeValidationStack';
+import { DomainIntegrationStack } from './stacks/DomainIntegrationStack';
 import { getEnvironmentConfig, validateEnvironmentConfig } from './config/environments';
 
 const app = new cdk.App();
@@ -140,6 +141,27 @@ const qrCodeValidationStack = new QRCodeValidationStack(app, `QRCodeValidation-$
   ...commonProps,
   description: 'QR Code and Validation Service - QR Code Generation and Attendee Validation'
 });
+
+// Domain Integration Stack (optional - only if domain name is provided)
+let domainIntegrationStack: DomainIntegrationStack | undefined;
+const domainName = process.env.CDK_DOMAIN_NAME;
+const subdomain = process.env.CDK_SUBDOMAIN || 'api';
+
+if (domainName) {
+  domainIntegrationStack = new DomainIntegrationStack(app, `DomainIntegration-${environment}`, {
+    ...commonProps,
+    environment,
+    description: 'Domain Integration - Custom Domain, CloudFront, and SSL Certificate',
+    apiGateway: eventManagementStack.apiGateway,
+    domainName,
+    subdomain,
+    config: envConfig
+  });
+  
+  // Add dependencies
+  domainIntegrationStack.addDependency(eventManagementStack);
+  domainIntegrationStack.addDependency(userManagementStack);
+}
 
 // Stack dependencies
 analyticsServiceStack.addDependency(userManagementStack);
@@ -280,6 +302,27 @@ new cdk.CfnOutput(eventManagementStack, 'DeploymentInstructions', {
   description: 'Deployment Instructions',
   exportName: `EventManagement-${environment}-DeploymentInstructions`
 });
+
+// Domain Integration Outputs (only if domain integration is enabled)
+if (domainIntegrationStack) {
+  new cdk.CfnOutput(domainIntegrationStack, 'DomainIntegrationStatus', {
+    value: `Domain integration enabled for ${subdomain}.${domainName}`,
+    description: 'Domain Integration Status',
+    exportName: `EventManagement-${environment}-DomainIntegrationStatus`
+  });
+  
+  new cdk.CfnOutput(domainIntegrationStack, 'CustomApiUrl', {
+    value: `https://${subdomain}.${domainName}`,
+    description: 'Custom API URL',
+    exportName: `EventManagement-${environment}-CustomApiUrl`
+  });
+  
+  new cdk.CfnOutput(domainIntegrationStack, 'DnsConfigurationInstructions', {
+    value: `Update your Namecheap DNS settings with the provided name servers. Check DNS_CONFIGURATION_GUIDE.md for detailed instructions.`,
+    description: 'DNS Configuration Instructions',
+    exportName: `EventManagement-${environment}-DnsConfigurationInstructions`
+  });
+}
 
 // Helper functions
 function getEstimatedCost(environment: string): string {

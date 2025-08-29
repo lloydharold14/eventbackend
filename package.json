@@ -36,6 +36,8 @@
     "deploy:dev:force": "./scripts/deploy-multi-env.sh -e dev --force",
     "deploy:staging:force": "./scripts/deploy-multi-env.sh -e staging --force",
     "deploy:prod:force": "./scripts/deploy-multi-env.sh -e prod --force",
+    "deploy:domain": "./scripts/deploy-domain.sh",
+    "deploy:domain:dry": "./scripts/deploy-domain.sh --dry-run",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
