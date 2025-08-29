@@ -413,13 +413,6 @@ cdk.out/
 .cursor-keybindings/
 .cursor-settings.json
 .cursor-workspace.json
-.cursor-debug.log
-.cursor-error.log
-.cursor-info.log
-.cursor-warn.log
-.cursor-trace.log
-.cursor-verbose.log
-.cursor-silly.log
 .cursor-*.log
 .cursor-*.json
 .cursor-*.yml
@@ -439,102 +432,7 @@ cdk.out/
 .cursor-*.rc.conf
 .cursor-*.rc.config
 
-# OS
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
-
-# Build outputs
-build/
-dist/
-lib/
-
-# Test outputs
-test-results/
-coverage/
-
-# Local development
-.local/
-local/
-
-# Secrets and credentials
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-secrets/
-credentials/
-
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Backup files
-*.bak
-*.backup
-*.old
-
-# Lock files (keep package-lock.json but ignore others)
-yarn.lock
-pnpm-lock.yaml
-
-# CDK Context
-cdk.context.json
-
-# Terraform
-*.tfstate
-*.tfstate.*
-.terraform/
-.terraform.lock.hcl
-
-# Docker
-.dockerignore
-docker-compose.override.yml
-
-# Local environment files
-.env.local
-.env.development
-.env.staging
-.env.production
-
-# Cursor IDE
-.cursor/
-.cursorrules
-.cursorignore
-.cursor-settings/
-.cursor-cache/
-.cursor-temp/
-.cursor-logs/
-.cursor-debug/
-.cursor-backup/
-.cursor-workspace/
-.cursor-extensions/
-.cursor-user-data/
-.cursor-snippets/
-.cursor-keybindings/
-.cursor-settings.json
-.cursor-workspace.json
-.cursor-*.log
-.cursor-*.json
-.cursor-*.yml
-.cursor-*.yaml
-.cursor-*.toml
-.cursor-*.ini
-.cursor-*.cfg
-.cursor-*.conf
-.cursor-*.config
-.cursor-*.rc
-.cursor-*.rc.json
-.cursor-*.rc.yml
-.cursor-*.rc.yaml
-.cursor-*.rc.toml
-.cursor-*.rc.ini
-.cursor-*.rc.cfg
-.cursor-*.rc.conf
-.cursor-*.rc.config
+# Documentation files (generated/auto-generated)
+docs/
+*.md
+!README.md
