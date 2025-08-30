@@ -15,6 +15,7 @@ export interface EventManagementServiceStackProps extends cdk.StackProps {
 export class EventManagementServiceStack extends cdk.Stack {
   public readonly eventTable: dynamodb.Table;
   public readonly eventLambdaFunctions: { [key: string]: lambda.Function };
+  public readonly apiGateway: apigateway.RestApi;
 
   constructor(scope: Construct, id: string, props: EventManagementServiceStackProps) {
     super(scope, id, props);
@@ -23,7 +24,7 @@ export class EventManagementServiceStack extends cdk.Stack {
     const resourcePrefix = `${id.toLowerCase()}-${environment}`;
 
     // Create API Gateway for Event Management Service
-    const apiGateway = new apigateway.RestApi(this, 'EventManagementServiceAPI', {
+    this.apiGateway = new apigateway.RestApi(this, 'EventManagementServiceAPI', {
       restApiName: `EventManagementService-${environment}`,
       description: 'Event Management Service API Gateway',
       defaultCorsPreflightOptions: {
@@ -284,45 +285,77 @@ export class EventManagementServiceStack extends cdk.Stack {
     });
 
     // Create API Gateway resources and methods
-    const eventsResource = apiGateway.root.addResource('events');
+    const eventsResource = this.apiGateway.root.addResource('events');
     const eventResource = eventsResource.addResource('{eventId}');
-    const categoriesResource = apiGateway.root.addResource('categories');
+    const categoriesResource = this.apiGateway.root.addResource('categories');
     const mediaResource = eventResource.addResource('media');
     const mediaItemResource = mediaResource.addResource('{mediaId}');
 
     // Event CRUD endpoints
-    eventsResource.addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.createEvent));
-    eventsResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.searchEvents));
+    eventsResource.addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.createEvent), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    eventsResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.searchEvents), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
-    eventResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventById));
-    eventResource.addMethod('PUT', new apigateway.LambdaIntegration(this.eventLambdaFunctions.updateEvent));
-    eventResource.addMethod('DELETE', new apigateway.LambdaIntegration(this.eventLambdaFunctions.deleteEvent));
+    eventResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventById), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    eventResource.addMethod('PUT', new apigateway.LambdaIntegration(this.eventLambdaFunctions.updateEvent), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    eventResource.addMethod('DELETE', new apigateway.LambdaIntegration(this.eventLambdaFunctions.deleteEvent), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Event by slug endpoint
     const eventBySlugResource = eventsResource.addResource('slug').addResource('{slug}');
-    eventBySlugResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventBySlug));
+    eventBySlugResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventBySlug), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Event status management endpoints
-    eventResource.addResource('publish').addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.publishEvent));
-    eventResource.addResource('cancel').addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.cancelEvent));
-    eventResource.addResource('duplicate').addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.duplicateEvent));
+    eventResource.addResource('publish').addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.publishEvent), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    eventResource.addResource('cancel').addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.cancelEvent), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    eventResource.addResource('duplicate').addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.duplicateEvent), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Organizer events endpoint
     const organizerEventsResource = eventsResource.addResource('organizer');
-    organizerEventsResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventsByOrganizer));
+    organizerEventsResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventsByOrganizer), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Category events endpoint
     const categoryEventsResource = eventsResource.addResource('category').addResource('{categoryId}');
-    categoryEventsResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventsByCategory));
+    categoryEventsResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventsByCategory), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Category management endpoints
-    categoriesResource.addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.createCategory));
-    categoriesResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getAllCategories));
+    categoriesResource.addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.createCategory), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    categoriesResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getAllCategories), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Event media endpoints
-    mediaResource.addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.addEventMedia));
-    mediaResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventMedia));
-    mediaItemResource.addMethod('DELETE', new apigateway.LambdaIntegration(this.eventLambdaFunctions.deleteEventMedia));
+    mediaResource.addMethod('POST', new apigateway.LambdaIntegration(this.eventLambdaFunctions.addEventMedia), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    mediaResource.addMethod('GET', new apigateway.LambdaIntegration(this.eventLambdaFunctions.getEventMedia), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    mediaItemResource.addMethod('DELETE', new apigateway.LambdaIntegration(this.eventLambdaFunctions.deleteEventMedia), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Create CloudWatch alarms for Lambda functions
     Object.entries(this.eventLambdaFunctions).forEach(([name, func]) => {
@@ -352,7 +385,7 @@ export class EventManagementServiceStack extends cdk.Stack {
 
     // Output the API Gateway URL
     new cdk.CfnOutput(this, 'EventManagementApiUrl', {
-      value: `${apiGateway.url}events`,
+      value: `${this.apiGateway.url}events`,
       description: 'Event Management API Gateway URL',
       exportName: `${resourcePrefix}-api-url`,
     });

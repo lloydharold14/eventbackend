@@ -23,6 +23,7 @@ export class PaymentServiceStack extends cdk.Stack {
   public readonly paymentTable: dynamodb.Table;
   public readonly paymentLambdaRole: iam.Role;
   public readonly paymentLambdaFunctions: { [key: string]: lambda.Function };
+  public readonly apiGateway: apigateway.RestApi;
 
   constructor(scope: Construct, id: string, props: PaymentServiceStackProps) {
     super(scope, id, props);
@@ -31,7 +32,7 @@ export class PaymentServiceStack extends cdk.Stack {
     const resourcePrefix = `${id.toLowerCase()}-${environment}`;
 
     // Create API Gateway for Payment Service
-    const apiGateway = new apigateway.RestApi(this, 'PaymentServiceAPI', {
+    this.apiGateway = new apigateway.RestApi(this, 'PaymentServiceAPI', {
       restApiName: `PaymentService-${environment}`,
       description: 'Payment Service API Gateway',
       defaultCorsPreflightOptions: {
@@ -329,31 +330,41 @@ export class PaymentServiceStack extends cdk.Stack {
     };
 
     // API Gateway Resources and Methods
-    const paymentsResource = apiGateway.root.addResource('payments');
+    const paymentsResource = this.apiGateway.root.addResource('payments');
     const paymentIdResource = paymentsResource.addResource('{paymentId}');
-    const webhookResource = apiGateway.root.addResource('webhook');
+    const webhookResource = this.apiGateway.root.addResource('webhook');
 
-    // Health Check
-    const healthResource = apiGateway.root.addResource('health');
-    healthResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckFunction));
+    // Health Check endpoint is already in the main API Gateway
 
     // Create Payment Intent
-    paymentsResource.addMethod('POST', new apigateway.LambdaIntegration(createPaymentIntentFunction));
+    paymentsResource.addMethod('POST', new apigateway.LambdaIntegration(createPaymentIntentFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Get Payment Status
-    paymentIdResource.addMethod('GET', new apigateway.LambdaIntegration(getPaymentStatusFunction));
+    paymentIdResource.addMethod('GET', new apigateway.LambdaIntegration(getPaymentStatusFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Confirm Payment
-    paymentIdResource.addResource('confirm').addMethod('POST', new apigateway.LambdaIntegration(confirmPaymentFunction));
+    paymentIdResource.addResource('confirm').addMethod('POST', new apigateway.LambdaIntegration(confirmPaymentFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Process Refund
-    paymentIdResource.addResource('refund').addMethod('POST', new apigateway.LambdaIntegration(processRefundFunction));
+    paymentIdResource.addResource('refund').addMethod('POST', new apigateway.LambdaIntegration(processRefundFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Get User Payments
-    paymentsResource.addResource('user').addResource('{userId}').addMethod('GET', new apigateway.LambdaIntegration(getUserPaymentsFunction));
+    paymentsResource.addResource('user').addResource('{userId}').addMethod('GET', new apigateway.LambdaIntegration(getUserPaymentsFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Stripe Webhook
-    webhookResource.addMethod('POST', new apigateway.LambdaIntegration(stripeWebhookFunction));
+    webhookResource.addMethod('POST', new apigateway.LambdaIntegration(stripeWebhookFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Tags
     cdk.Tags.of(this).add('Project', 'EventManagement');
@@ -364,13 +375,13 @@ export class PaymentServiceStack extends cdk.Stack {
 
     // Outputs
     new cdk.CfnOutput(this, 'PaymentApiUrl', {
-      value: `${apiGateway.url}payments`,
+      value: `${this.apiGateway.url}payments`,
       description: 'Payment Service API URL',
       exportName: `${id}-PaymentApiUrl`,
     });
 
     new cdk.CfnOutput(this, 'PaymentServiceAPIEndpoint', {
-      value: apiGateway.url,
+      value: this.apiGateway.url,
       description: 'Payment Service API Gateway Endpoint',
       exportName: `${id}-PaymentServiceAPIEndpoint`,
     });

@@ -15,6 +15,7 @@ export interface BookingServiceStackProps extends cdk.StackProps {
 export class BookingServiceStack extends cdk.Stack {
   public readonly bookingTable: dynamodb.Table;
   public readonly bookingLambdaFunctions: { [key: string]: lambda.Function };
+  public readonly apiGateway: apigateway.RestApi;
 
   constructor(scope: Construct, id: string, props: BookingServiceStackProps) {
     super(scope, id, props);
@@ -22,7 +23,7 @@ export class BookingServiceStack extends cdk.Stack {
     const { environment } = props;
 
     // Create API Gateway for Booking Service
-    const apiGateway = new apigateway.RestApi(this, 'BookingServiceAPI', {
+    this.apiGateway = new apigateway.RestApi(this, 'BookingServiceAPI', {
       restApiName: `BookingService-${environment}`,
       description: 'Booking Service API Gateway',
       defaultCorsPreflightOptions: {
@@ -193,50 +194,68 @@ export class BookingServiceStack extends cdk.Stack {
     });
 
     // API Gateway Resources and Methods
-    const bookingsResource = apiGateway.root.addResource('bookings');
+    const bookingsResource = this.apiGateway.root.addResource('bookings');
     
     // POST /bookings - Create booking
-    bookingsResource.addMethod('POST', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.createBooking));
+    bookingsResource.addMethod('POST', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.createBooking), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // GET /bookings/user - Get user bookings
     const userBookingsResource = bookingsResource.addResource('user');
-    userBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingsByUser));
+    userBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingsByUser), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // GET /bookings/event/{eventId} - Get event bookings
     const eventBookingsResource = bookingsResource.addResource('event').addResource('{eventId}');
-    eventBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingsByEvent));
+    eventBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingsByEvent), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // GET /bookings/organizer/{organizerId} - Get organizer bookings
     const organizerBookingsResource = bookingsResource.addResource('organizer').addResource('{organizerId}');
-    organizerBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingsByOrganizer));
+    organizerBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingsByOrganizer), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // GET /bookings/statistics - Get booking statistics
     const statisticsResource = bookingsResource.addResource('statistics');
-    statisticsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingStatistics));
+    statisticsResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingStatistics), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // GET /bookings/capacity/{eventId} - Get event capacity
     const capacityResource = bookingsResource.addResource('capacity').addResource('{eventId}');
-    capacityResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getEventCapacity));
+    capacityResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getEventCapacity), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Individual booking operations
     const bookingResource = bookingsResource.addResource('{bookingId}');
     
     // GET /bookings/{bookingId} - Get booking by ID
-    bookingResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingById));
+    bookingResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.getBookingById), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // PUT /bookings/{bookingId} - Update booking
-    bookingResource.addMethod('PUT', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.updateBooking));
+    bookingResource.addMethod('PUT', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.updateBooking), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // DELETE /bookings/{bookingId} - Cancel booking
-    bookingResource.addMethod('DELETE', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.cancelBooking));
+    bookingResource.addMethod('DELETE', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.cancelBooking), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // GET /bookings/{bookingId}/confirmation - Generate booking confirmation
     const confirmationResource = bookingResource.addResource('confirmation');
-    confirmationResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.generateBookingConfirmation));
+    confirmationResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.generateBookingConfirmation), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
-    // Health check endpoint - now on its own API Gateway
-    const healthResource = apiGateway.root.addResource('health');
-    healthResource.addMethod('GET', new apigateway.LambdaIntegration(this.bookingLambdaFunctions.healthCheck));
+    // Health check endpoint is already in the main API Gateway
 
     // CloudWatch Outputs
     new cdk.CfnOutput(this, 'BookingTableName', {
@@ -246,13 +265,13 @@ export class BookingServiceStack extends cdk.Stack {
     });
 
     new cdk.CfnOutput(this, 'BookingServiceApiUrl', {
-      value: apiGateway.url,
+      value: this.apiGateway.url,
       description: 'Booking Service API Gateway URL',
       exportName: `${id}-BookingApiUrl`
     });
 
     new cdk.CfnOutput(this, 'BookingServiceApiId', {
-      value: apiGateway.restApiId,
+      value: this.apiGateway.restApiId,
       description: 'Booking Service API Gateway ID',
       exportName: `${id}-BookingApiId`
     });

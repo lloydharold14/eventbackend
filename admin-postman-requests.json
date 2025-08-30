@@ -1,0 +1,368 @@
+{
+  "info": {
+    "name": "Admin Role Management - Additional Requests",
+    "description": "Admin-specific endpoints for role management and user administration",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "admin_token",
+      "value": "",
+      "type": "string",
+      "description": "JWT token for admin user"
+    },
+    {
+      "key": "target_user_id",
+      "value": "",
+      "type": "string", 
+      "description": "User ID to manage"
+    }
+  ],
+  "item": [
+    {
+      "name": "👑 Admin Authentication",
+      "item": [
+        {
+          "name": "Register First Admin User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.user && response.data.user.id) {",
+                  "        pm.collectionVariables.set('target_user_id', response.data.user.id);",
+                  "        console.log('Admin user ID: ' + response.data.user.id);",
+                  "        console.log('⚠️ IMPORTANT: Manually promote this user to admin in DynamoDB');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@tkhtech.com\",\n  \"password\": \"SecureAdminPass123!\",\n  \"firstName\": \"System\",\n  \"lastName\": \"Administrator\",\n  \"role\": \"attendee\"\n}"
+            },
+            "url": {
+              "raw": "{{main_api_url}}/auth/register",
+              "host": ["{{main_api_url}}"],
+              "path": ["auth", "register"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Admin Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.data && response.data.token) {",
+                  "        pm.collectionVariables.set('admin_token', response.data.token);",
+                  "        pm.collectionVariables.set('jwt_token', response.data.token);",
+                  "        console.log('Admin token saved!');",
+                  "    }",
+                  "    if (response.data && response.data.user) {",
+                  "        console.log('User role: ' + response.data.user.role);",
+                  "        if (response.data.user.role !== 'admin') {",
+                  "            console.log('⚠️ WARNING: This user is not an admin!');",
+                  "        }",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@tkhtech.com\",\n  \"password\": \"SecureAdminPass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{main_api_url}}/auth/login",
+              "host": ["{{main_api_url}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👥 User Management (Admin Only)",
+      "item": [
+        {
+          "name": "List All Users",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{main_api_url}}/users?page=1&pageSize=20",
+              "host": ["{{main_api_url}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize", 
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get User by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{main_api_url}}/users/{{target_user_id}}",
+              "host": ["{{main_api_url}}"],
+              "path": ["users", "{{target_user_id}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Users by Email",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{main_api_url}}/users?email=testuser@tkhtech.com",
+              "host": ["{{main_api_url}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "email",
+                  "value": "testuser@tkhtech.com"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Search Users by Role",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{main_api_url}}/users?role=organizer",
+              "host": ["{{main_api_url}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "role",
+                  "value": "organizer"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔄 Role Management (Admin Only)",
+      "item": [
+        {
+          "name": "Promote User to Admin",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\"\n}"
+            },
+            "url": {
+              "raw": "{{main_api_url}}/users/{{target_user_id}}/role",
+              "host": ["{{main_api_url}}"],
+              "path": ["users", "{{target_user_id}}", "role"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Promote User to Organizer",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"organizer\"\n}"
+            },
+            "url": {
+              "raw": "{{main_api_url}}/users/{{target_user_id}}/role",
+              "host": ["{{main_api_url}}"],
+              "path": ["users", "{{target_user_id}}", "role"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Demote User to Attendee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"attendee\"\n}"
+            },
+            "url": {
+              "raw": "{{main_api_url}}/users/{{target_user_id}}/role",
+              "host": ["{{main_api_url}}"],
+              "path": ["users", "{{target_user_id}}", "role"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🗑️ User Actions (Admin Only)",
+      "item": [
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{main_api_url}}/users/{{target_user_id}}",
+              "host": ["{{main_api_url}}"],
+              "path": ["users", "{{target_user_id}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🧪 Test Admin Permissions",
+      "item": [
+        {
+          "name": "Test: Regular User Tries Admin Action (Should Fail)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{jwt_token}}",
+                "description": "Use regular user token (not admin)"
+              }
+            ],
+            "url": {
+              "raw": "{{main_api_url}}/users",
+              "host": ["{{main_api_url}}"],
+              "path": ["users"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Test: Admin Tries Self-Demotion (Should Fail)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{admin_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"attendee\"\n}"
+            },
+            "url": {
+              "raw": "{{main_api_url}}/users/{{target_user_id}}/role",
+              "host": ["{{main_api_url}}"],
+              "path": ["users", "{{target_user_id}}", "role"],
+              "description": "This should fail if target_user_id is the same as admin user"
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,8 @@ import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
 import { Construct } from 'constructs';
 
 export class QRCodeValidationStack extends cdk.Stack {
+  public readonly apiGateway: apigateway.RestApi;
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
 
@@ -326,7 +328,7 @@ export class QRCodeValidationStack extends cdk.Stack {
     });
 
     // API Gateway
-    const api = new apigateway.RestApi(this, 'QRCodeValidationAPI', {
+    this.apiGateway = new apigateway.RestApi(this, 'QRCodeValidationAPI', {
       restApiName: `${this.stackName}-QRCodeValidationAPI`,
       description: 'QR Code Generation and Attendee Validation API',
       defaultCorsPreflightOptions: {
@@ -337,68 +339,98 @@ export class QRCodeValidationStack extends cdk.Stack {
     });
 
     // QR Code Resources
-    const qrCodes = api.root.addResource('qr-codes');
+    const qrCodes = this.apiGateway.root.addResource('qr-codes');
     
     // Generate QR code
-    qrCodes.addMethod('POST', new apigateway.LambdaIntegration(generateQRCodeFunction));
+    qrCodes.addMethod('POST', new apigateway.LambdaIntegration(generateQRCodeFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Batch generate QR codes
-    qrCodes.addMethod('PUT', new apigateway.LambdaIntegration(batchGenerateQRCodesFunction));
+    qrCodes.addMethod('PUT', new apigateway.LambdaIntegration(batchGenerateQRCodesFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Get QR codes for event
     const eventQRCodes = qrCodes.addResource('event').addResource('{eventId}');
-    eventQRCodes.addMethod('GET', new apigateway.LambdaIntegration(getEventQRCodesFunction));
+    eventQRCodes.addMethod('GET', new apigateway.LambdaIntegration(getEventQRCodesFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Get QR codes for booking
     const bookingQRCodes = qrCodes.addResource('booking').addResource('{bookingId}');
-    bookingQRCodes.addMethod('GET', new apigateway.LambdaIntegration(getBookingQRCodesFunction));
+    bookingQRCodes.addMethod('GET', new apigateway.LambdaIntegration(getBookingQRCodesFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Individual QR code operations
     const qrCode = qrCodes.addResource('{qrCodeId}');
-    qrCode.addMethod('GET', new apigateway.LambdaIntegration(getQRCodeFunction));
-    qrCode.addMethod('DELETE', new apigateway.LambdaIntegration(revokeQRCodeFunction));
+    qrCode.addMethod('GET', new apigateway.LambdaIntegration(getQRCodeFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    qrCode.addMethod('DELETE', new apigateway.LambdaIntegration(revokeQRCodeFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Regenerate QR code
     const regenerate = qrCode.addResource('regenerate');
-    regenerate.addMethod('POST', new apigateway.LambdaIntegration(regenerateQRCodeFunction));
+    regenerate.addMethod('POST', new apigateway.LambdaIntegration(regenerateQRCodeFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Validation Resources
-    const validation = api.root.addResource('validation');
+    const validation = this.apiGateway.root.addResource('validation');
     
     // Validate QR code
-    validation.addMethod('POST', new apigateway.LambdaIntegration(validateQRCodeFunction));
+    validation.addMethod('POST', new apigateway.LambdaIntegration(validateQRCodeFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Check-in attendee
     const checkIn = validation.addResource('check-in');
-    checkIn.addMethod('POST', new apigateway.LambdaIntegration(checkInAttendeeFunction));
+    checkIn.addMethod('POST', new apigateway.LambdaIntegration(checkInAttendeeFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Check-out attendee
     const checkOut = validation.addResource('check-out');
-    checkOut.addMethod('POST', new apigateway.LambdaIntegration(checkOutAttendeeFunction));
+    checkOut.addMethod('POST', new apigateway.LambdaIntegration(checkOutAttendeeFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Batch validation
     const batchValidate = validation.addResource('batch-validate');
-    batchValidate.addMethod('POST', new apigateway.LambdaIntegration(batchValidateFunction));
+    batchValidate.addMethod('POST', new apigateway.LambdaIntegration(batchValidateFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Offline validation
     const offlineValidate = validation.addResource('offline-validate');
-    offlineValidate.addMethod('POST', new apigateway.LambdaIntegration(offlineValidateFunction));
+    offlineValidate.addMethod('POST', new apigateway.LambdaIntegration(offlineValidateFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Get validation history
     const validationHistory = validation.addResource('history').addResource('{qrCodeId}');
-    validationHistory.addMethod('GET', new apigateway.LambdaIntegration(getValidationHistoryFunction));
+    validationHistory.addMethod('GET', new apigateway.LambdaIntegration(getValidationHistoryFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Get event validation statistics
     const eventStats = validation.addResource('event').addResource('{eventId}').addResource('stats');
-    eventStats.addMethod('GET', new apigateway.LambdaIntegration(getEventValidationStatisticsFunction));
+    eventStats.addMethod('GET', new apigateway.LambdaIntegration(getEventValidationStatisticsFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     // Get validation metrics
     const metrics = validation.addResource('metrics');
-    metrics.addMethod('GET', new apigateway.LambdaIntegration(getValidationMetricsFunction));
+    metrics.addMethod('GET', new apigateway.LambdaIntegration(getValidationMetricsFunction), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Outputs
     new cdk.CfnOutput(this, 'QRCodeValidationAPIUrl', {
-      value: api.url,
+      value: this.apiGateway.url,
       description: 'QR Code Validation API URL'
     });
 

@@ -12,7 +12,10 @@ import { SearchServiceStack } from './stacks/SearchServiceStack';
 import { AnalyticsServiceStack } from './stacks/AnalyticsServiceStack';
 import { QRCodeValidationStack } from './stacks/QRCodeValidationStack';
 import { DomainIntegrationStack } from './stacks/DomainIntegrationStack';
+import { MultiDomainIntegrationStack } from './stacks/MultiDomainIntegrationStack';
+import { CertificateStack } from './stacks/CertificateStack';
 import { getEnvironmentConfig, validateEnvironmentConfig } from './config/environments';
+import * as route53 from 'aws-cdk-lib/aws-route53';
 
 const app = new cdk.App();
 
@@ -142,25 +145,55 @@ const qrCodeValidationStack = new QRCodeValidationStack(app, `QRCodeValidation-$
   description: 'QR Code and Validation Service - QR Code Generation and Attendee Validation'
 });
 
-// Domain Integration Stack (optional - only if domain name is provided)
-let domainIntegrationStack: DomainIntegrationStack | undefined;
+// Certificate Stack (optional - only if domain name is provided)
+let certificateStack: CertificateStack | undefined;
+let multiDomainIntegrationStack: MultiDomainIntegrationStack | undefined;
 const domainName = process.env.CDK_DOMAIN_NAME;
-const subdomain = process.env.CDK_SUBDOMAIN || 'api';
 
 if (domainName) {
-  domainIntegrationStack = new DomainIntegrationStack(app, `DomainIntegration-${environment}`, {
+  // Create certificate stack first
+  certificateStack = new CertificateStack(app, `Certificate-${environment}`, {
+    ...commonProps,
+    description: 'SSL Certificates for Custom Domains',
+    domainName,
+    environment,
+  });
+
+  // Create multi-domain integration stack with certificates
+  multiDomainIntegrationStack = new MultiDomainIntegrationStack(app, `MultiDomainIntegration-${environment}`, {
     ...commonProps,
     environment,
-    description: 'Domain Integration - Custom Domain, CloudFront, and SSL Certificate',
-    apiGateway: eventManagementStack.apiGateway,
+    description: 'Multi-Domain Integration - Custom Domains for All Services',
     domainName,
-    subdomain,
-    config: envConfig
+    apiGateways: {
+      main: eventManagementStack.apiGateway,
+      events: eventManagementServiceStack.apiGateway,
+      bookings: bookingServiceStack.apiGateway,
+      payments: paymentServiceStack.apiGateway,
+      qrCodes: qrCodeValidationStack.apiGateway,
+      analytics: analyticsServiceStack.analyticsApiGateway,
+    },
+    certificates: {
+      main: certificateStack.mainApiCertificate,
+      events: certificateStack.eventsApiCertificate,
+      bookings: certificateStack.bookingsApiCertificate,
+      payments: certificateStack.paymentsApiCertificate,
+      qrCodes: certificateStack.qrCodesApiCertificate,
+      analytics: certificateStack.analyticsApiCertificate,
+    },
+    config: envConfig,
+    crossRegionReferences: true, // Enable cross-region references for certificates
   });
   
   // Add dependencies
-  domainIntegrationStack.addDependency(eventManagementStack);
-  domainIntegrationStack.addDependency(userManagementStack);
+  multiDomainIntegrationStack.addDependency(certificateStack);
+  multiDomainIntegrationStack.addDependency(eventManagementStack);
+  multiDomainIntegrationStack.addDependency(userManagementStack);
+  multiDomainIntegrationStack.addDependency(eventManagementServiceStack);
+  multiDomainIntegrationStack.addDependency(bookingServiceStack);
+  multiDomainIntegrationStack.addDependency(paymentServiceStack);
+  multiDomainIntegrationStack.addDependency(qrCodeValidationStack);
+  multiDomainIntegrationStack.addDependency(analyticsServiceStack);
 }
 
 // Stack dependencies
@@ -303,22 +336,16 @@ new cdk.CfnOutput(eventManagementStack, 'DeploymentInstructions', {
   exportName: `EventManagement-${environment}-DeploymentInstructions`
 });
 
-// Domain Integration Outputs (only if domain integration is enabled)
-if (domainIntegrationStack) {
-  new cdk.CfnOutput(domainIntegrationStack, 'DomainIntegrationStatus', {
-    value: `Domain integration enabled for ${subdomain}.${domainName}`,
-    description: 'Domain Integration Status',
-    exportName: `EventManagement-${environment}-DomainIntegrationStatus`
+// Multi-Domain Integration Outputs (only if multi-domain integration is enabled)
+if (multiDomainIntegrationStack) {
+  new cdk.CfnOutput(multiDomainIntegrationStack, 'MultiDomainIntegrationStatus', {
+    value: `Multi-domain integration enabled for ${domainName}`,
+    description: 'Multi-Domain Integration Status',
+    exportName: `EventManagement-${environment}-MultiDomainIntegrationStatus`
   });
   
-  new cdk.CfnOutput(domainIntegrationStack, 'CustomApiUrl', {
-    value: `https://${subdomain}.${domainName}`,
-    description: 'Custom API URL',
-    exportName: `EventManagement-${environment}-CustomApiUrl`
-  });
-  
-  new cdk.CfnOutput(domainIntegrationStack, 'DnsConfigurationInstructions', {
-    value: `Update your Namecheap DNS settings with the provided name servers. Check DNS_CONFIGURATION_GUIDE.md for detailed instructions.`,
+  new cdk.CfnOutput(multiDomainIntegrationStack, 'DnsConfigurationInstructions', {
+    value: `All custom domains have been configured. Check MULTI_DOMAIN_DNS_CONFIGURATION_GUIDE.md for detailed instructions.`,
     description: 'DNS Configuration Instructions',
     exportName: `EventManagement-${environment}-DnsConfigurationInstructions`
   });

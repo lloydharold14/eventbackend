@@ -17,7 +17,7 @@ export interface DomainIntegrationStackProps extends cdk.StackProps {
 }
 
 export class DomainIntegrationStack extends cdk.Stack {
-  public readonly certificate: certificatemanager.Certificate;
+  public readonly certificate: certificatemanager.ICertificate;
   public readonly cloudFrontDistribution: cloudfront.Distribution;
   public readonly hostedZone?: route53.IHostedZone;
 
@@ -30,15 +30,12 @@ export class DomainIntegrationStack extends cdk.Stack {
     // Create or import hosted zone
     this.hostedZone = this.createOrImportHostedZone(domainName);
 
-    // Create SSL certificate
-    this.certificate = new certificatemanager.Certificate(this, 'ApiCertificate', {
-      domainName: fullDomainName,
-      validation: certificatemanager.CertificateValidation.fromDns(this.hostedZone),
-      subjectAlternativeNames: [
-        domainName, // Also cover root domain
-        `*.${domainName}`, // Wildcard for subdomains
-      ],
-    });
+    // Import existing wildcard certificate (CloudFront requires us-east-1)
+    this.certificate = certificatemanager.Certificate.fromCertificateArn(
+      this,
+      'ExistingWildcardCertificate',
+      'arn:aws:acm:us-east-1:873998455576:certificate/bd51f5b1-5319-4d88-99e8-c9be887856bb'
+    );
 
     // Create CloudFront distribution
     this.cloudFrontDistribution = new cloudfront.Distribution(this, 'ApiDistribution', {
@@ -89,20 +86,8 @@ export class DomainIntegrationStack extends cdk.Stack {
       });
     }
 
-    // Create custom domain in API Gateway
-    const customDomain = new apigateway.DomainName(this, 'ApiCustomDomain', {
-      domainName: fullDomainName,
-      certificate: this.certificate,
-      securityPolicy: apigateway.SecurityPolicy.TLS_1_2,
-      endpointType: apigateway.EndpointType.REGIONAL,
-    });
-
-    // Create base path mapping
-    new apigateway.BasePathMapping(this, 'ApiBasePathMapping', {
-      domainName: customDomain,
-      restApi: apiGateway,
-      basePath: '', // No base path, serve from root
-    });
+    // Note: API Gateway custom domain requires certificate in same region
+    // Using CloudFront instead for global distribution with us-east-1 certificate
 
     // Outputs
     new cdk.CfnOutput(this, 'CloudFrontDomainName', {

@@ -235,6 +235,103 @@ export class EventManagementStack extends cdk.Stack {
       securityGroups: [this.securityGroup],
     });
 
+    // Notification Lambda Functions
+    const sendNotificationLambda = new lambda.Function(this, 'SendNotificationLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'notifications/handlers/notificationHandlers.sendNotification',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      environment: {
+        ENVIRONMENT: environment,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      vpc: this.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [this.securityGroup],
+    });
+
+    const sendBookingConfirmationLambda = new lambda.Function(this, 'SendBookingConfirmationLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'notifications/handlers/notificationHandlers.sendBookingConfirmation',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      environment: {
+        ENVIRONMENT: environment,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      vpc: this.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [this.securityGroup],
+    });
+
+    const sendBookingCancellationLambda = new lambda.Function(this, 'SendBookingCancellationLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'notifications/handlers/notificationHandlers.sendBookingCancellation',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      environment: {
+        ENVIRONMENT: environment,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      vpc: this.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [this.securityGroup],
+    });
+
+    const sendPaymentConfirmationLambda = new lambda.Function(this, 'SendPaymentConfirmationLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'notifications/handlers/notificationHandlers.sendPaymentConfirmation',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      environment: {
+        ENVIRONMENT: environment,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      vpc: this.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [this.securityGroup],
+    });
+
+    const sendPaymentFailedLambda = new lambda.Function(this, 'SendPaymentFailedLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'notifications/handlers/notificationHandlers.sendPaymentFailed',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      environment: {
+        ENVIRONMENT: environment,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 256,
+      vpc: this.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [this.securityGroup],
+    });
+
+    const notificationHealthCheckLambda = new lambda.Function(this, 'NotificationHealthCheckLambda', {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      handler: 'notifications/handlers/notificationHandlers.healthCheck',
+      code: lambda.Code.fromAsset('dist/bundled'),
+      environment: {
+        ENVIRONMENT: environment,
+      },
+      timeout: cdk.Duration.seconds(30),
+      memorySize: 128,
+      vpc: this.vpc,
+      vpcSubnets: {
+        subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+      },
+      securityGroups: [this.securityGroup],
+    });
+
     // 10. API Gateway Resources and Methods
     const healthResource = this.apiGateway.root.addResource('health');
     const healthIntegration = new apigateway.LambdaIntegration(healthCheckLambda);
@@ -248,6 +345,44 @@ export class EventManagementStack extends cdk.Stack {
           },
         },
       ],
+    });
+
+    // Notification endpoints
+    const notificationsResource = this.apiGateway.root.addResource('notifications');
+    
+    // Send notification
+    notificationsResource.addMethod('POST', new apigateway.LambdaIntegration(sendNotificationLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Send booking confirmation
+    const bookingConfirmationResource = notificationsResource.addResource('booking-confirmation');
+    bookingConfirmationResource.addMethod('POST', new apigateway.LambdaIntegration(sendBookingConfirmationLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Send booking cancellation
+    const bookingCancellationResource = notificationsResource.addResource('booking-cancellation');
+    bookingCancellationResource.addMethod('POST', new apigateway.LambdaIntegration(sendBookingCancellationLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Send payment confirmation
+    const paymentConfirmationResource = notificationsResource.addResource('payment-confirmation');
+    paymentConfirmationResource.addMethod('POST', new apigateway.LambdaIntegration(sendPaymentConfirmationLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Send payment failed
+    const paymentFailedResource = notificationsResource.addResource('payment-failed');
+    paymentFailedResource.addMethod('POST', new apigateway.LambdaIntegration(sendPaymentFailedLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Notification health check
+    const notificationHealthResource = notificationsResource.addResource('health');
+    notificationHealthResource.addMethod('GET', new apigateway.LambdaIntegration(notificationHealthCheckLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
     });
 
     // 11. CloudWatch Dashboard

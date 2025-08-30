@@ -30,3 +30,4 @@ commonPatterns.forEach((pattern, index) => {
   console.log(`Pattern ${index + 1}:`, pattern.test(password));
 });
 
+
