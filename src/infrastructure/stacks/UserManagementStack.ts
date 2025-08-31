@@ -380,23 +380,45 @@ export class UserManagementStack extends cdk.Stack {
     const authResource = apiGateway.root.addResource('auth');
     const adminResource = apiGateway.root.addResource('admin');
 
-    // Authentication endpoints
-    authResource.addResource('register').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.registerUser));
-    authResource.addResource('login').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.loginUser));
-    authResource.addResource('refresh').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.refreshToken));
-    authResource.addResource('change-password').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.changePassword));
-    authResource.addResource('reset-password').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.resetPassword));
-    authResource.addResource('confirm-reset').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.confirmPasswordReset));
+    // Authentication endpoints (public - no auth required)
+    authResource.addResource('register').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.registerUser), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('login').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.loginUser), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('refresh').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.refreshToken), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('change-password').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.changePassword), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('reset-password').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.resetPassword), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('confirm-reset').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.confirmPasswordReset), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
-    // OAuth endpoints
+    // OAuth endpoints (public - no auth required)
     const authOAuthResource = authResource.addResource('oauth');
-    authOAuthResource.addResource('login').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.oauthLogin));
-    authOAuthResource.addResource('authorization-url').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getOAuthAuthorizationUrl));
+    authOAuthResource.addResource('login').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.oauthLogin), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authOAuthResource.addResource('authorization-url').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getOAuthAuthorizationUrl), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
     
     const usersOAuthResource = usersResource.addResource('oauth');
-    usersOAuthResource.addResource('link').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.linkOAuthAccount));
-    usersOAuthResource.addResource('unlink').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.unlinkOAuthAccount));
-    usersOAuthResource.addResource('accounts').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getLinkedOAuthAccounts));
+    usersOAuthResource.addResource('link').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.linkOAuthAccount), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    usersOAuthResource.addResource('unlink').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.unlinkOAuthAccount), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    usersOAuthResource.addResource('accounts').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getLinkedOAuthAccounts), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // User profile endpoints
     const profileResource = usersResource.addResource('profile');
@@ -404,11 +426,19 @@ export class UserManagementStack extends cdk.Stack {
     profileResource.addMethod('PUT', new apigateway.LambdaIntegration(this.userLambdaFunctions.updateUserProfile));
     usersResource.addResource('{userId}').addMethod('GET', new apigateway.LambdaIntegration(this.userLambdaFunctions.getUserById));
 
-    // Verification endpoints
-    authResource.addResource('verify-email').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifyEmail));
-    authResource.addResource('verify-sms').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifySMS));
-    authResource.addResource('resend-email-verification').addResource('{userId}').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.resendEmailVerification));
-    authResource.addResource('send-sms-verification').addResource('{userId}').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.sendSMSVerification));
+    // Verification endpoints (public - no auth required)
+    authResource.addResource('verify-email').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifyEmail), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('verify-sms').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.verifySMS), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('resend-email-verification').addResource('{userId}').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.resendEmailVerification), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    authResource.addResource('send-sms-verification').addResource('{userId}').addMethod('POST', new apigateway.LambdaIntegration(this.userLambdaFunctions.sendSMSVerification), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
 
     // Admin endpoints
     const adminUsersResource = adminResource.addResource('users');
