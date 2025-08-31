@@ -276,47 +276,230 @@ export const getEmailVerificationTemplate = (
 ): EmailTemplate => {
   const templates = {
     'en-US': {
-      subject: 'Verify Your Email - Event Management Platform',
+      subject: '🎉 Welcome! Verify Your Email - Event Management Platform',
       htmlBody: `
-        <h2>Hello ${userName},</h2>
-        <p>Welcome to the Event Management Platform! Please verify your email address to complete your registration.</p>
+        <h2>Hello ${userName}! 👋</h2>
+        <p>Welcome to the <strong>Event Management Platform</strong>! We're excited to have you on board.</p>
         
-        <div style="text-align: center;">
-          <a href="${verificationUrl}" class="button">Verify Email Address</a>
+        <p>To get started and access all our amazing features, please verify your email address by clicking the button below:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationUrl}" class="button" style="font-size: 16px; padding: 15px 30px;">
+            ✅ Verify My Email Address
+          </a>
         </div>
         
-        <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-        <p style="word-break: break-all; color: #667eea;">${verificationUrl}</p>
-        
         <div class="info">
-          <strong>What happens next?</strong>
+          <strong>🔐 Why verify your email?</strong>
           <ul>
-            <li>Click the verification link above</li>
-            <li>Your email will be verified</li>
-            <li>You can start using all platform features</li>
+            <li>Secure your account and protect your data</li>
+            <li>Receive important notifications about your events</li>
+            <li>Access all platform features and capabilities</li>
+            <li>Reset your password if needed</li>
           </ul>
         </div>
         
-        <p>If you didn't create an account, please ignore this email.</p>
+        <p><strong>Having trouble?</strong> If the button above doesn't work, copy and paste this link into your browser:</p>
+        <p style="word-break: break-all; color: #667eea; background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;">${verificationUrl}</p>
+        
+        <div class="warning">
+          <strong>⚠️ Security Notice:</strong>
+          <ul>
+            <li>This verification link will expire in 24 hours</li>
+            <li>If you didn't create an account, please ignore this email</li>
+            <li>Never share this link with anyone</li>
+          </ul>
+        </div>
+        
+        <p><strong>Need help?</strong> Our support team is here to help! Contact us at <a href="mailto:support@eventmanagementplatform.com">support@eventmanagementplatform.com</a></p>
+        
+        <p>Best regards,<br>
+        <strong>The Event Management Platform Team</strong> 🚀</p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          This email was sent to verify your account. If you have any questions, please contact our support team.
+        </p>
         
         <p>Best regards,<br>The Event Management Platform Team</p>
       `,
       textBody: `
-Hello ${userName},
+Hello ${userName}! 👋
 
-Welcome to the Event Management Platform! Please verify your email address to complete your registration.
+Welcome to the Event Management Platform! We're excited to have you on board.
 
-Verify your email by clicking this link: ${verificationUrl}
+To get started and access all our amazing features, please verify your email address by clicking this link:
 
-What happens next?
-- Click the verification link above
-- Your email will be verified
-- You can start using all platform features
+${verificationUrl}
 
-If you didn't create an account, please ignore this email.
+🔐 Why verify your email?
+- Secure your account and protect your data
+- Receive important notifications about your events
+- Access all platform features and capabilities
+- Reset your password if needed
+
+⚠️ Security Notice:
+- This verification link will expire in 24 hours
+- If you didn't create an account, please ignore this email
+- Never share this link with anyone
+
+Need help? Our support team is here to help! Contact us at support@eventmanagementplatform.com
 
 Best regards,
-The Event Management Platform Team
+The Event Management Platform Team 🚀
+
+        ---
+This email was sent to verify your account. If you have any questions, please contact our support team.
+      `
+    },
+    'fr-CA': {
+      subject: '🎉 Bienvenue ! Vérifiez votre email - Plateforme de gestion d\'événements',
+      htmlBody: `
+        <h2>Bonjour ${userName} ! 👋</h2>
+        <p>Bienvenue sur la <strong>Plateforme de gestion d'événements</strong> ! Nous sommes ravis de vous accueillir.</p>
+        
+        <p>Pour commencer et accéder à toutes nos fonctionnalités, veuillez vérifier votre adresse email en cliquant sur le bouton ci-dessous :</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationUrl}" class="button" style="font-size: 16px; padding: 15px 30px;">
+            ✅ Vérifier mon adresse email
+          </a>
+        </div>
+        
+        <div class="info">
+          <strong>🔐 Pourquoi vérifier votre email ?</strong>
+          <ul>
+            <li>Sécuriser votre compte et protéger vos données</li>
+            <li>Recevoir des notifications importantes sur vos événements</li>
+            <li>Accéder à toutes les fonctionnalités de la plateforme</li>
+            <li>Réinitialiser votre mot de passe si nécessaire</li>
+          </ul>
+        </div>
+        
+        <p><strong>Des problèmes ?</strong> Si le bouton ci-dessus ne fonctionne pas, copiez et collez ce lien dans votre navigateur :</p>
+        <p style="word-break: break-all; color: #667eea; background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;">${verificationUrl}</p>
+        
+        <div class="warning">
+          <strong>⚠️ Avis de sécurité :</strong>
+          <ul>
+            <li>Ce lien de vérification expirera dans 24 heures</li>
+            <li>Si vous n'avez pas créé de compte, veuillez ignorer cet email</li>
+            <li>Ne partagez jamais ce lien avec qui que ce soit</li>
+          </ul>
+        </div>
+        
+        <p><strong>Besoin d'aide ?</strong> Notre équipe de support est là pour vous aider ! Contactez-nous à <a href="mailto:support@eventmanagementplatform.com">support@eventmanagementplatform.com</a></p>
+        
+        <p>Cordialement,<br>
+        <strong>L'équipe de la Plateforme de gestion d'événements</strong> 🚀</p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          Cet email a été envoyé pour vérifier votre compte. Si vous avez des questions, veuillez contacter notre équipe de support.
+        </p>
+      `,
+      textBody: `
+Bonjour ${userName} ! 👋
+
+Bienvenue sur la Plateforme de gestion d'événements ! Nous sommes ravis de vous accueillir.
+
+Pour commencer et accéder à toutes nos fonctionnalités, veuillez vérifier votre adresse email en cliquant sur ce lien :
+
+${verificationUrl}
+
+🔐 Pourquoi vérifier votre email ?
+- Sécuriser votre compte et protéger vos données
+- Recevoir des notifications importantes sur vos événements
+- Accéder à toutes les fonctionnalités de la plateforme
+- Réinitialiser votre mot de passe si nécessaire
+
+⚠️ Avis de sécurité :
+- Ce lien de vérification expirera dans 24 heures
+- Si vous n'avez pas créé de compte, veuillez ignorer cet email
+- Ne partagez jamais ce lien avec qui que ce soit
+
+Besoin d'aide ? Notre équipe de support est là pour vous aider ! Contactez-nous à support@eventmanagementplatform.com
+
+Cordialement,
+L'équipe de la Plateforme de gestion d'événements 🚀
+
+---
+Cet email a été envoyé pour vérifier votre compte. Si vous avez des questions, veuillez contacter notre équipe de support.
+      `
+    },
+    'es-US': {
+      subject: '🎉 ¡Bienvenido! Verifica tu email - Plataforma de gestión de eventos',
+      htmlBody: `
+        <h2>¡Hola ${userName}! 👋</h2>
+        <p>¡Bienvenido a la <strong>Plataforma de gestión de eventos</strong>! Nos emociona tenerte con nosotros.</p>
+        
+        <p>Para comenzar y acceder a todas nuestras increíbles funciones, por favor verifica tu dirección de email haciendo clic en el botón de abajo:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${verificationUrl}" class="button" style="font-size: 16px; padding: 15px 30px;">
+            ✅ Verificar mi dirección de email
+          </a>
+        </div>
+        
+        <div class="info">
+          <strong>🔐 ¿Por qué verificar tu email?</strong>
+          <ul>
+            <li>Segurar tu cuenta y proteger tus datos</li>
+            <li>Recibir notificaciones importantes sobre tus eventos</li>
+            <li>Acceder a todas las funciones de la plataforma</li>
+            <li>Restablecer tu contraseña si es necesario</li>
+          </ul>
+        </div>
+        
+        <p><strong>¿Tienes problemas?</strong> Si el botón de arriba no funciona, copia y pega este enlace en tu navegador:</p>
+        <p style="word-break: break-all; color: #667eea; background: #f8f9fa; padding: 10px; border-radius: 4px; font-size: 12px;">${verificationUrl}</p>
+        
+        <div class="warning">
+          <strong>⚠️ Aviso de seguridad:</strong>
+          <ul>
+            <li>Este enlace de verificación expirará en 24 horas</li>
+            <li>Si no creaste una cuenta, por favor ignora este correo</li>
+            <li>Nunca compartas este enlace con nadie</li>
+          </ul>
+        </div>
+        
+        <p><strong>¿Necesitas ayuda?</strong> ¡Nuestro equipo de soporte está aquí para ayudarte! Contáctanos en <a href="mailto:support@eventmanagementplatform.com">support@eventmanagementplatform.com</a></p>
+        
+        <p>Saludos cordiales,<br>
+        <strong>El equipo de la Plataforma de gestión de eventos</strong> 🚀</p>
+        
+        <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
+        <p style="font-size: 12px; color: #666;">
+          Este correo fue enviado para verificar tu cuenta. Si tienes alguna pregunta, por favor contacta a nuestro equipo de soporte.
+        </p>
+      `,
+      textBody: `
+¡Hola ${userName}! 👋
+
+¡Bienvenido a la Plataforma de gestión de eventos! Nos emociona tenerte con nosotros.
+
+Para comenzar y acceder a todas nuestras increíbles funciones, por favor verifica tu dirección de email haciendo clic en este enlace:
+
+${verificationUrl}
+
+🔐 ¿Por qué verificar tu email?
+- Segurar tu cuenta y proteger tus datos
+- Recibir notificaciones importantes sobre tus eventos
+- Acceder a todas las funciones de la plataforma
+- Restablecer tu contraseña si es necesario
+
+⚠️ Aviso de seguridad:
+- Este enlace de verificación expirará en 24 horas
+- Si no creaste una cuenta, por favor ignora este correo
+- Nunca compartas este enlace con nadie
+
+¿Necesitas ayuda? ¡Nuestro equipo de soporte está aquí para ayudarte! Contáctanos en support@eventmanagementplatform.com
+
+Saludos cordiales,
+El equipo de la Plataforma de gestión de eventos 🚀
+
+---
+Este correo fue enviado para verificar tu cuenta. Si tienes alguna pregunta, por favor contacta a nuestro equipo de soporte.
       `
     }
   };
