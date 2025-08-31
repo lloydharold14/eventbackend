@@ -80,7 +80,7 @@ export class MultiDomainIntegrationStack extends cdk.Stack {
     const bookingsDistribution = new cloudfront.Distribution(this, 'BookingsApiDistribution', {
       defaultBehavior: {
         origin: new origins.HttpOrigin(apiGateways.bookings.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
-          originPath: `/${environment}`,
+          originPath: `/prod`, // Bookings API uses /prod stage
         }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
@@ -110,7 +110,7 @@ export class MultiDomainIntegrationStack extends cdk.Stack {
     const qrCodesDistribution = new cloudfront.Distribution(this, 'QRCodesApiDistribution', {
       defaultBehavior: {
         origin: new origins.HttpOrigin(apiGateways.qrCodes.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
-          originPath: `/${environment}`,
+          originPath: `/prod`, // QR Codes API uses /prod stage
         }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
