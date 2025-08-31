@@ -300,8 +300,14 @@ export class AuthService {
           email,
           error: emailResult.error
         });
-        // Still log the token for development/debugging
+        // Log the token for development/debugging
+        logger.info('Password reset token for development', { 
+          email,
+          resetToken,
+          resetUrl: `${resetBaseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`
+        });
         console.log(`Password reset token for ${email}: ${resetToken}`);
+        console.log(`Password reset URL for ${email}: ${resetBaseUrl}/reset-password?token=${encodeURIComponent(resetToken)}`);
       }
     } catch (error: any) {
       logger.error('Failed to initiate password reset', { error: error.message, email });
