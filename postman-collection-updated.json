@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Event Management Platform - Updated API Collection",
-    "description": "Complete test suite for the Event Management Platform with direct API Gateway endpoints and latest authentication changes",
+    "name": "Event Management Platform - Role-Based API Collection",
+    "description": "Complete test suite organized by user roles (Public, Attendee, Organizer, Admin) with direct API Gateway endpoints",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
@@ -461,7 +461,86 @@
       ]
     },
     {
-      "name": "📅 Event Management",
+      "name": "📅 Event Management (Public)",
+      "item": [
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Events retrieved successfully!');",
+                  "        console.log('📊 Total Events:', response.data.events.length);",
+                  "        console.log('📄 Page:', response.data.pagination.page);",
+                  "        console.log('📋 Total Pages:', response.data.pagination.totalPages);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get events failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event retrieved successfully!');",
+                  "        console.log('📅 Title:', response.data.event.title);",
+                  "        console.log('📍 Location:', response.data.event.location.city);",
+                  "        console.log('💰 Price:', response.data.event.ticketPrice);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get event failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎪 Organizer APIs (Requires Organizer Role)",
       "item": [
         {
           "name": "Create Event",
@@ -581,11 +660,130 @@
               }
             }
           ]
+        },
+        {
+          "name": "Update Event",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Event Title\",\n  \"description\": \"Updated event description\",\n  \"capacity\": 150,\n  \"ticketPrice\": 30.00\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event updated successfully!');",
+                  "        console.log('📅 Updated Title:', response.data.event.title);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Event update failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete Event",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Event deleted successfully!');",
+                  "} else {",
+                  "    console.log('❌ Event deletion failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Events (Organizer)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/events/organizer?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "organizer"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Organizer events retrieved successfully!');",
+                  "        console.log('📊 My Events:', response.data.events.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get organizer events failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "🎫 Booking Management",
+      "name": "🎫 Attendee APIs (Requires Attendee Role)",
       "item": [
         {
           "name": "Create Booking",
@@ -661,6 +859,246 @@
                   "    }",
                   "} else {",
                   "    console.log('❌ Get user bookings failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Bookings (Attendee)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "user"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ User bookings retrieved successfully!');",
+                  "        console.log('📊 Total Bookings:', response.data.bookings.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get user bookings failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "{{bookingId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Booking cancelled successfully!');",
+                  "} else {",
+                  "    console.log('❌ Booking cancellation failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👑 Admin APIs (Requires Admin Role)",
+      "item": [
+        {
+          "name": "List All Users (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users?page=1&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["users"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Users retrieved successfully!');",
+                  "        console.log('📊 Total Users:', response.data.users.length);",
+                  "        console.log('👑 Admin access confirmed');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get users failed:', pm.response.text());",
+                  "    if (pm.response.code === 403) {",
+                  "        console.log('🚫 Access denied - Admin role required');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Change User Role (Admin Only)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"organizer\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}/role",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}", "role"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ User role changed successfully!');",
+                  "        console.log('👤 New Role:', response.data.user.role);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Role change failed:', pm.response.text());",
+                  "    if (pm.response.code === 403) {",
+                  "        console.log('🚫 Access denied - Admin role required');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Delete User (Admin Only)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "{{userId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ User deleted successfully!');",
+                  "} else {",
+                  "    console.log('❌ User deletion failed:', pm.response.text());",
+                  "    if (pm.response.code === 403) {",
+                  "        console.log('🚫 Access denied - Admin role required');",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Platform Statistics (Admin Only)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/analytics/platform",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "platform"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Platform statistics retrieved!');",
+                  "        console.log('📊 Total Users:', response.data.stats.totalUsers);",
+                  "        console.log('📅 Total Events:', response.data.stats.totalEvents);",
+                  "        console.log('🎫 Total Bookings:', response.data.stats.totalBookings);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get statistics failed:', pm.response.text());",
+                  "    if (pm.response.code === 403) {",
+                  "        console.log('🚫 Access denied - Admin role required');",
+                  "    }",
                   "}"
                 ]
               }
