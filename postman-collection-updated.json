@@ -1,132 +1,78 @@
 {
   "info": {
-    "name": "Event Management Platform - Updated APIs",
-    "description": "Complete API collection for testing the Event Management Platform with updated endpoints",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "version": "2.0.0"
+    "name": "Event Management Platform - Updated API Collection",
+    "description": "Complete test suite for the Event Management Platform with direct API Gateway endpoints and latest authentication changes",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string"
+    },
+    {
+      "key": "userPoolId",
+      "value": "ca-central-1_NgK0SDL4T",
+      "type": "string"
+    },
+    {
+      "key": "userPoolClientId",
+      "value": "2bbu335cjoe2afm71kjedbn86l",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationToken",
+      "value": "",
+      "type": "string"
+    }
+  ],
   "auth": {
     "type": "bearer",
     "bearer": [
       {
         "key": "token",
-        "value": "{{jwt_token}}",
+        "value": "{{accessToken}}",
         "type": "string"
       }
     ]
   },
-  "variable": [
-    {
-      "key": "main_api_url",
-      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
-      "type": "string",
-      "description": "Main API (Auth, Users, Notifications)"
-    },
-    {
-      "key": "events_api_url", 
-      "value": "https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev",
-      "type": "string",
-      "description": "Events API"
-    },
-    {
-      "key": "bookings_api_url",
-      "value": "https://5xhxnznlrc.execute-api.ca-central-1.amazonaws.com/dev",
-      "type": "string",
-      "description": "Bookings API"
-    },
-    {
-      "key": "payments_api_url",
-      "value": "https://wf9rj1iqqg.execute-api.ca-central-1.amazonaws.com/dev",
-      "type": "string",
-      "description": "Payments API"
-    },
-    {
-      "key": "qr_api_url",
-      "value": "https://6kzv4t4jc3.execute-api.ca-central-1.amazonaws.com/dev",
-      "type": "string",
-      "description": "QR Codes API"
-    },
-    {
-      "key": "analytics_api_url",
-      "value": "https://gvgq7ddks3.execute-api.ca-central-1.amazonaws.com/dev",
-      "type": "string",
-      "description": "Analytics API"
-    },
-    {
-      "key": "custom_main_api",
-      "value": "https://dev-api.event.tkhtech.com",
-      "type": "string",
-      "description": "Custom Domain - Main API (In Progress)"
-    },
-    {
-      "key": "custom_events_api",
-      "value": "https://dev-events.event.tkhtech.com",
-      "type": "string", 
-      "description": "Custom Domain - Events API (In Progress)"
-    },
-    {
-      "key": "jwt_token",
-      "value": "",
-      "type": "string",
-      "description": "JWT token from login response"
-    },
-    {
-      "key": "user_id",
-      "value": "",
-      "type": "string",
-      "description": "User ID from login response"
-    },
-    {
-      "key": "event_id",
-      "value": "",
-      "type": "string",
-      "description": "Event ID for testing"
-    },
-    {
-      "key": "booking_id",
-      "value": "",
-      "type": "string",
-      "description": "Booking ID for testing"
-    }
-  ],
   "item": [
     {
-      "name": "🏥 Health Checks",
+      "name": "🔍 Health Check",
       "item": [
         {
-          "name": "Main API Health",
+          "name": "Health Check",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{main_api_url}}/health",
-              "host": ["{{main_api_url}}"],
-              "path": ["health"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Events API Health",
-          "request": {
-            "method": "GET", 
-            "header": [],
-            "url": {
-              "raw": "{{events_api_url}}/events",
-              "host": ["{{events_api_url}}"],
-              "path": ["events"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Custom Domain - Main API Health",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{custom_main_api}}/health",
-              "host": ["{{custom_main_api}}"],
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
               "path": ["health"]
             }
           },
@@ -135,28 +81,55 @@
       ]
     },
     {
-      "name": "🔐 Authentication & Users",
+      "name": "👤 User Management",
       "item": [
         {
           "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"test@example.com\",\n  \"username\": \"testuser\",\n  \"password\": \"TestPassword123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"phoneNumber\": \"+1234567890\",\n  \"acceptTerms\": true,\n  \"marketingConsent\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "register"]
+            }
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
                   "    const response = pm.response.json();",
-                  "    if (response.data && response.data.token) {",
-                  "        pm.collectionVariables.set('jwt_token', response.data.token);",
+                  "    if (response.success && response.data && response.data.user) {",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "        pm.collectionVariables.set('userEmail', response.data.user.email);",
+                  "        pm.collectionVariables.set('username', response.data.user.username);",
+                  "        pm.collectionVariables.set('userRole', response.data.user.role);",
+                  "        console.log('✅ User registered successfully:', response.data.user.id);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('👤 Role:', response.data.user.role);",
+                  "        console.log('⚠️  Note: User needs email verification to login');",
                   "    }",
-                  "    if (response.data && response.data.user && response.data.user.id) {",
-                  "        pm.collectionVariables.set('user_id', response.data.user.id);",
-                  "    }",
+                  "} else {",
+                  "    console.log('❌ Registration failed:', pm.response.text());",
                   "}"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Login User",
           "request": {
             "method": "POST",
             "header": [
@@ -167,55 +140,48 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"testuser@tkhtech.com\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"role\": \"attendee\"\n}"
+              "raw": "{\n  \"email\": \"tkhtechinc@gmail.com\",\n  \"password\": \"Campus2020$\"\n}"
             },
             "url": {
-              "raw": "{{main_api_url}}/auth/register",
-              "host": ["{{main_api_url}}"],
-              "path": ["auth", "register"]
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
             }
           },
-          "response": []
-        },
-        {
-          "name": "Login User",
           "event": [
             {
-              "listen": "test", 
+              "listen": "test",
               "script": {
                 "exec": [
                   "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    if (response.data && response.data.token) {",
-                  "        pm.collectionVariables.set('jwt_token', response.data.token);",
+                  "    if (response.success && response.data) {",
+                  "        // Set user information",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "        pm.collectionVariables.set('userEmail', response.data.user.email);",
+                  "        pm.collectionVariables.set('username', response.data.user.username);",
+                  "        pm.collectionVariables.set('userRole', response.data.user.role);",
+                  "        ",
+                  "        // Set authentication tokens",
+                  "        pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "        ",
+                  "        console.log('✅ Login successful!');",
+                  "        console.log('👤 User ID:', response.data.user.id);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('🔑 Access Token:', response.data.accessToken.substring(0, 20) + '...');",
+                  "        console.log('🔄 Refresh Token:', response.data.refreshToken.substring(0, 20) + '...');",
                   "    }",
-                  "    if (response.data && response.data.user && response.data.user.id) {",
-                  "        pm.collectionVariables.set('user_id', response.data.user.id);",
+                  "} else {",
+                  "    console.log('❌ Login failed:', pm.response.text());",
+                  "    if (pm.response.code === 401) {",
+                  "        console.log('💡 Tip: Check if user account is active and email is verified');",
                   "    }",
                   "}"
                 ]
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"testuser@tkhtech.com\",\n  \"password\": \"SecurePass123!\"\n}"
-            },
-            "url": {
-              "raw": "{{main_api_url}}/auth/login",
-              "host": ["{{main_api_url}}"],
-              "path": ["auth", "login"]
-            }
-          },
-          "response": []
+          ]
         },
         {
           "name": "Refresh Token",
@@ -229,18 +195,37 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"refreshToken\": \"{{refresh_token}}\"\n}"
+              "raw": "{\n  \"refreshToken\": \"{{refreshToken}}\"\n}"
             },
             "url": {
-              "raw": "{{main_api_url}}/auth/refresh",
-              "host": ["{{main_api_url}}"],
+              "raw": "{{baseUrl}}/auth/refresh",
+              "host": ["{{baseUrl}}"],
               "path": ["auth", "refresh"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "        console.log('✅ Token refreshed successfully!');",
+                  "        console.log('🔑 New Access Token:', response.data.accessToken.substring(0, 20) + '...');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Token refresh failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Reset Password",
+          "name": "Forgot Password",
           "request": {
             "method": "POST",
             "header": [
@@ -251,15 +236,146 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"testuser@tkhtech.com\"\n}"
+              "raw": "{\n  \"email\": \"tkhtechinc@gmail.com\"\n}"
             },
             "url": {
-              "raw": "{{main_api_url}}/auth/reset-password",
-              "host": ["{{main_api_url}}"],
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
               "path": ["auth", "reset-password"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Password reset email sent!');",
+                  "        console.log('📧 Check email for reset link');",
+                  "        console.log('💡 Note: Reset token is logged in CloudWatch for development');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Password reset failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Confirm Password Reset",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"your-reset-token-here\",\n  \"newPassword\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/confirm-reset",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "confirm-reset"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Password reset confirmed successfully!');",
+                  "        console.log('🔐 You can now login with the new password');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Password reset confirmation failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"code\": \"your-verification-code-here\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/verify-email",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "verify-email"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Email verified successfully!');",
+                  "        console.log('👤 User can now login');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Email verification failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resend Email Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/resend-email-verification/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "resend-email-verification", "{{userId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Email verification resent!');",
+                  "        console.log('📧 Check email for verification link');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Resend verification failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Get User Profile",
@@ -268,16 +384,36 @@
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
-              "raw": "{{main_api_url}}/users/profile",
-              "host": ["{{main_api_url}}"],
+              "raw": "{{baseUrl}}/users/profile",
+              "host": ["{{baseUrl}}"],
               "path": ["users", "profile"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ User profile retrieved successfully!');",
+                  "        console.log('👤 User:', response.data.user.firstName, response.data.user.lastName);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('✅ Email Verified:', response.data.user.emailVerified);",
+                  "        console.log('📱 Status:', response.data.user.status);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get profile failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
           "name": "Update User Profile",
@@ -285,300 +421,302 @@
             "method": "PUT",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Updated Test\",\n  \"lastName\": \"User\",\n  \"phoneNumber\": \"+1234567890\"\n}"
+              "raw": "{\n  \"firstName\": \"Updated\",\n  \"lastName\": \"Name\",\n  \"phoneNumber\": \"+1234567890\",\n  \"profileImageUrl\": \"https://example.com/avatar.jpg\"\n}"
             },
             "url": {
-              "raw": "{{main_api_url}}/users/profile",
-              "host": ["{{main_api_url}}"],
+              "raw": "{{baseUrl}}/users/profile",
+              "host": ["{{baseUrl}}"],
               "path": ["users", "profile"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Profile updated successfully!');",
+                  "        console.log('👤 Updated Name:', response.data.user.firstName, response.data.user.lastName);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Profile update failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "🎪 Events Management",
+      "name": "📅 Event Management",
       "item": [
-        {
-          "name": "List Events",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{events_api_url}}/events",
-              "host": ["{{events_api_url}}"],
-              "path": ["events"]
-            }
-          },
-          "response": []
-        },
         {
           "name": "Create Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Test Event\",\n  \"description\": \"This is a test event\",\n  \"category\": \"technology\",\n  \"startDate\": \"2024-12-31T18:00:00Z\",\n  \"endDate\": \"2024-12-31T22:00:00Z\",\n  \"location\": {\n    \"address\": \"123 Test Street\",\n    \"city\": \"Test City\",\n    \"state\": \"Test State\",\n    \"zipCode\": \"12345\",\n    \"country\": \"Test Country\"\n  },\n  \"capacity\": 100,\n  \"ticketPrice\": 25.00,\n  \"isPublic\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"]
+            }
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
                   "    const response = pm.response.json();",
-                  "    if (response.data && response.data.id) {",
-                  "        pm.collectionVariables.set('event_id', response.data.id);",
+                  "    if (response.success && response.data && response.data.event) {",
+                  "        pm.collectionVariables.set('eventId', response.data.event.id);",
+                  "        console.log('✅ Event created successfully:', response.data.event.id);",
+                  "        console.log('📅 Title:', response.data.event.title);",
+                  "        console.log('📍 Location:', response.data.event.location.city);",
                   "    }",
+                  "} else {",
+                  "    console.log('❌ Event creation failed:', pm.response.text());",
                   "}"
                 ]
               }
             }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Tech Conference 2024\",\n  \"description\": \"Annual technology conference featuring latest innovations\",\n  \"startDate\": \"2024-12-15T09:00:00Z\",\n  \"endDate\": \"2024-12-15T18:00:00Z\",\n  \"location\": {\n    \"venue\": \"Convention Center\",\n    \"address\": \"123 Tech Street, Tech City\",\n    \"latitude\": 45.5017,\n    \"longitude\": -73.5673\n  },\n  \"maxAttendees\": 500,\n  \"ticketPrice\": 299.99,\n  \"currency\": \"CAD\",\n  \"category\": \"Technology\",\n  \"isPublic\": true\n}"
-            },
-            "url": {
-              "raw": "{{events_api_url}}/events",
-              "host": ["{{events_api_url}}"],
-              "path": ["events"]
-            }
-          },
-          "response": []
+          ]
         },
         {
-          "name": "Get Event Details",
+          "name": "Get All Events",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{events_api_url}}/events/{{event_id}}",
-              "host": ["{{events_api_url}}"],
-              "path": ["events", "{{event_id}}"]
+              "raw": "{{baseUrl}}/events?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
             }
           },
-          "response": []
-        },
-        {
-          "name": "Update Event",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"title\": \"Tech Conference 2024 - Updated\",\n  \"description\": \"Updated description for the annual technology conference\",\n  \"maxAttendees\": 600\n}"
-            },
-            "url": {
-              "raw": "{{events_api_url}}/events/{{event_id}}",
-              "host": ["{{events_api_url}}"],
-              "path": ["events", "{{event_id}}"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Delete Event",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{events_api_url}}/events/{{event_id}}",
-              "host": ["{{events_api_url}}"],
-              "path": ["events", "{{event_id}}"]
-            }
-          },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "🎫 Bookings Management",
-      "item": [
-        {
-          "name": "List Bookings",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{bookings_api_url}}/bookings",
-              "host": ["{{bookings_api_url}}"],
-              "path": ["bookings"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Create Booking",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "if (pm.response.code === 201) {",
+                  "if (pm.response.code === 200) {",
                   "    const response = pm.response.json();",
-                  "    if (response.data && response.data.id) {",
-                  "        pm.collectionVariables.set('booking_id', response.data.id);",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Events retrieved successfully!');",
+                  "        console.log('📊 Total Events:', response.data.events.length);",
+                  "        console.log('📄 Page:', response.data.pagination.page);",
+                  "        console.log('📋 Total Pages:', response.data.pagination.totalPages);",
                   "    }",
+                  "} else {",
+                  "    console.log('❌ Get events failed:', pm.response.text());",
                   "}"
                 ]
               }
             }
-          ],
+          ]
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event retrieved successfully!');",
+                  "        console.log('📅 Title:', response.data.event.title);",
+                  "        console.log('📍 Location:', response.data.event.location.city);",
+                  "        console.log('💰 Price:', response.data.event.ticketPrice);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get event failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎫 Booking Management",
+      "item": [
+        {
+          "name": "Create Booking",
           "request": {
             "method": "POST",
             "header": [
               {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"eventId\": \"{{event_id}}\",\n  \"ticketQuantity\": 2,\n  \"attendeeInfo\": {\n    \"primaryAttendee\": {\n      \"firstName\": \"John\",\n      \"lastName\": \"Doe\",\n      \"email\": \"john.doe@example.com\"\n    },\n    \"additionalAttendees\": [\n      {\n        \"firstName\": \"Jane\",\n        \"lastName\": \"Doe\",\n        \"email\": \"jane.doe@example.com\"\n      }\n    ]\n  }\n}"
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"ticketType\": \"general\",\n  \"quantity\": 2,\n  \"attendeeInfo\": [\n    {\n      \"firstName\": \"John\",\n      \"lastName\": \"Doe\",\n      \"email\": \"john@example.com\"\n    },\n    {\n      \"firstName\": \"Jane\",\n      \"lastName\": \"Smith\",\n      \"email\": \"jane@example.com\"\n    }\n  ]\n}"
             },
             "url": {
-              "raw": "{{bookings_api_url}}/bookings",
-              "host": ["{{bookings_api_url}}"],
+              "raw": "{{baseUrl}}/bookings",
+              "host": ["{{baseUrl}}"],
               "path": ["bookings"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200 || pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data && response.data.booking) {",
+                  "        pm.collectionVariables.set('bookingId', response.data.booking.id);",
+                  "        console.log('✅ Booking created successfully:', response.data.booking.id);",
+                  "        console.log('🎫 Tickets:', response.data.booking.quantity);",
+                  "        console.log('💰 Total Amount:', response.data.booking.totalAmount);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Booking creation failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Get Booking Details",
+          "name": "Get User Bookings",
           "request": {
             "method": "GET",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
-              "raw": "{{bookings_api_url}}/bookings/{{booking_id}}",
-              "host": ["{{bookings_api_url}}"],
-              "path": ["bookings", "{{booking_id}}"]
+              "raw": "{{baseUrl}}/bookings/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "user"]
             }
           },
-          "response": []
-        },
-        {
-          "name": "Update Booking",
-          "request": {
-            "method": "PUT",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ User bookings retrieved successfully!');",
+                  "        console.log('📊 Total Bookings:', response.data.bookings.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get user bookings failed:', pm.response.text());",
+                  "}"
+                ]
               }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"ticketQuantity\": 3,\n  \"attendeeInfo\": {\n    \"primaryAttendee\": {\n      \"firstName\": \"John Updated\",\n      \"lastName\": \"Doe\",\n      \"email\": \"john.doe@example.com\"\n    }\n  }\n}"
-            },
-            "url": {
-              "raw": "{{bookings_api_url}}/bookings/{{booking_id}}",
-              "host": ["{{bookings_api_url}}"],
-              "path": ["bookings", "{{booking_id}}"]
             }
-          },
-          "response": []
-        },
-        {
-          "name": "Cancel Booking",
-          "request": {
-            "method": "DELETE",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
-            "url": {
-              "raw": "{{bookings_api_url}}/bookings/{{booking_id}}",
-              "host": ["{{bookings_api_url}}"],
-              "path": ["bookings", "{{booking_id}}"]
-            }
-          },
-          "response": []
+          ]
         }
       ]
     },
     {
-      "name": "💳 Payments",
+      "name": "🔐 OAuth Integration",
       "item": [
         {
-          "name": "List Payments",
+          "name": "Get OAuth Authorization URL",
           "request": {
             "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              }
-            ],
+            "header": [],
             "url": {
-              "raw": "{{payments_api_url}}/payments",
-              "host": ["{{payments_api_url}}"],
-              "path": ["payments"]
+              "raw": "{{baseUrl}}/auth/oauth/authorization-url?provider=google&redirectUri=https://example.com/callback",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "oauth", "authorization-url"],
+              "query": [
+                {
+                  "key": "provider",
+                  "value": "google"
+                },
+                {
+                  "key": "redirectUri",
+                  "value": "https://example.com/callback"
+                }
+              ]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ OAuth URL generated successfully!');",
+                  "        console.log('🔗 Authorization URL:', response.data.authorizationUrl);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ OAuth URL generation failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Process Payment",
+          "name": "OAuth Login",
           "request": {
             "method": "POST",
             "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
               {
                 "key": "Content-Type",
                 "value": "application/json"
@@ -586,90 +724,35 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"bookingId\": \"{{booking_id}}\",\n  \"amount\": 599.98,\n  \"currency\": \"CAD\",\n  \"paymentMethod\": {\n    \"type\": \"credit_card\",\n    \"cardNumber\": \"4111111111111111\",\n    \"expiryMonth\": \"12\",\n    \"expiryYear\": \"2025\",\n    \"cvv\": \"123\"\n  },\n  \"billingAddress\": {\n    \"street\": \"123 Main St\",\n    \"city\": \"Toronto\",\n    \"province\": \"ON\",\n    \"postalCode\": \"M5V 3A8\",\n    \"country\": \"CA\"\n  }\n}"
+              "raw": "{\n  \"provider\": \"google\",\n  \"code\": \"your-oauth-code-here\",\n  \"redirectUri\": \"https://example.com/callback\"\n}"
             },
             "url": {
-              "raw": "{{payments_api_url}}/payments",
-              "host": ["{{payments_api_url}}"],
-              "path": ["payments"]
+              "raw": "{{baseUrl}}/auth/oauth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "oauth", "login"]
             }
           },
-          "response": []
-        }
-      ]
-    },
-    {
-      "name": "📱 QR Codes",
-      "item": [
-        {
-          "name": "List QR Codes",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "        console.log('✅ OAuth login successful!');",
+                  "        console.log('👤 User ID:', response.data.user.id);",
+                  "        console.log('🔑 Access Token:', response.data.accessToken.substring(0, 20) + '...');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ OAuth login failed:', pm.response.text());",
+                  "}"
+                ]
               }
-            ],
-            "url": {
-              "raw": "{{qr_api_url}}/qr-codes",
-              "host": ["{{qr_api_url}}"],
-              "path": ["qr-codes"]
             }
-          },
-          "response": []
-        },
-        {
-          "name": "Generate QR Code",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"bookingId\": \"{{booking_id}}\",\n  \"type\": \"entry\"\n}"
-            },
-            "url": {
-              "raw": "{{qr_api_url}}/qr-codes",
-              "host": ["{{qr_api_url}}"],
-              "path": ["qr-codes"]
-            }
-          },
-          "response": []
-        },
-        {
-          "name": "Validate QR Code",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"qrCode\": \"QR_CODE_STRING_HERE\",\n  \"eventId\": \"{{event_id}}\"\n}"
-            },
-            "url": {
-              "raw": "{{qr_api_url}}/qr-codes/validate",
-              "host": ["{{qr_api_url}}"],
-              "path": ["qr-codes", "validate"]
-            }
-          },
-          "response": []
+          ]
         }
       ]
     },
@@ -677,88 +760,193 @@
       "name": "📊 Analytics",
       "item": [
         {
-          "name": "Analytics Health Check",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{analytics_api_url}}/analytics/health",
-              "host": ["{{analytics_api_url}}"],
-              "path": ["analytics", "health"]
-            }
-          },
-          "response": []
-        },
-        {
           "name": "Get Event Analytics",
           "request": {
             "method": "GET",
             "header": [
               {
                 "key": "Authorization",
-                "value": "Bearer {{jwt_token}}"
+                "value": "Bearer {{accessToken}}"
               }
             ],
             "url": {
-              "raw": "{{analytics_api_url}}/analytics/events/{{event_id}}",
-              "host": ["{{analytics_api_url}}"],
-              "path": ["analytics", "events", "{{event_id}}"]
+              "raw": "{{baseUrl}}/analytics/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "events", "{{eventId}}"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event analytics retrieved successfully!');",
+                  "        console.log('📊 Total Bookings:', response.data.analytics.totalBookings);",
+                  "        console.log('💰 Revenue:', response.data.analytics.totalRevenue);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get analytics failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
     {
-      "name": "🔮 Custom Domains (Testing)",
+      "name": "🔍 Search",
       "item": [
         {
-          "name": "Custom Domain - Health Check",
+          "name": "Search Events",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{custom_main_api}}/health",
-              "host": ["{{custom_main_api}}"],
-              "path": ["health"]
+              "raw": "{{baseUrl}}/search/events?q=technology&category=technology&location=Test City",
+              "host": ["{{baseUrl}}"],
+              "path": ["search", "events"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "technology"
+                },
+                {
+                  "key": "category",
+                  "value": "technology"
+                },
+                {
+                  "key": "location",
+                  "value": "Test City"
+                }
+              ]
             }
           },
-          "response": []
-        },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Search completed successfully!');",
+                  "        console.log('🔍 Search Results:', response.data.events.length);",
+                  "        console.log('📄 Page:', response.data.pagination.page);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Search failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📱 Mobile API Endpoints",
+      "item": [
         {
-          "name": "Custom Domain - Login",
+          "name": "Mobile Login",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "User-Agent",
+                "value": "EventMO Mobile App"
+              },
+              {
+                "key": "X-Client-Type",
+                "value": "mobile"
               }
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"testuser@tkhtech.com\",\n  \"password\": \"SecurePass123!\"\n}"
+              "raw": "{\n  \"email\": \"tkhtechinc@gmail.com\",\n  \"password\": \"Campus2020$\"\n}"
             },
             "url": {
-              "raw": "{{custom_main_api}}/auth/login",
-              "host": ["{{custom_main_api}}"],
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
               "path": ["auth", "login"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "        console.log('✅ Mobile login successful!');",
+                  "        console.log('👤 User ID:', response.data.user.id);",
+                  "        console.log('📱 Mobile-optimized response received');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Mobile login failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Custom Domain - Events",
+          "name": "Mobile Forgot Password",
           "request": {
-            "method": "GET",
-            "header": [],
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "User-Agent",
+                "value": "EventMO Mobile App"
+              },
+              {
+                "key": "X-Client-Type",
+                "value": "mobile"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tkhtechinc@gmail.com\"\n}"
+            },
             "url": {
-              "raw": "{{custom_events_api}}/events",
-              "host": ["{{custom_events_api}}"],
-              "path": ["events"]
+              "raw": "{{baseUrl}}/auth/reset-password",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "reset-password"]
             }
           },
-          "response": []
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Mobile password reset request successful!');",
+                  "        console.log('📧 Check email for reset link');",
+                  "        console.log('💡 Reset token logged in CloudWatch for development');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Mobile password reset failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
         }
       ]
     }
