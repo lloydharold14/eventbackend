@@ -1,0 +1,439 @@
+{
+  "info": {
+    "name": "Event Management Platform - Multi-API Collection",
+    "description": "Complete test suite with correct API Gateway URLs for each service (Events, Bookings, Payments, QR Codes, Analytics)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "mainApiUrl",
+      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Main API Gateway (Health Check only)"
+    },
+    {
+      "key": "eventsApiUrl",
+      "value": "https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Events API Gateway"
+    },
+    {
+      "key": "bookingsApiUrl",
+      "value": "https://bxmcilkslg.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Bookings API Gateway"
+    },
+    {
+      "key": "paymentsApiUrl",
+      "value": "https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Payments API Gateway"
+    },
+    {
+      "key": "qrCodesApiUrl",
+      "value": "https://tvww3bv8t5.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "QR Codes API Gateway"
+    },
+    {
+      "key": "analyticsApiUrl",
+      "value": "https://9l0qlqw46a.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Analytics API Gateway"
+    },
+    {
+      "key": "userPoolId",
+      "value": "ca-central-1_NgK0SDL4T",
+      "type": "string"
+    },
+    {
+      "key": "userPoolClientId",
+      "value": "2bbu335cjoe2afm71kjedbn86l",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "verificationToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "tkhtechinc@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "tkhtechinc",
+      "type": "string"
+    },
+    {
+      "key": "userRole",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔍 Health Check",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mainApiUrl}}/health",
+              "host": ["{{mainApiUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ API is healthy!');",
+                  "        console.log('🏥 Status:', response.data.status);",
+                  "        console.log('🌍 Environment:', response.data.environment);",
+                  "        console.log('⏱️ Response Time:', response.data.overallResponseTime + 'ms');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Health check failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📅 Events API (Public)",
+      "item": [
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{eventsApiUrl}}/events?page=1&limit=10",
+              "host": ["{{eventsApiUrl}}"],
+              "path": ["events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Events retrieved successfully!');",
+                  "        console.log('📊 Total Events:', response.data.events.length);",
+                  "        console.log('📄 Page:', response.data.pagination.page);",
+                  "        console.log('📋 Total Pages:', response.data.pagination.totalPages);",
+                  "        ",
+                  "        // Set first event ID for testing",
+                  "        if (response.data.events.length > 0) {",
+                  "            pm.collectionVariables.set('eventId', response.data.events[0].id);",
+                  "            console.log('🎯 First Event ID set:', response.data.events[0].id);",
+                  "        }",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get events failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{eventsApiUrl}}/events/{{eventId}}",
+              "host": ["{{eventsApiUrl}}"],
+              "path": ["events", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event retrieved successfully!');",
+                  "        console.log('📅 Title:', response.data.event.title);",
+                  "        console.log('📍 Location:', response.data.event.location.city);",
+                  "        console.log('💰 Price Range:', response.data.event.pricing[0].price + ' - ' + response.data.event.pricing[response.data.event.pricing.length-1].price + ' ' + response.data.event.pricing[0].currency);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get event failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎫 Bookings API (Public)",
+      "item": [
+        {
+          "name": "Get Event Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{bookingsApiUrl}}/bookings/event/{{eventId}}",
+              "host": ["{{bookingsApiUrl}}"],
+              "path": ["bookings", "event", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event bookings retrieved!');",
+                  "        console.log('📊 Total Bookings:', response.data.bookings.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get event bookings failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Booking Statistics",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{bookingsApiUrl}}/bookings/statistics",
+              "host": ["{{bookingsApiUrl}}"],
+              "path": ["bookings", "statistics"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Booking statistics retrieved!');",
+                  "        console.log('📊 Total Bookings:', response.data.statistics.totalBookings);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get booking statistics failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 Payments API (Public)",
+      "item": [
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{paymentsApiUrl}}/payments/{{paymentId}}",
+              "host": ["{{paymentsApiUrl}}"],
+              "path": ["payments", "{{paymentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Payment status retrieved!');",
+                  "} else {",
+                  "    console.log('❌ Get payment status failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📱 QR Codes API (Public)",
+      "item": [
+        {
+          "name": "Generate QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"attendeeId\": \"attendee-001\",\n  \"ticketType\": \"general\"\n}"
+            },
+            "url": {
+              "raw": "{{qrCodesApiUrl}}/qr-codes",
+              "host": ["{{qrCodesApiUrl}}"],
+              "path": ["qr-codes"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ QR Code generated successfully!');",
+                  "        console.log('🔗 QR Code URL:', response.data.qrCodeUrl);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ QR Code generation failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📊 Analytics API (Public)",
+      "item": [
+        {
+          "name": "Get Analytics Config",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{analyticsApiUrl}}/analytics/config",
+              "host": ["{{analyticsApiUrl}}"],
+              "path": ["analytics", "config"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Analytics config retrieved!');",
+                  "} else {",
+                  "    console.log('❌ Get analytics config failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🧪 Testing Instructions",
+      "item": [
+        {
+          "name": "📋 How to Test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{mainApiUrl}}/health",
+              "host": ["{{mainApiUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('🎯 TESTING INSTRUCTIONS:');",
+                  "console.log('');",
+                  "console.log('1. 🔍 Start with Health Check - should work without auth');",
+                  "console.log('2. 📅 Test Events API - Get All Events should work without auth');",
+                  "console.log('3. 🎫 Test Bookings API - Get Event Bookings should work without auth');",
+                  "console.log('4. 💳 Test Payments API - Get Payment Status (needs paymentId)');",
+                  "console.log('5. 📱 Test QR Codes API - Generate QR Code should work without auth');",
+                  "console.log('6. 📊 Test Analytics API - Get Analytics Config should work without auth');",
+                  "console.log('');",
+                  "console.log('✅ All public endpoints should work without authentication!');",
+                  "console.log('🔐 Protected endpoints require login and Bearer token');",
+                  "console.log('');",
+                  "console.log('📝 Note: Each service has its own API Gateway URL');",
+                  "console.log('   - Events: ' + pm.collectionVariables.get('eventsApiUrl'));",
+                  "console.log('   - Bookings: ' + pm.collectionVariables.get('bookingsApiUrl'));",
+                  "console.log('   - Payments: ' + pm.collectionVariables.get('paymentsApiUrl'));",
+                  "console.log('   - QR Codes: ' + pm.collectionVariables.get('qrCodesApiUrl'));",
+                  "console.log('   - Analytics: ' + pm.collectionVariables.get('analyticsApiUrl'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
