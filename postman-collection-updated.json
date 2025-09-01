@@ -51,16 +51,7 @@
       "type": "string"
     }
   ],
-  "auth": {
-    "type": "bearer",
-    "bearer": [
-      {
-        "key": "token",
-        "value": "{{accessToken}}",
-        "type": "string"
-      }
-    ]
-  },
+
   "item": [
     {
       "name": "🔍 Health Check",
