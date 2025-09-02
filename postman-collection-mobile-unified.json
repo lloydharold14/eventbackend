@@ -1,0 +1,567 @@
+{
+  "info": {
+    "name": "Event Management Platform - Mobile Unified API",
+    "description": "Mobile-optimized collection showing unified API structure with single endpoint and authentication",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Unified API Gateway - Single endpoint for all services"
+    },
+    {
+      "key": "userPoolId",
+      "value": "ca-central-1_NgK0SDL4T",
+      "type": "string"
+    },
+    {
+      "key": "userPoolClientId",
+      "value": "2bbu335cjoe2afm71kjedbn86l",
+      "type": "string"
+    },
+    {
+      "key": "accessToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "refreshToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "eventId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "bookingId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "userEmail",
+      "value": "tkhtechinc@gmail.com",
+      "type": "string"
+    },
+    {
+      "key": "username",
+      "value": "tkhtechinc",
+      "type": "string"
+    },
+    {
+      "key": "userRole",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "🔍 Health Check (Public)",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ API is healthy!');",
+                  "        console.log('🏥 Status:', response.data.status);",
+                  "        console.log('🌍 Environment:', response.data.environment);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Health check failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "👤 Authentication (Public)",
+      "item": [
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"Campus2020$\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "        pm.collectionVariables.set('userRole', response.data.user.role);",
+                  "        console.log('✅ Login successful!');",
+                  "        console.log('👤 User ID:', response.data.user.id);",
+                  "        console.log('🎭 Role:', response.data.user.role);",
+                  "        console.log('🔑 Access Token saved');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Login failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User Profile (Protected)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/users/profile",
+              "host": ["{{baseUrl}}"],
+              "path": ["users", "profile"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Profile retrieved successfully!');",
+                  "        console.log('👤 User:', response.data.user.firstName + ' ' + response.data.user.lastName);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('🎭 Role:', response.data.user.role);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get profile failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📅 Events (Public)",
+      "item": [
+        {
+          "name": "Get All Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["events"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Events retrieved successfully!');",
+                  "        console.log('📊 Total Events:', response.data.events.length);",
+                  "        ",
+                  "        // Set first event ID for testing",
+                  "        if (response.data.events.length > 0) {",
+                  "            pm.collectionVariables.set('eventId', response.data.events[0].id);",
+                  "            console.log('🎯 First Event ID set:', response.data.events[0].id);",
+                  "        }",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get events failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Event by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/events/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["events", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event retrieved successfully!');",
+                  "        console.log('📅 Title:', response.data.event.title);",
+                  "        console.log('📍 Location:', response.data.event.location.city);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get event failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🎫 Bookings (Protected)",
+      "item": [
+        {
+          "name": "Get User Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/user",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "user"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ User bookings retrieved!');",
+                  "        console.log('📊 Total Bookings:', response.data.bookings.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get user bookings failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Event Bookings",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/bookings/event/{{eventId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["bookings", "event", "{{eventId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Event bookings retrieved!');",
+                  "        console.log('📊 Total Bookings:', response.data.bookings.length);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get event bookings failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "💳 Payments (Protected)",
+      "item": [
+        {
+          "name": "Get Payment Status",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/payments/{{paymentId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["payments", "{{paymentId}}"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Payment status retrieved!');",
+                  "} else {",
+                  "    console.log('❌ Get payment status failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📱 QR Codes (Protected)",
+      "item": [
+        {
+          "name": "Generate QR Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"attendeeId\": \"{{userId}}\",\n  \"ticketType\": \"general\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/qr-codes",
+              "host": ["{{baseUrl}}"],
+              "path": ["qr-codes"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ QR Code generated successfully!');",
+                  "} else {",
+                  "    console.log('❌ QR Code generation failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "📊 Analytics (Protected)",
+      "item": [
+        {
+          "name": "Get Analytics Config",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/analytics/config",
+              "host": ["{{baseUrl}}"],
+              "path": ["analytics", "config"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Analytics config retrieved!');",
+                  "} else {",
+                  "    console.log('❌ Get analytics config failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notifications (Public)",
+      "item": [
+        {
+          "name": "Notification Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/notifications/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["notifications", "health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    console.log('✅ Notifications service is healthy!');",
+                  "} else {",
+                  "    console.log('❌ Notifications health check failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "🧪 Mobile Testing Instructions",
+      "item": [
+        {
+          "name": "📋 How to Test Mobile API",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "console.log('🎯 MOBILE API TESTING INSTRUCTIONS:');",
+                  "console.log('');",
+                  "console.log('📱 MOBILE-OPTIMIZED UNIFIED API:');",
+                  "console.log('✅ Single API Gateway: ' + pm.collectionVariables.get('baseUrl'));",
+                  "console.log('✅ Single Authentication Token');",
+                  "✅ All services accessible from one endpoint');",
+                  "console.log('');",
+                  "console.log('🔐 AUTHENTICATION WORKFLOW:');",
+                  "console.log('1. 👤 Login User - Get access token');",
+                  "console.log('2. 🔑 Token automatically saved to collection variables');",
+                  "console.log('3. 🧪 Test all protected endpoints with same token');",
+                  "console.log('');",
+                  "console.log('📱 API TESTING ORDER:');",
+                  "console.log('1. 🔍 Health Check (public)');",
+                  "console.log('2. 👤 Login User (public)');",
+                  "console.log('3. 👤 Get User Profile (protected)');",
+                  "console.log('4. 📅 Get All Events (public)');",
+                  "console.log('5. 🎫 Get User Bookings (protected)');",
+                  "console.log('6. 💳 Get Payment Status (protected)');",
+                  "console.log('7. 📱 Generate QR Code (protected)');",
+                  "console.log('8. 📊 Get Analytics Config (protected)');",
+                  "console.log('9. 🔔 Notifications Health (public)');",
+                  "console.log('');",
+                  "console.log('✅ Public endpoints: Health, Events, Notifications, Login');",
+                  "console.log('🔐 Protected endpoints: Profile, Bookings, Payments, QR Codes, Analytics');",
+                  "console.log('');",
+                  "console.log('💡 MOBILE APP BENEFITS:');",
+                  "console.log('🚀 Single API endpoint for all services');",
+                  "console.log('🔑 One authentication token for all protected endpoints');",
+                  "console.log('📱 Simplified mobile app integration');",
+                  "console.log('⚡ Faster development and testing');",
+                  "console.log('🔄 Easier token management and refresh');",
+                  "console.log('');",
+                  "console.log('🎯 IMPLEMENTATION STATUS:');",
+                  "console.log('⚠️  This collection shows the IDEAL structure');",
+                  "console.log('⚠️  Some endpoints may need CDK deployment');",
+                  "console.log('💡 Use this as a blueprint for mobile app development');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
