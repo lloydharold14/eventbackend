@@ -231,17 +231,17 @@
       ]
     },
     {
-      "name": "🎫 Bookings API (Public)",
+      "name": "🔔 Notifications API (Public)",
       "item": [
         {
-          "name": "Get Event Bookings",
+          "name": "Notification Health Check",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{bookingsApiUrl}}/bookings/event/{{eventId}}",
-              "host": ["{{bookingsApiUrl}}"],
-              "path": ["bookings", "event", "{{eventId}}"]
+              "raw": "{{mainApiUrl}}/notifications/health",
+              "host": ["{{mainApiUrl}}"],
+              "path": ["notifications", "health"]
             }
           },
           "event": [
@@ -250,43 +250,9 @@
               "script": {
                 "exec": [
                   "if (pm.response.code === 200) {",
-                  "    const response = pm.response.json();",
-                  "    if (response.success && response.data) {",
-                  "        console.log('✅ Event bookings retrieved!');",
-                  "        console.log('📊 Total Bookings:', response.data.bookings.length);",
-                  "    }",
+                  "    console.log('✅ Notifications service is healthy!');",
                   "} else {",
-                  "    console.log('❌ Get event bookings failed:', pm.response.text());",
-                  "}"
-                ]
-              }
-            }
-          ]
-        },
-        {
-          "name": "Get Booking Statistics",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{bookingsApiUrl}}/bookings/statistics",
-              "host": ["{{bookingsApiUrl}}"],
-              "path": ["bookings", "statistics"]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    const response = pm.response.json();",
-                  "    if (response.success && response.data) {",
-                  "        console.log('✅ Booking statistics retrieved!');",
-                  "        console.log('📊 Total Bookings:', response.data.statistics.totalBookings);",
-                  "    }",
-                  "} else {",
-                  "    console.log('❌ Get booking statistics failed:', pm.response.text());",
+                  "    console.log('❌ Notifications health check failed:', pm.response.text());",
                   "}"
                 ]
               }
@@ -295,112 +261,9 @@
         }
       ]
     },
-    {
-      "name": "💳 Payments API (Public)",
-      "item": [
-        {
-          "name": "Get Payment Status",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{paymentsApiUrl}}/payments/{{paymentId}}",
-              "host": ["{{paymentsApiUrl}}"],
-              "path": ["payments", "{{paymentId}}"]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    console.log('✅ Payment status retrieved!');",
-                  "} else {",
-                  "    console.log('❌ Get payment status failed:', pm.response.text());",
-                  "}"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "📱 QR Codes API (Public)",
-      "item": [
-        {
-          "name": "Generate QR Code",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"eventId\": \"{{eventId}}\",\n  \"attendeeId\": \"attendee-001\",\n  \"ticketType\": \"general\"\n}"
-            },
-            "url": {
-              "raw": "{{qrCodesApiUrl}}/qr-codes",
-              "host": ["{{qrCodesApiUrl}}"],
-              "path": ["qr-codes"]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    const response = pm.response.json();",
-                  "    if (response.success && response.data) {",
-                  "        console.log('✅ QR Code generated successfully!');",
-                  "        console.log('🔗 QR Code URL:', response.data.qrCodeUrl);",
-                  "    }",
-                  "} else {",
-                  "    console.log('❌ QR Code generation failed:', pm.response.text());",
-                  "}"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "name": "📊 Analytics API (Public)",
-      "item": [
-        {
-          "name": "Get Analytics Config",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{analyticsApiUrl}}/analytics/config",
-              "host": ["{{analyticsApiUrl}}"],
-              "path": ["analytics", "config"]
-            }
-          },
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 200) {",
-                  "    console.log('✅ Analytics config retrieved!');",
-                  "} else {",
-                  "    console.log('❌ Get analytics config failed:', pm.response.text());",
-                  "}"
-                ]
-              }
-            }
-          ]
-        }
-      ]
-    },
+
+
+
     {
       "name": "👤 User Management (Authentication)",
       "item": [
@@ -517,22 +380,19 @@
                   "console.log('📱 API TESTING ORDER:');",
                   "console.log('1. 🔍 Health Check - should work without auth');",
                   "console.log('2. 📅 Events API - Get All Events should work without auth');",
-                  "console.log('3. 🎫 Bookings API - Get Event Bookings (needs auth)');",
-                  "console.log('4. 💳 Payments API - Get Payment Status (needs auth)');",
-                  "console.log('5. 📱 QR Codes API - Generate QR Code (needs auth)');",
-                  "console.log('6. 📊 Analytics API - Get Analytics Config (needs auth)');",
+                  "console.log('3. 🔔 Notifications Health - should work without auth');",
+                  "console.log('4. 👤 User Profile - needs authentication');",
                   "console.log('');",
-                  "console.log('✅ Public endpoints: Health Check, Events');",
-                  "console.log('🔐 Protected endpoints: Bookings, Payments, QR Codes, Analytics');",
+                  "console.log('✅ Public endpoints: Health Check, Events, Notifications');",
+                  "console.log('🔐 Protected endpoints: User Profile');",
                   "console.log('');",
-                  "console.log('📝 Note: Each service has its own API Gateway URL');",
-                  "console.log('   - Events: ' + pm.collectionVariables.get('eventsApiUrl'));",
-                  "console.log('   - Bookings: ' + pm.collectionVariables.get('bookingsApiUrl'));",
-                  "console.log('   - Payments: ' + pm.collectionVariables.get('paymentsApiUrl'));",
-                  "console.log('   - QR Codes: ' + pm.collectionVariables.get('qrCodesApiUrl'));",
-                  "console.log('   - Analytics: ' + pm.collectionVariables.get('analyticsApiUrl'));",
+                  "console.log('📝 CURRENTLY AVAILABLE ENDPOINTS:');",
+                  "console.log('   - Main API: ' + pm.collectionVariables.get('mainApiUrl'));",
+                  "console.log('   - Events API: ' + pm.collectionVariables.get('eventsApiUrl'));",
                   "console.log('');",
-                  "console.log('💡 TIP: Run Login User first to get your access token!');"
+                  "console.log('💡 TIP: Run Login User first to get your access token!');",
+                  "console.log('⚠️  NOTE: Other services (Bookings, Payments, QR Codes, Analytics)');",
+                  "console.log('   are in separate API Gateways and need additional configuration');"
                 ]
               }
             }
