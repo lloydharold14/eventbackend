@@ -97,6 +97,16 @@
       "type": "string"
     }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{accessToken}}",
+        "type": "string"
+      }
+    ]
+  },
   "item": [
     {
       "name": "🔍 Health Check",
@@ -392,6 +402,93 @@
       ]
     },
     {
+      "name": "👤 User Management (Authentication)",
+      "item": [
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{userEmail}}\",\n  \"password\": \"Campus2020$\"\n}"
+            },
+            "url": {
+              "raw": "{{mainApiUrl}}/auth/login",
+              "host": ["{{mainApiUrl}}"],
+              "path": ["auth", "login"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        pm.collectionVariables.set('accessToken', response.data.accessToken);",
+                  "        pm.collectionVariables.set('refreshToken', response.data.refreshToken);",
+                  "        pm.collectionVariables.set('userId', response.data.user.id);",
+                  "        pm.collectionVariables.set('userRole', response.data.user.role);",
+                  "        console.log('✅ Login successful!');",
+                  "        console.log('👤 User ID:', response.data.user.id);",
+                  "        console.log('🎭 Role:', response.data.user.role);",
+                  "        console.log('🔑 Access Token saved');",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Login failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{mainApiUrl}}/users/profile",
+              "host": ["{{mainApiUrl}}"],
+              "path": ["users", "profile"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.success && response.data) {",
+                  "        console.log('✅ Profile retrieved successfully!');",
+                  "        console.log('👤 User:', response.data.user.firstName + ' ' + response.data.user.lastName);",
+                  "        console.log('📧 Email:', response.data.user.email);",
+                  "        console.log('🎭 Role:', response.data.user.role);",
+                  "    }",
+                  "} else {",
+                  "    console.log('❌ Get profile failed:', pm.response.text());",
+                  "}"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "🧪 Testing Instructions",
       "item": [
         {
@@ -412,22 +509,30 @@
                 "exec": [
                   "console.log('🎯 TESTING INSTRUCTIONS:');",
                   "console.log('');",
-                  "console.log('1. 🔍 Start with Health Check - should work without auth');",
-                  "console.log('2. 📅 Test Events API - Get All Events should work without auth');",
-                  "console.log('3. 🎫 Test Bookings API - Get Event Bookings should work without auth');",
-                  "console.log('4. 💳 Test Payments API - Get Payment Status (needs paymentId)');",
-                  "console.log('5. 📱 Test QR Codes API - Generate QR Code should work without auth');",
-                  "console.log('6. 📊 Test Analytics API - Get Analytics Config should work without auth');",
+                  "console.log('🔐 AUTHENTICATION WORKFLOW:');",
+                  "console.log('1. 👤 Login User - Use your credentials to get access token');",
+                  "console.log('2. 🔑 Token automatically saved to collection variables');",
+                  "console.log('3. 👤 Get User Profile - Verify authentication works');",
                   "console.log('');",
-                  "console.log('✅ All public endpoints should work without authentication!');",
-                  "console.log('🔐 Protected endpoints require login and Bearer token');",
+                  "console.log('📱 API TESTING ORDER:');",
+                  "console.log('1. 🔍 Health Check - should work without auth');",
+                  "console.log('2. 📅 Events API - Get All Events should work without auth');",
+                  "console.log('3. 🎫 Bookings API - Get Event Bookings (needs auth)');",
+                  "console.log('4. 💳 Payments API - Get Payment Status (needs auth)');",
+                  "console.log('5. 📱 QR Codes API - Generate QR Code (needs auth)');",
+                  "console.log('6. 📊 Analytics API - Get Analytics Config (needs auth)');",
+                  "console.log('');",
+                  "console.log('✅ Public endpoints: Health Check, Events');",
+                  "console.log('🔐 Protected endpoints: Bookings, Payments, QR Codes, Analytics');",
                   "console.log('');",
                   "console.log('📝 Note: Each service has its own API Gateway URL');",
                   "console.log('   - Events: ' + pm.collectionVariables.get('eventsApiUrl'));",
                   "console.log('   - Bookings: ' + pm.collectionVariables.get('bookingsApiUrl'));",
                   "console.log('   - Payments: ' + pm.collectionVariables.get('paymentsApiUrl'));",
                   "console.log('   - QR Codes: ' + pm.collectionVariables.get('qrCodesApiUrl'));",
-                  "console.log('   - Analytics: ' + pm.collectionVariables.get('analyticsApiUrl'));"
+                  "console.log('   - Analytics: ' + pm.collectionVariables.get('analyticsApiUrl'));",
+                  "console.log('');",
+                  "console.log('💡 TIP: Run Login User first to get your access token!');"
                 ]
               }
             }
