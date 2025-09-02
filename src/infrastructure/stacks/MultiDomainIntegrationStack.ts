@@ -12,22 +12,9 @@ export interface MultiDomainIntegrationStackProps extends cdk.StackProps {
   environment: string;
   domainName: string;
   config: EnvironmentConfig;
-  apiGateways: {
-    main: apigateway.RestApi;
-    events: apigateway.RestApi;
-    bookings: apigateway.RestApi;
-    payments: apigateway.RestApi;
-    qrCodes: apigateway.RestApi;
-    analytics: apigateway.RestApi;
-  };
-  certificates: {
-    main: certificatemanager.ICertificate;
-    events: certificatemanager.ICertificate;
-    bookings: certificatemanager.ICertificate;
-    payments: certificatemanager.ICertificate;
-    qrCodes: certificatemanager.ICertificate;
-    analytics: certificatemanager.ICertificate;
-  };
+  // Simplified: Only need the main unified API Gateway
+  mainApiGateway: apigateway.RestApi;
+  mainCertificate: certificatemanager.ICertificate;
 }
 
 export class MultiDomainIntegrationStack extends cdk.Stack {
@@ -36,20 +23,20 @@ export class MultiDomainIntegrationStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: MultiDomainIntegrationStackProps) {
     super(scope, id, props);
 
-    const { environment, domainName, apiGateways, certificates } = props;
+    const { environment, domainName, mainApiGateway, mainCertificate } = props;
 
     // Import existing hosted zone
     this.hostedZone = route53.HostedZone.fromLookup(this, 'ExistingHostedZone', {
       domainName: domainName,
     });
 
-    // Create CloudFront distributions for each service
+    // Create single CloudFront distribution for unified mobile API
     // Use environment-aware subdomain naming
     const envPrefix = environment === 'prod' ? '' : `${environment}-`;
     
-    const mainDistribution = new cloudfront.Distribution(this, 'MainApiDistribution', {
+    const unifiedDistribution = new cloudfront.Distribution(this, 'UnifiedMobileApiDistribution', {
       defaultBehavior: {
-        origin: new origins.HttpOrigin(apiGateways.main.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
+        origin: new origins.HttpOrigin(mainApiGateway.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
           originPath: `/${environment}`,
         }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
@@ -59,150 +46,22 @@ export class MultiDomainIntegrationStack extends cdk.Stack {
         cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
       },
       domainNames: [`${envPrefix}api.${domainName}`],
-      certificate: certificates.main,
+      certificate: mainCertificate,
     });
 
-    const eventsDistribution = new cloudfront.Distribution(this, 'EventsApiDistribution', {
-      defaultBehavior: {
-        origin: new origins.HttpOrigin(apiGateways.events.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
-          originPath: `/${environment}`,
-        }),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
-        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-        cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
-      },
-      domainNames: [`${envPrefix}events.${domainName}`],
-      certificate: certificates.events,
-    });
 
-    const bookingsDistribution = new cloudfront.Distribution(this, 'BookingsApiDistribution', {
-      defaultBehavior: {
-        origin: new origins.HttpOrigin(apiGateways.bookings.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
-          originPath: `/prod`, // Bookings API uses /prod stage
-        }),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
-        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-        cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
-      },
-      domainNames: [`${envPrefix}bookings.${domainName}`],
-      certificate: certificates.bookings,
-    });
 
-    const paymentsDistribution = new cloudfront.Distribution(this, 'PaymentsApiDistribution', {
-      defaultBehavior: {
-        origin: new origins.HttpOrigin(apiGateways.payments.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
-          originPath: `/${environment}`,
-        }),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
-        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-        cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
-      },
-      domainNames: [`${envPrefix}payments.${domainName}`],
-      certificate: certificates.payments,
-    });
-
-    const qrCodesDistribution = new cloudfront.Distribution(this, 'QRCodesApiDistribution', {
-      defaultBehavior: {
-        origin: new origins.HttpOrigin(apiGateways.qrCodes.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
-          originPath: `/prod`, // QR Codes API uses /prod stage
-        }),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
-        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-        cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
-      },
-      domainNames: [`${envPrefix}qr.${domainName}`],
-      certificate: certificates.qrCodes,
-    });
-
-    const analyticsDistribution = new cloudfront.Distribution(this, 'AnalyticsApiDistribution', {
-      defaultBehavior: {
-        origin: new origins.HttpOrigin(apiGateways.analytics.urlForPath().replace('https://', '').replace('http://', '').split('/')[0], {
-          originPath: `/${environment}`,
-        }),
-        viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
-        cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
-        originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER,
-        allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
-        cachedMethods: cloudfront.CachedMethods.CACHE_GET_HEAD,
-      },
-      domainNames: [`${envPrefix}analytics.${domainName}`],
-      certificate: certificates.analytics,
-    });
-
-    // Create Route 53 records for each domain using environment-aware naming
-    new route53.ARecord(this, 'MainApiAliasRecord', {
+    // Create single Route 53 record for unified mobile API
+    new route53.ARecord(this, 'UnifiedMobileApiAliasRecord', {
       zone: this.hostedZone,
       recordName: `${envPrefix}api.${domainName}`,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(mainDistribution)),
+      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(unifiedDistribution)),
     });
 
-    new route53.ARecord(this, 'EventsApiAliasRecord', {
-      zone: this.hostedZone,
-      recordName: `${envPrefix}events.${domainName}`,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(eventsDistribution)),
-    });
-
-    new route53.ARecord(this, 'BookingsApiAliasRecord', {
-      zone: this.hostedZone,
-      recordName: `${envPrefix}bookings.${domainName}`,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(bookingsDistribution)),
-    });
-
-    new route53.ARecord(this, 'PaymentsApiAliasRecord', {
-      zone: this.hostedZone,
-      recordName: `${envPrefix}payments.${domainName}`,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(paymentsDistribution)),
-    });
-
-    new route53.ARecord(this, 'QRCodesApiAliasRecord', {
-      zone: this.hostedZone,
-      recordName: `${envPrefix}qr.${domainName}`,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(qrCodesDistribution)),
-    });
-
-    new route53.ARecord(this, 'AnalyticsApiAliasRecord', {
-      zone: this.hostedZone,
-      recordName: `${envPrefix}analytics.${domainName}`,
-      target: route53.RecordTarget.fromAlias(new targets.CloudFrontTarget(analyticsDistribution)),
-    });
-
-    // Outputs with environment-aware URLs
-    new cdk.CfnOutput(this, 'MainApiUrl', {
+    // Output for unified mobile API
+    new cdk.CfnOutput(this, 'UnifiedMobileApiUrl', {
       value: `https://${envPrefix}api.${domainName}`,
-      description: `Main API Gateway URL (Auth, Notifications, Users) - ${environment}`,
-    });
-
-    new cdk.CfnOutput(this, 'EventsApiUrl', {
-      value: `https://${envPrefix}events.${domainName}`,
-      description: `Events API Gateway URL - ${environment}`,
-    });
-
-    new cdk.CfnOutput(this, 'BookingsApiUrl', {
-      value: `https://${envPrefix}bookings.${domainName}`,
-      description: `Bookings API Gateway URL - ${environment}`,
-    });
-
-    new cdk.CfnOutput(this, 'PaymentsApiUrl', {
-      value: `https://${envPrefix}payments.${domainName}`,
-      description: `Payments API Gateway URL - ${environment}`,
-    });
-
-    new cdk.CfnOutput(this, 'QRCodesApiUrl', {
-      value: `https://${envPrefix}qr.${domainName}`,
-      description: `QR Codes API Gateway URL - ${environment}`,
-    });
-
-    new cdk.CfnOutput(this, 'AnalyticsApiUrl', {
-      value: `https://${envPrefix}analytics.${domainName}`,
-      description: `Analytics API Gateway URL - ${environment}`,
+      description: `Unified Mobile API Gateway - Single endpoint for all services (${environment})`,
     });
 
     // Create DNS configuration guide

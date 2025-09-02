@@ -8,7 +8,38 @@
     {
       "key": "baseUrl",
       "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
-      "type": "string"
+      "type": "string",
+      "description": "Main API Gateway (Health Check only)"
+    },
+    {
+      "key": "eventsApiUrl",
+      "value": "https://a5sma74inf.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Events API Gateway"
+    },
+    {
+      "key": "bookingsApiUrl",
+      "value": "https://bxmcilkslg.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Bookings API Gateway"
+    },
+    {
+      "key": "paymentsApiUrl",
+      "value": "https://rmjz94rovg.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Payments API Gateway"
+    },
+    {
+      "key": "qrCodesApiUrl",
+      "value": "https://tvww3bv8t5.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "QR Codes API Gateway"
+    },
+    {
+      "key": "analyticsApiUrl",
+      "value": "https://9l0qlqw46a.execute-api.ca-central-1.amazonaws.com/dev",
+      "type": "string",
+      "description": "Analytics API Gateway"
     },
     {
       "key": "userPoolId",

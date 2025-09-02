@@ -7,9 +7,9 @@
   "variable": [
     {
       "key": "baseUrl",
-      "value": "https://r2nbmrglq6.execute-api.ca-central-1.amazonaws.com/dev",
+      "value": "https://dev-api.event.tkhtech.com",
       "type": "string",
-      "description": "Unified API Gateway - Single endpoint for all services"
+      "description": "Unified Mobile API Gateway - Single custom domain for all services"
     },
     {
       "key": "userPoolId",

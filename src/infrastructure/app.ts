@@ -16,6 +16,8 @@ import { MultiDomainIntegrationStack } from './stacks/MultiDomainIntegrationStac
 import { CertificateStack } from './stacks/CertificateStack';
 import { getEnvironmentConfig, validateEnvironmentConfig } from './config/environments';
 import * as route53 from 'aws-cdk-lib/aws-route53';
+import * as ec2 from 'aws-cdk-lib/aws-ec2';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
 
 const app = new cdk.App();
 
@@ -50,22 +52,58 @@ const commonProps: cdk.StackProps = {
   }
 };
 
-// Main infrastructure stack (shared resources)
-const eventManagementStack = new EventManagementStack(app, `EventManagement-${environment}`, {
-  ...commonProps,
-  environment,
-  description: 'Event Management Platform - Shared Infrastructure',
-  config: envConfig
+// Create temporary VPC for UserManagementStack
+const tempVpc = new ec2.Vpc(app, `TempVPC-${environment}`, {
+  maxAzs: 2,
+  natGateways: 1,
+  subnetConfiguration: [
+    {
+      cidrMask: 24,
+      name: 'Public',
+      subnetType: ec2.SubnetType.PUBLIC,
+    },
+    {
+      cidrMask: 24,
+      name: 'Private',
+      subnetType: ec2.SubnetType.PRIVATE_WITH_EGRESS,
+    }
+  ]
 });
 
-// User Management Service Stack
+const tempSecurityGroup = new ec2.SecurityGroup(app, `TempSecurityGroup-${environment}`, {
+  vpc: tempVpc,
+  description: 'Temporary security group for UserManagementStack',
+  allowAllOutbound: true,
+});
+
+// User Management Service Stack (must be created first for userPool)
 const userManagementStack = new UserManagementStack(app, `UserManagement-${environment}`, {
   ...commonProps,
   environment,
   description: 'User Management Service - Authentication and User Management',
-  vpc: eventManagementStack.vpc,
-  securityGroup: eventManagementStack.securityGroup,
-  apiGateway: eventManagementStack.apiGateway,
+  vpc: tempVpc,
+  securityGroup: tempSecurityGroup,
+  apiGateway: new apigateway.RestApi(app, `TempAPI-${environment}`, {
+    restApiName: `TempAPI-${environment}`,
+    description: 'Temporary API Gateway for UserManagementStack',
+    defaultCorsPreflightOptions: {
+      allowOrigins: apigateway.Cors.ALL_ORIGINS,
+      allowMethods: apigateway.Cors.ALL_METHODS,
+      allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    },
+    deployOptions: {
+      stageName: environment,
+    },
+  }),
+  config: envConfig
+});
+
+// Main infrastructure stack (shared resources) - now with userPool
+const eventManagementStack = new EventManagementStack(app, `EventManagement-${environment}`, {
+  ...commonProps,
+  environment,
+  description: 'Event Management Platform - Shared Infrastructure',
+  userPool: userManagementStack.userPool,
   config: envConfig
 });
 
@@ -159,41 +197,21 @@ if (domainName) {
     environment,
   });
 
-  // Create multi-domain integration stack with certificates
+  // Create simplified multi-domain integration stack for unified mobile API
   multiDomainIntegrationStack = new MultiDomainIntegrationStack(app, `MultiDomainIntegration-${environment}`, {
     ...commonProps,
     environment,
-    description: 'Multi-Domain Integration - Custom Domains for All Services',
+    description: 'Unified Mobile API - Single Custom Domain for All Services',
     domainName,
-    apiGateways: {
-      main: eventManagementStack.apiGateway,
-      events: eventManagementServiceStack.apiGateway,
-      bookings: bookingServiceStack.apiGateway,
-      payments: paymentServiceStack.apiGateway,
-      qrCodes: qrCodeValidationStack.apiGateway,
-      analytics: analyticsServiceStack.analyticsApiGateway,
-    },
-    certificates: {
-      main: certificateStack.mainApiCertificate,
-      events: certificateStack.eventsApiCertificate,
-      bookings: certificateStack.bookingsApiCertificate,
-      payments: certificateStack.paymentsApiCertificate,
-      qrCodes: certificateStack.qrCodesApiCertificate,
-      analytics: certificateStack.analyticsApiCertificate,
-    },
+    mainApiGateway: eventManagementStack.apiGateway,
+    mainCertificate: certificateStack.mainApiCertificate,
     config: envConfig,
     crossRegionReferences: true, // Enable cross-region references for certificates
   });
   
-  // Add dependencies
+  // Add dependencies for unified mobile API
   multiDomainIntegrationStack.addDependency(certificateStack);
   multiDomainIntegrationStack.addDependency(eventManagementStack);
-  multiDomainIntegrationStack.addDependency(userManagementStack);
-  multiDomainIntegrationStack.addDependency(eventManagementServiceStack);
-  multiDomainIntegrationStack.addDependency(bookingServiceStack);
-  multiDomainIntegrationStack.addDependency(paymentServiceStack);
-  multiDomainIntegrationStack.addDependency(qrCodeValidationStack);
-  multiDomainIntegrationStack.addDependency(analyticsServiceStack);
 }
 
 // Stack dependencies

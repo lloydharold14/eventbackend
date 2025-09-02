@@ -17,11 +17,13 @@ import * as sns from 'aws-cdk-lib/aws-sns';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as path from 'path';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import { EnvironmentConfig } from '../config/environments';
 
 export interface EventManagementStackProps extends cdk.StackProps {
   environment: string;
   config: EnvironmentConfig;
+  userPool: cognito.IUserPool;
 }
 
 export class EventManagementStack extends cdk.Stack {
@@ -37,7 +39,7 @@ export class EventManagementStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: EventManagementStackProps) {
     super(scope, id, props);
 
-    const { environment } = props;
+    const { environment, userPool } = props;
     const resourcePrefix = `${id.toLowerCase()}-${environment}`;
 
     // 1. VPC Configuration
@@ -333,6 +335,12 @@ export class EventManagementStack extends cdk.Stack {
     });
 
     // 10. API Gateway Resources and Methods
+    
+    // Cognito Authorizer for protected endpoints
+    const cognitoAuthorizer = new apigateway.CognitoUserPoolsAuthorizer(this, 'EventManagementCognitoAuthorizer', {
+      cognitoUserPools: [userPool]
+    });
+    
     const healthResource = this.apiGateway.root.addResource('health');
     const healthIntegration = new apigateway.LambdaIntegration(healthCheckLambda);
     healthResource.addMethod('GET', healthIntegration, {
@@ -383,6 +391,61 @@ export class EventManagementStack extends cdk.Stack {
     const notificationHealthResource = notificationsResource.addResource('health');
     notificationHealthResource.addMethod('GET', new apigateway.LambdaIntegration(notificationHealthCheckLambda), {
       authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Mobile-optimized unified endpoints
+    // Events endpoints (public)
+    const eventsResource = this.apiGateway.root.addResource('events');
+    eventsResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+    
+    const eventResource = eventsResource.addResource('{eventId}');
+    eventResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizationType: apigateway.AuthorizationType.NONE,
+    });
+
+    // Bookings endpoints (protected)
+    const bookingsResource = this.apiGateway.root.addResource('bookings');
+    const userBookingsResource = bookingsResource.addResource('user');
+    userBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    const eventBookingsResource = bookingsResource.addResource('event').addResource('{eventId}');
+    eventBookingsResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    const bookingStatisticsResource = bookingsResource.addResource('statistics');
+    bookingStatisticsResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // Payments endpoints (protected)
+    const paymentsResource = this.apiGateway.root.addResource('payments');
+    const paymentResource = paymentsResource.addResource('{paymentId}');
+    paymentResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // QR Codes endpoints (protected)
+    const qrCodesResource = this.apiGateway.root.addResource('qr-codes');
+    qrCodesResource.addMethod('POST', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
+    });
+
+    // Analytics endpoints (protected)
+    const analyticsResource = this.apiGateway.root.addResource('analytics');
+    const analyticsConfigResource = analyticsResource.addResource('config');
+    analyticsConfigResource.addMethod('GET', new apigateway.LambdaIntegration(healthCheckLambda), {
+      authorizer: cognitoAuthorizer,
+      authorizationType: apigateway.AuthorizationType.COGNITO,
     });
 
     // 11. CloudWatch Dashboard
