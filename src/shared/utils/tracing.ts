@@ -6,6 +6,9 @@ const logger = new Logger({ serviceName: 'tracing' });
 
 // Note: AWSXRay is mocked by Jest in test environment
 
+// Configuration to disable X-Ray tracing (set to true to disable)
+const DISABLE_XRAY = process.env.DISABLE_XRAY === 'true' || true;
+
 // X-Ray Tracing Configuration
 export interface TracingConfig {
   serviceName: string;
@@ -20,12 +23,12 @@ export interface TracingConfig {
 // Default tracing configuration
 export const DEFAULT_TRACING_CONFIG: TracingConfig = {
   serviceName: 'event-management-platform',
-  enableTracing: true,
-  captureHTTP: true,
-  captureAWS: true,
-  captureSQL: true,
-  capturePromise: true,
-  captureError: true,
+  enableTracing: !DISABLE_XRAY, // Disabled if DISABLE_XRAY is true
+  captureHTTP: !DISABLE_XRAY,
+  captureAWS: !DISABLE_XRAY,
+  captureSQL: !DISABLE_XRAY,
+  capturePromise: !DISABLE_XRAY,
+  captureError: !DISABLE_XRAY,
 };
 
 // Track if tracing has been initialized
@@ -40,7 +43,7 @@ export function initializeTracing(config: Partial<TracingConfig> = {}): void {
   
   const tracingConfig = { ...DEFAULT_TRACING_CONFIG, ...config };
   
-  if (!tracingConfig.enableTracing) {
+  if (!tracingConfig.enableTracing || DISABLE_XRAY) {
     logger.info('X-Ray tracing disabled');
     tracingInitialized = true;
     return;
@@ -66,6 +69,10 @@ export function initializeTracing(config: Partial<TracingConfig> = {}): void {
 // Get current segment
 export function getCurrentSegment(): AWSXRay.Subsegment | undefined {
   try {
+    if (DISABLE_XRAY) {
+      return undefined;
+    }
+    
     const segment = AWSXRay.getSegment();
     // Check if AWSXRay.Subsegment is available and segment is an instance of it
     if (AWSXRay.Subsegment && segment instanceof AWSXRay.Subsegment) {
@@ -81,6 +88,10 @@ export function getCurrentSegment(): AWSXRay.Subsegment | undefined {
 // Create new subsegment
 export function createSubsegment(name: string): AWSXRay.Subsegment | undefined {
   try {
+    if (DISABLE_XRAY) {
+      return undefined;
+    }
+    
     const segment = getCurrentSegment();
     return segment?.addNewSubsegment(name);
   } catch (error) {
@@ -95,6 +106,11 @@ export async function traceAsyncOperation<T>(
   operation: () => Promise<T>,
   metadata?: Record<string, any>
 ): Promise<T> {
+  if (DISABLE_XRAY) {
+    // If X-Ray is disabled, just execute the operation
+    return operation();
+  }
+  
   const subsegment = createSubsegment(operationName);
   
   if (metadata && subsegment) {
@@ -126,6 +142,10 @@ export function traceHTTPRequest(
   url: string,
   headers?: Record<string, string>
 ): AWSXRay.Subsegment | undefined {
+  if (DISABLE_XRAY) {
+    return undefined;
+  }
+  
   const subsegment = createSubsegment(`HTTP ${method} ${new URL(url).hostname}`);
   
   if (subsegment) {
@@ -145,6 +165,10 @@ export function traceDatabaseOperation(
   table: string,
   query?: string
 ): AWSXRay.Subsegment | undefined {
+  if (DISABLE_XRAY) {
+    return undefined;
+  }
+  
   const subsegment = createSubsegment(`DB ${operation} ${table}`);
   
   if (subsegment) {
@@ -164,6 +188,10 @@ export function traceExternalService(
   operation: string,
   endpoint?: string
 ): AWSXRay.Subsegment | undefined {
+  if (DISABLE_XRAY) {
+    return undefined;
+  }
+  
   const subsegment = createSubsegment(`${serviceName} ${operation}`);
   
   if (subsegment) {
@@ -189,6 +217,10 @@ export function extractCorrelationId(event: APIGatewayProxyEvent): string {
 
 // Add correlation ID to current segment
 export function addCorrelationId(correlationId: string): void {
+  if (DISABLE_XRAY) {
+    return;
+  }
+  
   const segment = getCurrentSegment();
   if (segment) {
     segment.addMetadata('correlation_id', correlationId);
@@ -201,6 +233,11 @@ export function traceLambdaExecution<T>(
   event: APIGatewayProxyEvent
 ): (event: APIGatewayProxyEvent) => Promise<T> {
   return async (event: APIGatewayProxyEvent) => {
+    if (DISABLE_XRAY) {
+      // If X-Ray is disabled, just execute the handler
+      return handler(event);
+    }
+    
     const correlationId = extractCorrelationId(event);
     const startTime = Date.now();
     
@@ -256,10 +293,13 @@ export class PerformanceTracer {
   
   constructor(operationName: string, metadata?: Record<string, any>) {
     this.startTime = Date.now();
-    this.subsegment = createSubsegment(operationName);
     
-    if (metadata && this.subsegment) {
-      this.subsegment.addMetadata('performance', metadata);
+    if (!DISABLE_XRAY) {
+      this.subsegment = createSubsegment(operationName);
+      
+      if (metadata && this.subsegment) {
+        this.subsegment.addMetadata('performance', metadata);
+      }
     }
   }
   

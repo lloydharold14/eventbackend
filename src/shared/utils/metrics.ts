@@ -3,8 +3,11 @@ import { Logger } from '@aws-lambda-powertools/logger';
 
 const logger = new Logger({ serviceName: 'metrics' });
 
-// CloudWatch client
-const cloudWatchClient = new CloudWatchClient({ region: process.env.AWS_REGION || 'us-east-1' });
+// Configuration to disable CloudWatch calls (set to true to disable)
+const DISABLE_CLOUDWATCH = process.env.DISABLE_CLOUDWATCH === 'true' || true;
+
+// CloudWatch client (only created if not disabled)
+const cloudWatchClient = DISABLE_CLOUDWATCH ? null : new CloudWatchClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 // Metric Namespace
 export const METRIC_NAMESPACE = 'EventManagementPlatform';
@@ -124,6 +127,41 @@ export enum BusinessMetricName {
   AUTHENTICATION_FAILURES = 'AuthenticationFailures',
   SUSPICIOUS_ACTIVITIES = 'SuspiciousActivities',
   RATE_LIMIT_VIOLATIONS = 'RateLimitViolations',
+  
+  // Organizer Management Metrics
+  ORGANIZERS_CREATED = 'OrganizersCreated',
+  ORGANIZERS_UPDATED = 'OrganizersUpdated',
+  ORGANIZERS_VERIFIED = 'OrganizersVerified',
+  
+  // Team Management Metrics
+  TEAM_MEMBERS_ADDED = 'TeamMembersAdded',
+  TEAM_MEMBERS_REMOVED = 'TeamMembersRemoved',
+  TEAM_INVITATIONS_SENT = 'TeamInvitationsSent',
+  TEAM_INVITATIONS_ACCEPTED = 'TeamInvitationsAccepted',
+  
+  // Marketing Metrics
+  MARKETING_CAMPAIGNS_CREATED = 'MarketingCampaignsCreated',
+  MARKETING_CAMPAIGNS_ACTIVATED = 'MarketingCampaignsActivated',
+  MARKETING_CAMPAIGNS_PAUSED = 'MarketingCampaignsPaused',
+  MARKETING_CAMPAIGNS_DELETED = 'MarketingCampaignsDeleted',
+  MARKETING_CAMPAIGNS_EXECUTED = 'MarketingCampaignsExecuted',
+  EMAIL_CAMPAIGNS_SENT = 'EmailCampaignsSent',
+  SOCIAL_MEDIA_POSTS_PUBLISHED = 'SocialMediaPostsPublished',
+  
+  // Support Metrics
+  SUPPORT_MESSAGES_CREATED = 'SupportMessagesCreated',
+  SUPPORT_MESSAGES_RESOLVED = 'SupportMessagesResolved',
+  SUPPORT_REPLIES_SENT = 'SupportRepliesSent',
+  AUTO_REPLIES_CREATED = 'AutoRepliesCreated',
+  AUTO_REPLIES_TRIGGERED = 'AutoRepliesTriggered',
+  FAQS_CREATED = 'FAQsCreated',
+  FAQS_VIEWED = 'FAQsViewed',
+  
+  // Financial Metrics
+  FINANCIAL_RECORDS_CREATED = 'FinancialRecordsCreated',
+  FINANCIAL_TRANSACTIONS_PROCESSED = 'FinancialTransactionsProcessed',
+  PAYOUT_METHODS_ADDED = 'PayoutMethodsAdded',
+  TAX_CONFIGURATIONS_UPDATED = 'TaxConfigurationsUpdated',
 }
 
 // Technical Metrics
@@ -439,7 +477,7 @@ export class MetricsManager {
     this.recordMetric(metricName, value, unit, dimensions);
   }
 
-  // Flush metrics to CloudWatch
+  // Flush metrics to CloudWatch (or just log if disabled)
   public async flushMetrics(): Promise<void> {
     if (this.metricsBuffer.length === 0) {
       return;
@@ -449,6 +487,20 @@ export class MetricsManager {
     this.metricsBuffer = [];
 
     try {
+      if (DISABLE_CLOUDWATCH) {
+        // Just log metrics instead of sending to CloudWatch
+        logger.info('Metrics logged (CloudWatch disabled)', {
+          metricCount: metricsToSend.length,
+          metrics: metricsToSend
+        });
+        return;
+      }
+
+      if (!cloudWatchClient) {
+        logger.warn('CloudWatch client not available');
+        return;
+      }
+
       const command = new PutMetricDataCommand({
         Namespace: METRIC_NAMESPACE,
         MetricData: metricsToSend.map(metric => ({
